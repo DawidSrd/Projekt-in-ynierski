@@ -5,6 +5,7 @@ import string
 
 
 
+
 class Service(models.Model):
     """
     Usługa widoczna w katalogu dla klienta, np. "Czyszczenie laptopa".
@@ -172,3 +173,43 @@ class ServiceOrderComment(models.Model):
 
     def __str__(self) -> str:
         return f"Comment({self.visibility}) for {self.order.order_number}"
+    
+   
+class AuditLog(models.Model):
+    """
+    Dziennik zdarzeń systemowych (audit trail).
+    Rejestruje zmianę stanu obiektów domenowych, np. zleceń.
+    """
+
+    class EntityType(models.TextChoices):
+        SERVICE_ORDER = "SERVICE_ORDER", "Zlecenie serwisowe"
+        SERVICE_ORDER_COMMENT = "SERVICE_ORDER_COMMENT", "Komentarz do zlecenia"
+
+    class Action(models.TextChoices):
+        STATUS_CHANGED = "STATUS_CHANGED", "Zmiana statusu"
+        COMMENT_ADDED = "COMMENT_ADDED", "Dodanie komentarza"
+        ESTIMATE_SET = "ESTIMATE_SET", "Ustawienie estymacji"
+        ORDER_CANCELED = "ORDER_CANCELED", "Anulowanie zlecenia"
+
+    entity_type = models.CharField(max_length=50, choices=EntityType.choices, db_index=True)
+    entity_id = models.PositiveIntegerField(db_index=True)
+
+    action = models.CharField(max_length=50, choices=Action.choices, db_index=True)
+
+    # wartości przed/po - na start jako tekst (później możemy przejść na JSONField w Postgres)
+    old_value = models.TextField(null=True, blank=True)
+    new_value = models.TextField(null=True, blank=True)
+
+    # kto wykonał akcję (na razie opcjonalnie, bo jeszcze nie spięliśmy pracowników jako osobny model)
+    performed_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+    )
+
+    performed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"{self.entity_type}#{self.entity_id} {self.action}"

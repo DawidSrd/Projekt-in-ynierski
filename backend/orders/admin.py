@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Service, ServiceOptionGroup, ServiceOption, ServiceOrder
 from .models import ServiceOrderComment
+from .models import AuditLog
 
 
 @admin.register(Service)
@@ -36,3 +37,11 @@ class ServiceOrderAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("order_number", "customer_name", "customer_email", "customer_phone")
     inlines = [ServiceOrderCommentInline]
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ("entity_type", "entity_id", "action", "performed_by", "performed_at")
+    list_filter = ("entity_type", "action")
+    search_fields = ("entity_type", "entity_id", "old_value", "new_value", "performed_by__username")
+    readonly_fields = ("entity_type", "entity_id", "action", "old_value", "new_value", "performed_by", "performed_at")
+
