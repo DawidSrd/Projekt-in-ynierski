@@ -107,12 +107,12 @@ class ServiceOrder(models.Model):
 
     # Identyfikator biznesowy (publiczny) - używany w guest access / komunikacji z klientem
     order_number = models.CharField(
-    max_length=20,
-    unique=True,
-    db_index=True,
-    default=generate_order_number,
-    editable=False,
-)
+        max_length=20,
+        unique=True,
+        db_index=True,
+        default=generate_order_number,
+        editable=False,
+    )
 
 
     # Dane kontaktowe klienta (do powiadomień + weryfikacji w guest access)
@@ -190,17 +190,36 @@ class AuditLog(models.Model):
         COMMENT_ADDED = "COMMENT_ADDED", "Dodanie komentarza"
         ESTIMATE_SET = "ESTIMATE_SET", "Ustawienie estymacji"
         ORDER_CANCELED = "ORDER_CANCELED", "Anulowanie zlecenia"
+        ORDER_CREATED = "ORDER_CREATED", "Utworzenie zlecenia"
 
-    entity_type = models.CharField(max_length=50, choices=EntityType.choices, db_index=True)
+
+    # Powiązanie wpisu audytowego z konkretnym zleceniem (do widoku inline)
+    order = models.ForeignKey(
+        "orders.ServiceOrder",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        db_index=True,
+    )
+
+    entity_type = models.CharField(
+        max_length=50,
+        choices=EntityType.choices,
+        db_index=True,
+    )
+
     entity_id = models.PositiveIntegerField(db_index=True)
 
-    action = models.CharField(max_length=50, choices=Action.choices, db_index=True)
+    action = models.CharField(
+        max_length=50,
+        choices=Action.choices,
+        db_index=True,
+    )
 
-    # wartości przed/po - na start jako tekst (później możemy przejść na JSONField w Postgres)
     old_value = models.TextField(null=True, blank=True)
     new_value = models.TextField(null=True, blank=True)
 
-    # kto wykonał akcję (na razie opcjonalnie, bo jeszcze nie spięliśmy pracowników jako osobny model)
     performed_by = models.ForeignKey(
         "auth.User",
         on_delete=models.SET_NULL,
