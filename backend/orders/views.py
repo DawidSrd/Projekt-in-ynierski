@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import ServiceOrder, ServiceOrderComment
+from .models import Service, ServiceOrder, ServiceOrderComment
 
 
 def track_order(request):
@@ -50,3 +50,17 @@ def track_order(request):
         }
 
     return render(request, "orders/track_order.html", context)
+
+def service_catalog(request):
+    """
+    Katalog usług dla klienta (read-only).
+    Pokazuje tylko aktywne usługi.
+    """
+    services = Service.objects.filter(is_active=True).order_by("name")
+
+    return render(
+        request,
+        "orders/service_catalog.html",
+        {"services": services},
+    )
+

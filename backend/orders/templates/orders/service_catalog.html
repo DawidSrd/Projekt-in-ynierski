@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Katalog usług</title>
+</head>
+<body>
+  <h1>Katalog usług</h1>
+
+  {% if services %}
+    <ul>
+      {% for s in services %}
+        <li style="margin-bottom:16px;">
+          <strong>{{ s.name }}</strong><br />
+          {% if s.description %}
+            <div>{{ s.description }}</div>
+          {% endif %}
+          <div>
+            Cena: <strong>{{ s.base_price_min }}</strong> – <strong>{{ s.base_price_max }}</strong>
+          </div>
+          <div>
+            Szacowany czas: {{ s.base_duration_minutes }} min
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Brak dostępnych usług.</p>
+  {% endif %}
+</body>
+</html>
