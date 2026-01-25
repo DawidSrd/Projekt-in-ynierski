@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Service, ServiceOptionGroup, ServiceOption, ServiceOrder
+from .models import ServiceOrderComment
 
 
 @admin.register(Service)
@@ -22,9 +23,16 @@ class ServiceOptionAdmin(admin.ModelAdmin):
     list_filter = ("is_active",)
     search_fields = ("name", "group__name", "group__service__name")
 
+class ServiceOrderCommentInline(admin.TabularInline):
+    model = ServiceOrderComment
+    extra = 1
+    fields = ("visibility", "content", "created_at")
+    readonly_fields = ("created_at",)
+
 
 @admin.register(ServiceOrder)
 class ServiceOrderAdmin(admin.ModelAdmin):
     list_display = ("order_number", "customer_name", "status", "created_at")
     list_filter = ("status",)
     search_fields = ("order_number", "customer_name", "customer_email", "customer_phone")
+    inlines = [ServiceOrderCommentInline]

@@ -142,3 +142,33 @@ class ServiceOrder(models.Model):
 
     def __str__(self) -> str:
         return f"ServiceOrder {self.order_number}"
+
+class ServiceOrderComment(models.Model):
+    """
+    Komentarz do zlecenia.
+    visibility rozdziela komentarze wewnętrzne (dla serwisu) i publiczne (dla klienta).
+    """
+
+    class Visibility(models.TextChoices):
+        INTERNAL = "INTERNAL", "Wewnętrzny"
+        PUBLIC = "PUBLIC", "Publiczny"
+
+    order = models.ForeignKey(
+        ServiceOrder,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+
+    visibility = models.CharField(
+        max_length=20,
+        choices=Visibility.choices,
+        default=Visibility.INTERNAL,
+        db_index=True,
+    )
+
+    content = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Comment({self.visibility}) for {self.order.order_number}"
