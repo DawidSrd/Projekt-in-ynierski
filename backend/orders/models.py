@@ -1,5 +1,8 @@
 from django.db import models
 from .choices import ServiceOrderStatus
+import secrets
+import string
+
 
 
 class Service(models.Model):
@@ -85,6 +88,16 @@ class ServiceOption(models.Model):
         return f"{self.group.name} / {self.name}"
 
 
+def generate_order_number(prefix: str = "SRV", length: int = 8) -> str:
+    """
+    Generuje publiczny numer zlecenia w formacie: SRV-XXXXXXXX.
+    Używa bezpiecznego generatora losowego (secrets).
+    """
+    alphabet = string.ascii_uppercase + string.digits  # A-Z + 0-9
+    random_part = "".join(secrets.choice(alphabet) for _ in range(length))
+    return f"{prefix}-{random_part}"
+
+
 class ServiceOrder(models.Model):
     """
     Encja zlecenia serwisowego (Service Ticket).
@@ -93,10 +106,13 @@ class ServiceOrder(models.Model):
 
     # Identyfikator biznesowy (publiczny) - używany w guest access / komunikacji z klientem
     order_number = models.CharField(
-        max_length=20,
-        unique=True,
-        db_index=True,
-    )
+    max_length=20,
+    unique=True,
+    db_index=True,
+    default=generate_order_number,
+    editable=False,
+)
+
 
     # Dane kontaktowe klienta (do powiadomień + weryfikacji w guest access)
     customer_name = models.CharField(max_length=200)
