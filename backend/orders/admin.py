@@ -38,6 +38,27 @@ class AuditLogInline(admin.TabularInline):
     readonly_fields = ("action", "performed_by", "performed_at", "old_value", "new_value")
     can_delete = False
 
+@admin.register(ServiceOrderComment)
+class ServiceOrderCommentAdmin(admin.ModelAdmin):
+    list_display = ("order", "visibility", "created_at")
+    list_filter = ("visibility",)
+    search_fields = ("content", "order__order_number")
+    readonly_fields = ("created_at",)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        # Logujemy tylko nowe komentarze (nie edycję)
+        if not change:
+            AuditLog.objects.create(
+                order=obj.order,
+                entity_type=AuditLog.EntityType.SERVICE_ORDER_COMMENT,
+                entity_id=obj.id,
+                action=AuditLog.Action.COMMENT_ADDED,
+                new_value=f"visibility={obj.visibility}",
+                performed_by=request.user,
+            )
+
 
 @admin.register(ServiceOrder)
 class ServiceOrderAdmin(admin.ModelAdmin):

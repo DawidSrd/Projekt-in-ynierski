@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Śledzenie zlecenia</title>
+</head>
+<body>
+  <h1>Śledzenie zlecenia</h1>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div>
+      <label>Numer zlecenia</label><br />
+      <input type="text" name="order_number" placeholder="SRV-XXXXXXXX" required />
+    </div>
+
+    <div style="margin-top:10px;">
+      <label>E-mail</label><br />
+      <input type="email" name="email" placeholder="klient@example.com" />
+    </div>
+
+    <div style="margin-top:10px;">
+      <label>Numer telefonu</label><br />
+      <input type="text" name="phone" placeholder="+48..." />
+    </div>
+
+    <div style="margin-top:10px;">
+      <button type="submit">Sprawdź status</button>
+    </div>
+  </form>
+
+  {% if error %}
+    <p style="color:red; margin-top:15px;">{{ error }}</p>
+  {% endif %}
+
+  {% if result %}
+    <hr />
+    <h2>Wynik</h2>
+    <p><strong>Numer:</strong> {{ result.order_number }}</p>
+    <p><strong>Status:</strong> {{ result.status }}</p>
+    <p><strong>Estymacja:</strong> {{ result.estimated_completion_at|default:"brak" }}</p>
+
+    <h3>Komentarze (publiczne)</h3>
+    {% if result.comments %}
+      <ul>
+        {% for c in result.comments %}
+          <li>{{ c.created_at }} — {{ c.content }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Brak komentarzy.</p>
+    {% endif %}
+  {% endif %}
+</body>
+</html>
