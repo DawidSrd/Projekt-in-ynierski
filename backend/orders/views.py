@@ -44,7 +44,7 @@ def track_order(request):
 
         context["result"] = {
             "order_number": order.order_number,
-            "status": order.status,
+            "status": order.get_status_display(),
             "estimated_completion_at": order.estimated_completion_at,
             "comments": public_comments,
         }

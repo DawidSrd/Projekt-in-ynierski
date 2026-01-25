@@ -3,6 +3,7 @@ from .models import Service, ServiceOptionGroup, ServiceOption, ServiceOrder
 from .models import ServiceOrderComment
 from .models import AuditLog
 from .models import ServiceOrder, AuditLog
+from django.core.mail import send_mail
 
 
 @admin.register(Service)
@@ -93,15 +94,30 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             return
 
         if old_status != obj.status:
+            # 1. Zapis do audit log
             AuditLog.objects.create(
-                order=obj,
-                entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                entity_id=obj.id,
-                action=AuditLog.Action.STATUS_CHANGED,
-                old_value=old_status,
-                new_value=obj.status,
-                performed_by=request.user,
-            )
+            order=obj,
+            entity_type=AuditLog.EntityType.SERVICE_ORDER,
+            entity_id=obj.id,
+            action=AuditLog.Action.STATUS_CHANGED,
+            old_value=old_status,
+            new_value=obj.status,
+            performed_by=request.user,
+        )
+
+        # 2. Wysłanie e-maila do klienta
+        send_mail(
+            subject=f"Zmiana statusu zlecenia {obj.order_number}",
+            message=(
+                f"Status Twojego zlecenia {obj.order_number} został zmieniony.\n\n"
+                f"Aktualny status: {obj.get_status_display()}\n"
+            ),
+            from_email=None,
+            recipient_list=[obj.customer_email],
+        )
+
+
+
 
         if old_estimate != obj.estimated_completion_at:
             AuditLog.objects.create(
