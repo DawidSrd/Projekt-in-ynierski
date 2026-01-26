@@ -174,6 +174,64 @@ class ServiceOrderComment(models.Model):
     def __str__(self) -> str:
         return f"Comment({self.visibility}) for {self.order.order_number}"
     
+
+class ServiceOrderItem(models.Model):
+    """
+    Pozycja zlecenia - snapshot usługi i wyceny w momencie złożenia zamówienia.
+    Dzięki temu zmiana cennika w przyszłości nie zmienia historycznego zlecenia.
+    """
+    order = models.ForeignKey(
+        ServiceOrder,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+
+    # Referencja do usługi + snapshot nazwy (na wypadek zmiany nazwy w CMS)
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.PROTECT,
+        related_name="order_items",
+    )
+    service_name_snapshot = models.CharField(max_length=200)
+
+    # Snapshot ceny bazowej usługi
+    base_price_min_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
+    base_price_max_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # Cena policzona po konfiguracji (wynikowa) - widełki
+    calculated_price_min = models.DecimalField(max_digits=10, decimal_places=2)
+    calculated_price_max = models.DecimalField(max_digits=10, decimal_places=2)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Item for {self.order.order_number} / {self.service_name_snapshot}"
+
+
+class ServiceOrderItemOption(models.Model):
+    """
+    Snapshot wybranej opcji w pozycji zlecenia.
+    Trzymamy też snapshot nazwy i wpływu na cenę.
+    """
+    order_item = models.ForeignKey(
+        ServiceOrderItem,
+        on_delete=models.CASCADE,
+        related_name="selected_options",
+    )
+
+    option = models.ForeignKey(
+        ServiceOption,
+        on_delete=models.PROTECT,
+        related_name="order_item_options",
+    )
+    option_name_snapshot = models.CharField(max_length=200)
+
+    price_delta_min_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
+    price_delta_max_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self) -> str:
+        return f"{self.option_name_snapshot}"
+
    
 class AuditLog(models.Model):
     """

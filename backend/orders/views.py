@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .models import Service, ServiceOptionGroup, ServiceOption
-from .models import ServiceOrder, ServiceOrderComment
+from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, ServiceOrderItemOption
 
 
 def track_order(request):
@@ -52,6 +52,7 @@ def track_order(request):
 
     return render(request, "orders/track_order.html", context)
 
+
 def service_catalog(request):
     """
     Katalog usług dla klienta (read-only).
@@ -64,6 +65,7 @@ def service_catalog(request):
         "orders/service_catalog.html",
         {"services": services},
     )
+
 
 def service_configurator(request, service_id: int):
     """
@@ -119,7 +121,43 @@ def service_configurator(request, service_id: int):
             "total_max": total_max,
             "selected_options": selected_options,
         }
+        action = request.POST.get("action")
 
+        if action == "create_order":
+            customer_name = (request.POST.get("customer_name") or "").strip()
+            customer_email = (request.POST.get("customer_email") or "").strip()
+            customer_phone = (request.POST.get("customer_phone") or "").strip()
+
+            if not customer_name or not customer_email or not customer_phone:
+                result["error"] = "Uzupełnij dane kontaktowe, aby utworzyć zlecenie."
+            else:
+                order = ServiceOrder.objects.create(
+                    customer_name=customer_name,
+                    customer_email=customer_email,
+                    customer_phone=customer_phone,
+                )
+
+                order_item = ServiceOrderItem.objects.create(
+                    order=order,
+                    service=service,
+                    service_name_snapshot=service.name,
+                    base_price_min_snapshot=service.base_price_min,
+                    base_price_max_snapshot=service.base_price_max,
+                    calculated_price_min=total_min,
+                    calculated_price_max=total_max,
+                )
+
+                for opt in selected_options:
+                    ServiceOrderItemOption.objects.create(
+                        order_item=order_item,
+                        option=opt,
+                        option_name_snapshot=opt.name,
+                        price_delta_min_snapshot=opt.price_delta_min,
+                        price_delta_max_snapshot=opt.price_delta_max,
+                    )
+
+                result["created_order_number"] = order.order_number
+    
     return render(
         request,
         "orders/service_configurator.html",
