@@ -11,7 +11,10 @@
     <ul>
       {% for s in services %}
         <li style="margin-bottom:16px;">
-          <strong>{{ s.name }}</strong><br />
+          <strong>
+            <a href="/services/{{ s.id }}/">{{ s.name }}</a>
+          </strong><br />
+
           {% if s.description %}
             <div>{{ s.description }}</div>
           {% endif %}

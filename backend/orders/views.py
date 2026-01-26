@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from .models import Service, ServiceOrder, ServiceOrderComment
+from .models import Service, ServiceOptionGroup, ServiceOption
+from .models import ServiceOrder, ServiceOrderComment
 
 
 def track_order(request):
@@ -62,5 +63,70 @@ def service_catalog(request):
         request,
         "orders/service_catalog.html",
         {"services": services},
+    )
+
+def service_configurator(request, service_id: int):
+    """
+    Konfigurator usługi dla klienta:
+    - pokazuje grupy opcji i dostępne opcje
+    - po POST liczy widełki ceny (min/max)
+    """
+    service = Service.objects.get(pk=service_id, is_active=True)
+
+    groups = ServiceOptionGroup.objects.filter(
+        service=service,
+        is_active=True,
+    ).order_by("sort_order", "id")
+
+    # Przygotujemy strukturę: grupa -> opcje
+    group_options = []
+    for g in groups:
+        options = ServiceOption.objects.filter(
+            group=g,
+            is_active=True,
+        ).order_by("sort_order", "id")
+        group_options.append((g, options))
+
+    result = None
+
+    if request.method == "POST":
+        # Zbieramy zaznaczone opcje z formularza
+        selected_option_ids = []
+
+        for g, _opts in group_options:
+            field_name = f"group_{g.id}"
+
+            if g.selection_type == ServiceOptionGroup.SelectionType.SINGLE:
+                chosen = request.POST.get(field_name)
+                if chosen:
+                    selected_option_ids.append(int(chosen))
+            else:
+                chosen_list = request.POST.getlist(field_name)
+                selected_option_ids.extend([int(x) for x in chosen_list if x])
+
+        selected_options = ServiceOption.objects.filter(id__in=selected_option_ids)
+
+        # Liczymy widełki ceny: baza + sumy delt
+        total_min = service.base_price_min
+        total_max = service.base_price_max
+
+        for opt in selected_options:
+            total_min += opt.price_delta_min
+            total_max += opt.price_delta_max
+
+        result = {
+            "total_min": total_min,
+            "total_max": total_max,
+            "selected_options": selected_options,
+        }
+
+    return render(
+        request,
+        "orders/service_configurator.html",
+        {
+            "service": service,
+            "group_options": group_options,
+            "result": result,
+        },
     )
 

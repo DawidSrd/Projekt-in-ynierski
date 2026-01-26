@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Konfigurator usługi</title>
+</head>
+<body>
+  <p><a href="/services/">← Wróć do katalogu</a></p>
+
+  <h1>{{ service.name }}</h1>
+  {% if service.description %}
+    <p>{{ service.description }}</p>
+  {% endif %}
+
+  <p>
+    Cena bazowa: <strong>{{ service.base_price_min }}</strong> – <strong>{{ service.base_price_max }}</strong>
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% for g, options in group_options %}
+      <fieldset style="margin-bottom:16px;">
+        <legend><strong>{{ g.name }}</strong></legend>
+
+        {% if g.selection_type == "SINGLE" %}
+          {% for o in options %}
+            <label>
+              <input type="radio" name="group_{{ g.id }}" value="{{ o.id }}">
+              {{ o.name }}
+              ({{ o.price_delta_min }} – {{ o.price_delta_max }})
+            </label><br />
+          {% endfor %}
+        {% else %}
+          {% for o in options %}
+            <label>
+              <input type="checkbox" name="group_{{ g.id }}" value="{{ o.id }}">
+              {{ o.name }}
+              ({{ o.price_delta_min }} – {{ o.price_delta_max }})
+            </label><br />
+          {% endfor %}
+        {% endif %}
+
+      </fieldset>
+    {% endfor %}
+
+    <button type="submit">Policz cenę</button>
+  </form>
+
+  {% if result %}
+    <hr />
+    <h2>Wycena</h2>
+    <p>
+      Cena po konfiguracji: <strong>{{ result.total_min }}</strong> – <strong>{{ result.total_max }}</strong>
+    </p>
+
+    <h3>Wybrane opcje</h3>
+    {% if result.selected_options %}
+      <ul>
+        {% for o in result.selected_options %}
+          <li>{{ o.group.name }}: {{ o.name }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Nie wybrano żadnych opcji.</p>
+    {% endif %}
+  {% endif %}
+</body>
+</html>
