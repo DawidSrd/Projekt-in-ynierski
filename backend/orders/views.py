@@ -46,12 +46,24 @@ def track_order(request):
             visibility=ServiceOrderComment.Visibility.PUBLIC,
         ).order_by("created_at")
 
+        audit_entries = AuditLog.objects.filter(
+            order=order,
+            action__in=[
+                AuditLog.Action.STATUS_CHANGED,
+                AuditLog.Action.ESTIMATE_SET,
+            ],
+        ).order_by("-performed_at")
+
+
         context["result"] = {
             "order_number": order.order_number,
             "status": order.get_status_display(),
             "estimated_completion_at": order.estimated_completion_at,
             "comments": public_comments,
+            "audit_entries": audit_entries,
         }
+
+
 
     return render(request, "orders/track_order.html", context)
 
@@ -94,11 +106,22 @@ def service_configurator(request, service_id: int):
 
     result = None
 
+    customer_defaults = {
+        "customer_name": "",
+        "customer_email": "",
+        "customer_phone": "",
+    }
+
     if request.method == "POST":
+
+        customer_defaults = {
+            "customer_name": request.POST.get("customer_name", ""),
+            "customer_email": request.POST.get("customer_email", ""),
+            "customer_phone": request.POST.get("customer_phone", ""),
+        }
+
         # Zbieramy zaznaczone opcje z formularza
         selected_option_ids = []
-        print("POST action:", request.POST.get("action"))
-        print("POST keys:", list(request.POST.keys()))
 
         for g, _opts in group_options:
             field_name = f"group_{g.id}"
@@ -142,46 +165,14 @@ def service_configurator(request, service_id: int):
                     customer_phone=customer_phone,
                 )
 
-                order = ServiceOrder.objects.create(
-                    customer_name=customer_name,
-                    customer_email=customer_email,
-                    customer_phone=customer_phone,
-                )
-
-                # AUDIT LOG – utworzenie zlecenia przez klienta (guest)
                 AuditLog.objects.create(
                     order=order,
                     entity_type=AuditLog.EntityType.SERVICE_ORDER,
                     entity_id=order.id,
                     action=AuditLog.Action.ORDER_CREATED,
                     new_value=f"status={order.status}",
-                    performed_by=None,  # klient-guest, brak usera Django
+                    performed_by=None,
                 )
-
-                # MAIL – potwierdzenie przyjęcia zlecenia
-                send_mail(
-                    subject=f"Potwierdzenie przyjęcia zlecenia {order.order_number}",
-                    message=(
-                        f"Dziękujemy! Twoje zlecenie zostało przyjęte.\n\n"
-                        f"Numer zlecenia: {order.order_number}\n"
-                        f"Status: {order.get_status_display()}\n\n"
-                        f"Możesz śledzić status tutaj: /track/\n"
-                    ),
-                    from_email=None,
-                    recipient_list=[order.customer_email],
-                )
-
-                # SNAPSHOT – pozycja zlecenia
-                order_item = ServiceOrderItem.objects.create(
-                    order=order,
-                    service=service,
-                    service_name_snapshot=service.name,
-                    base_price_min_snapshot=service.base_price_min,
-                    base_price_max_snapshot=service.base_price_max,
-                    calculated_price_min=total_min,
-                    calculated_price_max=total_max,
-                )
-
 
                 send_mail(
                     subject=f"Potwierdzenie przyjęcia zlecenia {order.order_number}",
@@ -195,7 +186,6 @@ def service_configurator(request, service_id: int):
                     from_email=None,
                     recipient_list=[order.customer_email],
                 )
-
 
                 order_item = ServiceOrderItem.objects.create(
                     order=order,
@@ -216,17 +206,12 @@ def service_configurator(request, service_id: int):
                         price_delta_max_snapshot=opt.price_delta_max,
                     )
 
-                result["created_order_number"] = order.order_number
-
-    def order_created(request, order_number: str):
-        """
-        Strona potwierdzenia utworzenia zlecenia (GET).
-        """
-        return render(
-            request,
-            "orders/order_created.html",
-            {"order_number": order_number},
-        )
+                return redirect("order_created", order_number=order.order_number)
+            customer_defaults = {
+                "customer_name": request.POST.get("customer_name", "") if request.method == "POST" else "",
+                "customer_email": request.POST.get("customer_email", "") if request.method == "POST" else "",
+                "customer_phone": request.POST.get("customer_phone", "") if request.method == "POST" else "",
+            }
 
     return render(
         request,
@@ -235,6 +220,18 @@ def service_configurator(request, service_id: int):
             "service": service,
             "group_options": group_options,
             "result": result,
+            "customer_defaults": customer_defaults,
         },
+    )
+
+
+def order_created(request, order_number: str):
+    """
+    Strona potwierdzenia utworzenia zlecenia (GET).
+    """
+    return render(
+        request,
+        "orders/order_created.html",
+        {"order_number": order_number},
     )
 

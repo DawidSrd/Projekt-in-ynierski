@@ -45,13 +45,13 @@
 
     <h3>Dane kontaktowe</h3>
     <label>Imię i nazwisko</label><br />
-    <input type="text" name="customer_name" /><br /><br />
+   <input type="text" name="customer_name" value="{{ customer_defaults.customer_name }}" />
 
     <label>E-mail</label><br />
-    <input type="email" name="customer_email" /><br /><br />
+    <input type="email" name="customer_email" value="{{ customer_defaults.customer_email }}" />
 
     <label>Telefon</label><br />
-    <input type="text" name="customer_phone" /><br /><br />
+    <input type="text" name="customer_phone" value="{{ customer_defaults.customer_phone }}" />
 
     <button type="submit" name="action" value="price_only">Policz cenę</button>
     <button type="submit" name="action" value="create_order">Złóż zlecenie</button>
@@ -74,19 +74,20 @@
     {% else %}
       <p>Nie wybrano żadnych opcji.</p>
     {% endif %}
-  {% endif %}
 
-  {% if result.error %}
-    <p style="color:red;">{{ result.error }}</p>
-  {% endif %}
+    {% if result.error %}
+      <p style="color:red;">{{ result.error }}</p>
+    {% endif %}
 
-  {% if result.created_order_number %}
-    <p style="color:green;">
-      Zlecenie utworzone! Numer: <strong>{{ result.created_order_number }}</strong>
-    </p>
-    <p>
-      Status możesz sprawdzić w Guest Access: <a href="/track/">/track/</a>
-    </p>
+    {# To jest opcjonalne: jeśli robisz PRG redirect, to tego już nie potrzebujesz #}
+    {% if result.created_order_number %}
+      <p style="color:green;">
+        Zlecenie utworzone! Numer: <strong>{{ result.created_order_number }}</strong>
+      </p>
+      <p>
+        Status możesz sprawdzić w Guest Access: <a href="/track/">/track/</a>
+      </p>
+    {% endif %}
   {% endif %}
 
 </body>

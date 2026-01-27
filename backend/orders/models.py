@@ -2,6 +2,7 @@ from django.db import models
 from .choices import ServiceOrderStatus
 import secrets
 import string
+from django.utils import timezone
 
 
 
@@ -114,7 +115,6 @@ class ServiceOrder(models.Model):
         editable=False,
     )
 
-
     # Dane kontaktowe klienta (do powiadomień + weryfikacji w guest access)
     customer_name = models.CharField(max_length=200)
     customer_email = models.EmailField()
@@ -131,7 +131,7 @@ class ServiceOrder(models.Model):
     # Estymacja zakończenia ustawiana ręcznie przez technika (opcjonalna)
     estimated_completion_at = models.DateTimeField(null=True, blank=True)
 
-    # Metadane audytowe (kiedy utworzono i kiedy modyfikowano rekord)
+    # Metadane audytowe
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -141,8 +141,23 @@ class ServiceOrder(models.Model):
         """
         return self.status == ServiceOrderStatus.NEW
 
+    def is_overdue(self) -> bool:
+        """
+        Zwraca True, jeśli zlecenie ma ustawioną estymację i termin już minął,
+        a zlecenie nie jest zakończone lub anulowane.
+        """
+        if not self.estimated_completion_at:
+            return False
+
+        if self.status in [ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]:
+            return False
+
+        return timezone.now() > self.estimated_completion_at
+
     def __str__(self) -> str:
         return f"ServiceOrder {self.order_number}"
+
+
 
 class ServiceOrderComment(models.Model):
     """

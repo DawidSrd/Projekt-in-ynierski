@@ -1,30 +1,56 @@
 from django.contrib import admin
-from .models import Service, ServiceOptionGroup, ServiceOption, ServiceOrder
-from .models import ServiceOrderComment
-from .models import AuditLog
-from .models import ServiceOrder, AuditLog
 from django.core.mail import send_mail
 
+from .models import (
+    Service,
+    ServiceOptionGroup,
+    ServiceOption,
+    ServiceOrder,
+    ServiceOrderComment,
+    AuditLog,
+)
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ("name", "base_price_min", "base_price_max", "base_duration_minutes", "is_active")
+    list_display = (
+        "name",
+        "base_price_min",
+        "base_price_max",
+        "base_duration_minutes",
+        "is_active",
+    )
     list_filter = ("is_active",)
     search_fields = ("name",)
 
 
 @admin.register(ServiceOptionGroup)
 class ServiceOptionGroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "service", "selection_type", "is_required", "is_active", "sort_order")
+    list_display = (
+        "name",
+        "service",
+        "selection_type",
+        "is_required",
+        "is_active",
+        "sort_order",
+    )
     list_filter = ("selection_type", "is_required", "is_active")
     search_fields = ("name", "service__name")
 
 
 @admin.register(ServiceOption)
 class ServiceOptionAdmin(admin.ModelAdmin):
-    list_display = ("name", "group", "price_delta_min", "price_delta_max", "duration_delta_minutes", "is_active", "sort_order")
+    list_display = (
+        "name",
+        "group",
+        "price_delta_min",
+        "price_delta_max",
+        "duration_delta_minutes",
+        "is_active",
+        "sort_order",
+    )
     list_filter = ("is_active",)
     search_fields = ("name", "group__name", "group__service__name")
+
 
 class ServiceOrderCommentInline(admin.TabularInline):
     model = ServiceOrderComment
@@ -32,12 +58,29 @@ class ServiceOrderCommentInline(admin.TabularInline):
     fields = ("visibility", "content", "created_at")
     readonly_fields = ("created_at",)
 
+
 class AuditLogInline(admin.TabularInline):
     model = AuditLog
     extra = 0
     fields = ("action", "performed_by", "performed_at", "old_value", "new_value")
     readonly_fields = ("action", "performed_by", "performed_at", "old_value", "new_value")
     can_delete = False
+
+
+class OverdueFilter(admin.SimpleListFilter):
+    title = "Przeterminowane"
+    parameter_name = "overdue"
+
+    def lookups(self, request, model_admin):
+        return (("yes", "Tak"), ("no", "Nie"))
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return [o for o in queryset if o.is_overdue()]
+        if self.value() == "no":
+            return [o for o in queryset if not o.is_overdue()]
+        return queryset
+
 
 @admin.register(ServiceOrderComment)
 class ServiceOrderCommentAdmin(admin.ModelAdmin):
@@ -63,10 +106,21 @@ class ServiceOrderCommentAdmin(admin.ModelAdmin):
 
 @admin.register(ServiceOrder)
 class ServiceOrderAdmin(admin.ModelAdmin):
-    list_display = ("order_number", "customer_name", "status", "created_at")
-    list_filter = ("status",)
+    list_display = (
+        "order_number",
+        "customer_name",
+        "status",
+        "estimated_completion_at",
+        "overdue_display",
+        "created_at",
+    )
+    list_filter = ("status", OverdueFilter)
     search_fields = ("order_number", "customer_name", "customer_email", "customer_phone")
     inlines = [ServiceOrderCommentInline, AuditLogInline]
+
+    @admin.display(boolean=True, description="Przeterminowane")
+    def overdue_display(self, obj):
+        return obj.is_overdue()
 
     def save_model(self, request, obj, form, change):
         """
@@ -82,6 +136,7 @@ class ServiceOrderAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
+        # Log: utworzenie zlecenia (admin)
         if not change:
             AuditLog.objects.create(
                 order=obj,
@@ -93,32 +148,29 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             )
             return
 
+        # Log + mail: zmiana statusu
         if old_status != obj.status:
-            # 1. Zapis do audit log
             AuditLog.objects.create(
-            order=obj,
-            entity_type=AuditLog.EntityType.SERVICE_ORDER,
-            entity_id=obj.id,
-            action=AuditLog.Action.STATUS_CHANGED,
-            old_value=old_status,
-            new_value=obj.status,
-            performed_by=request.user,
-        )
+                order=obj,
+                entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                entity_id=obj.id,
+                action=AuditLog.Action.STATUS_CHANGED,
+                old_value=old_status,
+                new_value=obj.status,
+                performed_by=request.user,
+            )
 
-        # 2. Wysłanie e-maila do klienta
-        send_mail(
-            subject=f"Zmiana statusu zlecenia {obj.order_number}",
-            message=(
-                f"Status Twojego zlecenia {obj.order_number} został zmieniony.\n\n"
-                f"Aktualny status: {obj.get_status_display()}\n"
-            ),
-            from_email=None,
-            recipient_list=[obj.customer_email],
-        )
+            send_mail(
+                subject=f"Zmiana statusu zlecenia {obj.order_number}",
+                message=(
+                    f"Status Twojego zlecenia {obj.order_number} został zmieniony.\n\n"
+                    f"Aktualny status: {obj.get_status_display()}\n"
+                ),
+                from_email=None,
+                recipient_list=[obj.customer_email],
+            )
 
-
-
-
+        # Log: zmiana estymacji
         if old_estimate != obj.estimated_completion_at:
             AuditLog.objects.create(
                 order=obj,
@@ -131,54 +183,25 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             )
 
 
+
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
     list_display = ("entity_type", "entity_id", "action", "performed_by", "performed_at")
     list_filter = ("entity_type", "action")
     search_fields = ("entity_type", "entity_id", "old_value", "new_value", "performed_by__username")
-    readonly_fields = ("entity_type", "entity_id", "action", "old_value", "new_value", "performed_by", "performed_at", "order")
+    readonly_fields = (
+        "entity_type",
+        "entity_id",
+        "action",
+        "old_value",
+        "new_value",
+        "performed_by",
+        "performed_at",
+        "order",
+    )
 
     def has_add_permission(self, request):
         return False
 
     def has_change_permission(self, request, obj=None):
         return False
-
-
-def save_model(self, request, obj, form, change):
-    """
-    Hook admina wywoływany przy zapisie obiektu w panelu.
-    change=False oznacza tworzenie, change=True oznacza edycję.
-    """
-    # Jeżeli to edycja, pobieramy poprzedni stan z bazy, żeby znać "old_value"
-    old_status = None
-    if change:
-        old_status = ServiceOrder.objects.get(pk=obj.pk).status
-
-    super().save_model(request, obj, form, change)
-
-    # 1) Log: utworzenie zlecenia
-    if not change:
-        AuditLog.objects.create(
-            order=obj,
-            entity_type=AuditLog.EntityType.SERVICE_ORDER,
-            entity_id=obj.id,
-            action=AuditLog.Action.ORDER_CREATED,
-            old_value=None,
-            new_value=f"status={obj.status}",
-            performed_by=request.user,
-        )
-        return
-
-    # 2) Log: zmiana statusu
-    if old_status != obj.status:
-        AuditLog.objects.create(
-            order=obj,
-            entity_type=AuditLog.EntityType.SERVICE_ORDER,
-            entity_id=obj.id,
-            action=AuditLog.Action.STATUS_CHANGED,
-            old_value=old_status,
-            new_value=obj.status,
-            performed_by=request.user,
-        )
-
