@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from .models import Service, ServiceOptionGroup, ServiceOption
 from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, ServiceOrderItemOption
-
+from django.core.mail import send_mail
+from .models import AuditLog
 
 def track_order(request):
     """
@@ -94,6 +95,8 @@ def service_configurator(request, service_id: int):
     if request.method == "POST":
         # Zbieramy zaznaczone opcje z formularza
         selected_option_ids = []
+        print("POST action:", request.POST.get("action"))
+        print("POST keys:", list(request.POST.keys()))
 
         for g, _opts in group_options:
             field_name = f"group_{g.id}"
@@ -137,6 +140,61 @@ def service_configurator(request, service_id: int):
                     customer_phone=customer_phone,
                 )
 
+                order = ServiceOrder.objects.create(
+                    customer_name=customer_name,
+                    customer_email=customer_email,
+                    customer_phone=customer_phone,
+                )
+
+                # AUDIT LOG – utworzenie zlecenia przez klienta (guest)
+                AuditLog.objects.create(
+                    order=order,
+                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                    entity_id=order.id,
+                    action=AuditLog.Action.ORDER_CREATED,
+                    new_value=f"status={order.status}",
+                    performed_by=None,  # klient-guest, brak usera Django
+                )
+
+                # MAIL – potwierdzenie przyjęcia zlecenia
+                send_mail(
+                    subject=f"Potwierdzenie przyjęcia zlecenia {order.order_number}",
+                    message=(
+                        f"Dziękujemy! Twoje zlecenie zostało przyjęte.\n\n"
+                        f"Numer zlecenia: {order.order_number}\n"
+                        f"Status: {order.get_status_display()}\n\n"
+                        f"Możesz śledzić status tutaj: /track/\n"
+                    ),
+                    from_email=None,
+                    recipient_list=[order.customer_email],
+                )
+
+                # SNAPSHOT – pozycja zlecenia
+                order_item = ServiceOrderItem.objects.create(
+                    order=order,
+                    service=service,
+                    service_name_snapshot=service.name,
+                    base_price_min_snapshot=service.base_price_min,
+                    base_price_max_snapshot=service.base_price_max,
+                    calculated_price_min=total_min,
+                    calculated_price_max=total_max,
+                )
+
+
+                send_mail(
+                    subject=f"Potwierdzenie przyjęcia zlecenia {order.order_number}",
+                    message=(
+                        f"Dziękujemy! Twoje zlecenie zostało przyjęte.\n\n"
+                        f"Numer zlecenia: {order.order_number}\n"
+                        f"Status: {order.get_status_display()}\n\n"
+                        f"Możesz śledzić status tutaj: /track/\n"
+                        f"(podaj numer zlecenia oraz e-mail lub telefon)\n"
+                    ),
+                    from_email=None,
+                    recipient_list=[order.customer_email],
+                )
+
+
                 order_item = ServiceOrderItem.objects.create(
                     order=order,
                     service=service,
@@ -157,7 +215,7 @@ def service_configurator(request, service_id: int):
                     )
 
                 result["created_order_number"] = order.order_number
-    
+
     return render(
         request,
         "orders/service_configurator.html",
