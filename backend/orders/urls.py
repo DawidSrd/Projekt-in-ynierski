@@ -7,3 +7,8 @@ urlpatterns = [
     path("services/<int:service_id>/", views.service_configurator, name="service_configurator"),
 ]
 
+path(
+    "order-created/<str:order_number>/",
+    views.order_created,
+    name="order_created",
+),

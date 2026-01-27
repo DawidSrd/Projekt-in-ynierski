@@ -3,6 +3,8 @@ from .models import Service, ServiceOptionGroup, ServiceOption
 from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, ServiceOrderItemOption
 from django.core.mail import send_mail
 from .models import AuditLog
+from django.shortcuts import redirect
+
 
 def track_order(request):
     """
@@ -215,6 +217,16 @@ def service_configurator(request, service_id: int):
                     )
 
                 result["created_order_number"] = order.order_number
+
+    def order_created(request, order_number: str):
+        """
+        Strona potwierdzenia utworzenia zlecenia (GET).
+        """
+        return render(
+            request,
+            "orders/order_created.html",
+            {"order_number": order_number},
+        )
 
     return render(
         request,
