@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard technika</title>
+</head>
+<body>
+  <h1>Dashboard technika</h1>
+
+  <h2>Przeterminowane / Pilne</h2>
+  {% if orders_overdue %}
+    <ul>
+      {% for o in orders_overdue %}
+        <li>
+          ⚠️ <a href="/tech/orders/{{ o.order_number }}/"><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
+          (status: {{ o.get_status_display }}, estymacja: {{ o.estimated_completion_at|default:"brak" }})
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Brak przeterminowanych zleceń.</p>
+  {% endif %}
+
+  <hr />
+
+  <h2>Nowe</h2>
+  {% if orders_new %}
+    <ul>
+      {% for o in orders_new %}
+        <li>
+          <a href="/tech/orders/{{ o.order_number }}/"><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
+          (status: {{ o.get_status_display }})
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Brak nowych zleceń.</p>
+  {% endif %}
+
+  <hr />
+
+  <h2>W toku</h2>
+  {% if orders_in_progress %}
+    <ul>
+      {% for o in orders_in_progress %}
+        <li>
+          <a href="/tech/orders/{{ o.order_number }}/"></a><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
+          (status: {{ o.get_status_display }}, estymacja: {{ o.estimated_completion_at|default:"brak" }})
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Brak zleceń w toku.</p>
+  {% endif %}
+</body>
+</html>

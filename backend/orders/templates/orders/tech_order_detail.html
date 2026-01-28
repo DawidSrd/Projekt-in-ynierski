@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Szczegóły zlecenia</title>
+</head>
+<body>
+  <p><a href="/tech/dashboard/">← Wróć do dashboardu</a></p>
+
+  <h1>Zlecenie {{ order.order_number }}</h1>
+
+  <h3>Dane klienta</h3>
+  <p>{{ order.customer_name }} — {{ order.customer_email }} — {{ order.customer_phone }}</p>
+
+  <h3>Status i estymacja</h3>
+  <p>Status: <strong>{{ order.get_status_display }}</strong></p>
+  <p>Estymacja: <strong>{{ order.estimated_completion_at|default:"brak" }}</strong></p>
+  <p>Przeterminowane: <strong>{{ order.is_overdue|yesno:"TAK,NIE" }}</strong></p>
+
+
+<hr />
+<h3>Aktualizacja zlecenia</h3>
+
+<form method="post">
+  {% csrf_token %}
+
+  <label>Nowy status</label><br />
+  <select name="status">
+    {% for code, label in status_choices %}
+      <option value="{{ code }}" {% if code == order.status %}selected{% endif %}>
+        {{ label }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <br /><br />
+
+  <label>Estymacja zakończenia (YYYY-MM-DD HH:MM)</label><br />
+  <input type="text" name="estimated_completion_at" value="{{ est_default }}" />
+
+  <br /><br />
+
+  <button type="submit">Zapisz zmiany</button>
+</form>
+
+{% if message %}
+  <p style="color:green;">{{ message }}</p>
+{% endif %}
+{% if error %}
+  <p style="color:red;">{{ error }}</p>
+{% endif %}
+
+
+
+  <hr />
+  <h3>Komentarze publiczne (dla klienta)</h3>
+  {% if comments_public %}
+    <ul>
+      {% for c in comments_public %}
+        <li>{{ c.created_at }} — {{ c.content }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Brak.</p>
+  {% endif %}
+
+  <h3>Komentarze wewnętrzne (tylko serwis)</h3>
+  {% if comments_internal %}
+    <ul>
+      {% for c in comments_internal %}
+        <li>{{ c.created_at }} — {{ c.content }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Brak.</p>
+  {% endif %}
+
+  <hr />
+
+  <h3>Audit log</h3>
+  {% if audit_entries %}
+    <ul>
+      {% for a in audit_entries %}
+        <li>{{ a.performed_at }} — {{ a.get_action_display }} ({{ a.old_value|default:"" }} → {{ a.new_value|default:"" }})</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Brak wpisów.</p>
+  {% endif %}
+</body>
+</html>

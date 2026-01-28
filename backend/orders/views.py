@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from .choices import ServiceOrderStatus
 
 
+
 STATUS_LABELS = dict(ServiceOrderStatus.choices)
 
 
@@ -271,3 +272,58 @@ def order_created(request, order_number: str):
         {"order_number": order_number},
     )
 
+def tech_dashboard(request):
+    """
+    Dashboard technika: podział zleceń na Nowe / W toku / Przeterminowane.
+    """
+    orders_new = ServiceOrder.objects.filter(status=ServiceOrderStatus.NEW).order_by("-created_at")
+
+    orders_in_progress = ServiceOrder.objects.filter(
+        status__in=[ServiceOrderStatus.IN_PROGRESS, ServiceOrderStatus.WAITING_FOR_PARTS]
+    ).order_by("-created_at")
+
+    # Przeterminowane liczymy metodą is_overdue 
+    all_active = ServiceOrder.objects.exclude(
+        status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
+    ).order_by("-created_at")
+    orders_overdue = [o for o in all_active if o.is_overdue()]
+
+    return render(
+        request,
+        "orders/tech_dashboard.html",
+        {
+            "orders_new": orders_new,
+            "orders_in_progress": orders_in_progress,
+            "orders_overdue": orders_overdue,
+        },
+    )
+
+
+def tech_order_detail(request, order_number: str):
+    """
+    Widok szczegółów zlecenia dla technika.
+    """
+    order = ServiceOrder.objects.get(order_number=order_number)
+
+    comments_internal = ServiceOrderComment.objects.filter(
+        order=order,
+        visibility=ServiceOrderComment.Visibility.INTERNAL,
+    ).order_by("-created_at")
+
+    comments_public = ServiceOrderComment.objects.filter(
+        order=order,
+        visibility=ServiceOrderComment.Visibility.PUBLIC,
+    ).order_by("-created_at")
+
+    audit_entries = AuditLog.objects.filter(order=order).order_by("-performed_at")
+
+    return render(
+        request,
+        "orders/tech_order_detail.html",
+        {
+            "order": order,
+            "comments_internal": comments_internal,
+            "comments_public": comments_public,
+            "audit_entries": audit_entries,
+        },
+    )
