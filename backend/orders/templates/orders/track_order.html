@@ -54,3 +54,15 @@
   {% endif %}
 </body>
 </html>
+
+<h3>Historia statusów</h3>
+{% if result.audit_timeline %}
+  <ul>
+    {% for dt, text in result.audit_timeline %}
+      <li>{{ dt }} — {{ text }}</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Brak historii statusów.</p>
+{% endif %}
+

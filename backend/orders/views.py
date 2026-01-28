@@ -4,6 +4,11 @@ from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, Service
 from django.core.mail import send_mail
 from .models import AuditLog
 from django.shortcuts import redirect
+from .choices import ServiceOrderStatus
+
+
+STATUS_LABELS = dict(ServiceOrderStatus.choices)
+
 
 
 def track_order(request):
@@ -49,18 +54,49 @@ def track_order(request):
         audit_entries = AuditLog.objects.filter(
             order=order,
             action__in=[
+                AuditLog.Action.ORDER_CREATED,
                 AuditLog.Action.STATUS_CHANGED,
                 AuditLog.Action.ESTIMATE_SET,
             ],
-        ).order_by("-performed_at")
+        ).order_by("performed_at")
+
+        audit_timeline = []
+        for a in audit_entries:
+            if a.action == AuditLog.Action.ORDER_CREATED:
+                audit_timeline.append((a.performed_at, "Zlecenie przyjęte"))
+            elif a.action == AuditLog.Action.STATUS_CHANGED:
+                old_label = STATUS_LABELS.get(a.old_value, a.old_value)
+                new_label = STATUS_LABELS.get(a.new_value, a.new_value)
+                audit_timeline.append((a.performed_at, f"Zmiana statusu: {old_label} → {new_label}"))
+
+
+        audit_timeline = []
+        for a in audit_entries:
+            if a.action == AuditLog.Action.ORDER_CREATED:
+                audit_timeline.append((a.performed_at, "Zlecenie przyjęte"))
+            elif a.action == AuditLog.Action.STATUS_CHANGED:
+                old_label = STATUS_LABELS.get(a.old_value, a.old_value)
+                new_label = STATUS_LABELS.get(a.new_value, a.new_value)
+                audit_timeline.append((a.performed_at, f"Zmiana statusu: {old_label} → {new_label}"))
+            elif a.action == AuditLog.Action.ESTIMATE_SET:
+                old_txt = "brak" if not a.old_value or a.old_value == "None" else a.old_value
+                new_txt = "brak" if not a.new_value or a.new_value == "None" else a.new_value
+                audit_timeline.append(
+                    (a.performed_at, f"Zmiana estymacji: {old_txt} → {new_txt}")
+                )
+
+
+
 
 
         context["result"] = {
+            "status_labels": STATUS_LABELS,
             "order_number": order.order_number,
             "status": order.get_status_display(),
             "estimated_completion_at": order.estimated_completion_at,
             "comments": public_comments,
             "audit_entries": audit_entries,
+            "audit_timeline": audit_timeline,
         }
 
 
