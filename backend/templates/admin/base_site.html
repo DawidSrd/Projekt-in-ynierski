@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Serwis komputerowy{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orders/admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name" class="service-admin-brand">
+  <a href="{% url 'admin:index' %}">
+    <span class="service-admin-brand__title">Serwis komputerowy</span>
+    <span class="service-admin-brand__subtitle">Panel administracyjny</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<nav class="service-admin-shortcuts" aria-label="Skróty administracyjne">
+  <a href="{% url 'admin:orders_service_changelist' %}">Usługi</a>
+  <a href="{% url 'admin:orders_serviceorder_changelist' %}">Zlecenia</a>
+  <a href="{% url 'admin:orders_auditlog_changelist' %}">Audit log</a>
+</nav>
+{% endblock %}

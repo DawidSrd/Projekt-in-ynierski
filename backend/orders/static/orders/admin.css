@@ -1,0 +1,235 @@
+:root {
+  --primary: #24584f;
+  --secondary: #173d37;
+  --accent: #c9823a;
+  --primary-fg: #ffffff;
+  --body-bg: #f7f8f5;
+  --body-fg: #1f2a27;
+  --body-quiet-color: #65726e;
+  --link-fg: #1f6f62;
+  --link-hover-color: #a95832;
+  --selected-bg: #edf3ef;
+  --hairline-color: #d9e1dc;
+  --border-color: #ccd6d0;
+  --header-color: #ffffff;
+  --header-branding-color: #ffffff;
+  --breadcrumbs-bg: #e9eee9;
+  --breadcrumbs-fg: #3d4c48;
+  --breadcrumbs-link-fg: #24584f;
+}
+
+body {
+  background: var(--body-bg);
+}
+
+#header {
+  min-height: 68px;
+  padding: 0 28px;
+  background: var(--secondary);
+  border-bottom: 4px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(23, 61, 55, 0.16);
+}
+
+#branding {
+  display: flex;
+  align-items: center;
+}
+
+.service-admin-brand a {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.service-admin-brand__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.service-admin-brand__subtitle {
+  color: #dbe7e2;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+#user-tools {
+  color: #dbe7e2;
+  font-size: 12px;
+}
+
+#user-tools a,
+#logout-form button {
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.service-admin-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 24px;
+}
+
+.service-admin-shortcuts a {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.service-admin-shortcuts a:focus,
+.service-admin-shortcuts a:hover {
+  background: #ffffff;
+  color: var(--secondary);
+}
+
+div.breadcrumbs {
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--hairline-color);
+}
+
+#content {
+  padding: 28px;
+}
+
+#content h1 {
+  margin: 0 0 20px;
+  color: #1e2f2a;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.module,
+.inline-group {
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 42, 39, 0.06);
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.module table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead th {
+  background: #eef3ef;
+  color: #273d37;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafbf9;
+}
+
+tbody tr:hover {
+  background: #f1f6f2;
+}
+
+.object-tools a,
+.object-tools a:link,
+.object-tools a:visited {
+  border-radius: 8px;
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.object-tools a:focus,
+.object-tools a:hover {
+  background: #a95832;
+}
+
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+  border-radius: 8px;
+}
+
+.button.default,
+input[type="submit"].default,
+.submit-row input.default {
+  background: var(--primary);
+  font-weight: 700;
+}
+
+.button.default:focus,
+.button.default:hover,
+input[type="submit"].default:focus,
+input[type="submit"].default:hover {
+  background: var(--secondary);
+}
+
+input,
+select,
+textarea {
+  border-radius: 6px;
+}
+
+.submit-row {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+#changelist-filter {
+  border-left: 1px solid var(--border-color);
+  background: #ffffff;
+}
+
+#changelist-filter h2 {
+  background: var(--secondary);
+  color: #ffffff;
+}
+
+#changelist .actions {
+  border-radius: 8px 8px 0 0;
+  background: #ffffff;
+}
+
+.dashboard #content {
+  max-width: 1180px;
+}
+
+.dashboard .app-orders {
+  border-top: 4px solid var(--accent);
+}
+
+@media (max-width: 767px) {
+  #header {
+    align-items: flex-start;
+    min-height: 112px;
+    padding: 16px;
+  }
+
+  .service-admin-shortcuts {
+    width: 100%;
+    margin: 12px 0 0;
+  }
+
+  .service-admin-shortcuts a {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  #content {
+    padding: 18px;
+  }
+}
