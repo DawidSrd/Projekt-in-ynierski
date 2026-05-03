@@ -1,0 +1,31 @@
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Serwis komputerowy{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'orders/app.css' %}" />
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="app-header">
+    <div class="app-shell app-header__inner">
+      <a class="brand" href="/services/">
+        <span class="brand__name">Serwis komputerowy</span>
+        <span class="brand__label">Obsługa zleceń</span>
+      </a>
+
+      <nav class="main-nav" aria-label="Nawigacja główna">
+        <a href="/services/">Usługi</a>
+        <a href="/track/">Śledzenie</a>
+        <a href="/tech/dashboard/">Panel technika</a>
+        <a href="/admin/">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-shell app-main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

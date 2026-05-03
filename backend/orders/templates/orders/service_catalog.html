@@ -1,34 +1,42 @@
-<!doctype html>
-<html lang="pl">
-<head>
-  <meta charset="utf-8" />
-  <title>Katalog usług</title>
-</head>
-<body>
-  <h1>Katalog usług</h1>
+{% extends "orders/base.html" %}
+
+{% block title %}Katalog usług | Serwis komputerowy{% endblock %}
+
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <h1>Katalog usług</h1>
+      <p>Wybierz usługę i przejdź do konfiguratora wyceny.</p>
+    </div>
+    <a class="button button--ghost" href="/track/">Sprawdź zlecenie</a>
+  </div>
 
   {% if services %}
-    <ul>
+    <div class="service-grid">
       {% for s in services %}
-        <li style="margin-bottom:16px;">
-          <strong>
-            <a href="/services/{{ s.id }}/">{{ s.name }}</a>
-          </strong><br />
+        <article class="panel service-card">
+          <div class="service-card__body">
+            <h2>{{ s.name }}</h2>
 
-          {% if s.description %}
-            <div>{{ s.description }}</div>
-          {% endif %}
-          <div>
-            Cena: <strong>{{ s.base_price_min }}</strong> – <strong>{{ s.base_price_max }}</strong>
+            {% if s.description %}
+              <p>{{ s.description }}</p>
+            {% endif %}
+
+            <div class="meta-row">
+              <span class="pill">{{ s.base_price_min }} - {{ s.base_price_max }} zł</span>
+              <span class="pill">{{ s.base_duration_minutes }} min</span>
+            </div>
+
+            <a class="button" href="/services/{{ s.id }}/">Konfiguruj</a>
           </div>
-          <div>
-            Szacowany czas: {{ s.base_duration_minutes }} min
-          </div>
-        </li>
+        </article>
       {% endfor %}
-    </ul>
+    </div>
   {% else %}
-    <p>Brak dostępnych usług.</p>
+    <div class="panel">
+      <div class="panel__body">
+        <p class="empty">Brak dostępnych usług.</p>
+      </div>
+    </div>
   {% endif %}
-</body>
-</html>
+{% endblock %}

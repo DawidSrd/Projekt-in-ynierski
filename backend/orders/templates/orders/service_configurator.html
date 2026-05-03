@@ -1,94 +1,111 @@
-﻿<!doctype html>
-<html lang="pl">
-<head>
-  <meta charset="utf-8" />
-  <title>Konfigurator usługi</title>
-</head>
-<body>
-  <p><a href="/services/">← Wróć do katalogu</a></p>
+{% extends "orders/base.html" %}
 
-  <h1>{{ service.name }}</h1>
-  {% if service.description %}
-    <p>{{ service.description }}</p>
-  {% endif %}
+{% block title %}Konfigurator usługi | Serwis komputerowy{% endblock %}
 
-  <p>
-    Cena bazowa: <strong>{{ service.base_price_min }}</strong> – <strong>{{ service.base_price_max }}</strong>
-  </p>
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <h1>{{ service.name }}</h1>
+      {% if service.description %}
+        <p>{{ service.description }}</p>
+      {% endif %}
+    </div>
+    <a class="button button--ghost" href="/services/">Wróć do katalogu</a>
+  </div>
 
-  <form method="post">
-    {% csrf_token %}
+  <div class="detail-layout">
+    <section class="panel">
+      <div class="panel__body">
+        <div class="meta-row">
+          <span class="pill">Cena bazowa: {{ service.base_price_min }} - {{ service.base_price_max }} zł</span>
+          <span class="pill">Czas bazowy: {{ service.base_duration_minutes }} min</span>
+        </div>
 
-    {% for g, options in group_options %}
-      <fieldset style="margin-bottom:16px;">
-        <legend><strong>{{ g.name }}</strong></legend>
+        <form method="post" class="section">
+          {% csrf_token %}
 
-        {% if g.selection_type == "SINGLE" %}
-          {% for o in options %}
-            <label>
-              <input type="radio" name="group_{{ g.id }}" value="{{ o.id }}">
-              {{ o.name }}
-              ({{ o.price_delta_min }} – {{ o.price_delta_max }})
-            </label><br />
+          {% for g, options in group_options %}
+            <fieldset>
+              <legend>{{ g.name }}</legend>
+
+              <div class="option-list">
+                {% if g.selection_type == "SINGLE" %}
+                  {% for o in options %}
+                    <label class="choice">
+                      <input type="radio" name="group_{{ g.id }}" value="{{ o.id }}">
+                      <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
+                    </label>
+                  {% endfor %}
+                {% else %}
+                  {% for o in options %}
+                    <label class="choice">
+                      <input type="checkbox" name="group_{{ g.id }}" value="{{ o.id }}">
+                      <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
+                    </label>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </fieldset>
           {% endfor %}
+
+          <section class="section">
+            <h2>Dane kontaktowe</h2>
+            <div class="form-grid">
+              <div class="field">
+                <label>Imię i nazwisko</label>
+                <input type="text" name="customer_name" value="{{ customer_defaults.customer_name }}" />
+              </div>
+
+              <div class="field">
+                <label>E-mail</label>
+                <input type="email" name="customer_email" value="{{ customer_defaults.customer_email }}" />
+              </div>
+
+              <div class="field">
+                <label>Telefon</label>
+                <input type="text" name="customer_phone" value="{{ customer_defaults.customer_phone }}" />
+              </div>
+            </div>
+          </section>
+
+          <div class="button-row">
+            <button type="submit" name="action" value="price_only">Policz cenę</button>
+            <button class="button--secondary" type="submit" name="action" value="create_order">Złóż zlecenie</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel__body">
+        <h2>Wycena</h2>
+
+        {% if result %}
+          <div class="metric">
+            <span class="metric__label">Cena po konfiguracji</span>
+            <span class="metric__value">{{ result.total_min }} - {{ result.total_max }} zł</span>
+          </div>
+
+          <section class="section">
+            <h3>Wybrane opcje</h3>
+            {% if result.selected_options %}
+              <ul class="clean-list">
+                {% for o in result.selected_options %}
+                  <li>{{ o.group.name }}: {{ o.name }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty">Nie wybrano żadnych opcji.</p>
+            {% endif %}
+          </section>
+
+          {% if result.error %}
+            <p class="message message--error">{{ result.error }}</p>
+          {% endif %}
         {% else %}
-          {% for o in options %}
-            <label>
-              <input type="checkbox" name="group_{{ g.id }}" value="{{ o.id }}">
-              {{ o.name }}
-              ({{ o.price_delta_min }} – {{ o.price_delta_max }})
-            </label><br />
-          {% endfor %}
+          <p class="empty">Wycena pojawi się po przeliczeniu konfiguracji.</p>
         {% endif %}
-      </fieldset>
-    {% endfor %}
-
-    <h3>Dane kontaktowe</h3>
-    <label>Imię i nazwisko</label><br />
-   <input type="text" name="customer_name" value="{{ customer_defaults.customer_name }}" />
-
-    <label>E-mail</label><br />
-    <input type="email" name="customer_email" value="{{ customer_defaults.customer_email }}" />
-
-    <label>Telefon</label><br />
-    <input type="text" name="customer_phone" value="{{ customer_defaults.customer_phone }}" />
-
-    <button type="submit" name="action" value="price_only">Policz cenę</button>
-    <button type="submit" name="action" value="create_order">Złóż zlecenie</button>
-  </form>
-
-  {% if result %}
-    <hr />
-    <h2>Wycena</h2>
-    <p>
-      Cena po konfiguracji: <strong>{{ result.total_min }}</strong> – <strong>{{ result.total_max }}</strong>
-    </p>
-
-    <h3>Wybrane opcje</h3>
-    {% if result.selected_options %}
-      <ul>
-        {% for o in result.selected_options %}
-          <li>{{ o.group.name }}: {{ o.name }}</li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>Nie wybrano żadnych opcji.</p>
-    {% endif %}
-
-    {% if result.error %}
-      <p style="color:red;">{{ result.error }}</p>
-    {% endif %}
-
-    {# To jest opcjonalne: jeśli robisz PRG redirect, to tego już nie potrzebujesz #}
-    {% if result.created_order_number %}
-      <p style="color:green;">
-        Zlecenie utworzone! Numer: <strong>{{ result.created_order_number }}</strong>
-      </p>
-      <p>
-        Status możesz sprawdzić w Guest Access: <a href="/track/">/track/</a>
-      </p>
-    {% endif %}
-  {% endif %}
-
-</body>
-</html>
+      </div>
+    </aside>
+  </div>
+{% endblock %}

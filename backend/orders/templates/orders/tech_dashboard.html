@@ -1,56 +1,73 @@
-<!doctype html>
-<html lang="pl">
-<head>
-  <meta charset="utf-8" />
-  <title>Dashboard technika</title>
-</head>
-<body>
-  <h1>Dashboard technika</h1>
+{% extends "orders/base.html" %}
 
-  <h2>Przeterminowane / Pilne</h2>
-  {% if orders_overdue %}
-    <ul>
-      {% for o in orders_overdue %}
-        <li>
-          ⚠️ <a href="/tech/orders/{{ o.order_number }}/"><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
-          (status: {{ o.get_status_display }}, estymacja: {{ o.estimated_completion_at|default:"brak" }})
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Brak przeterminowanych zleceń.</p>
-  {% endif %}
+{% block title %}Dashboard technika | Serwis komputerowy{% endblock %}
 
-  <hr />
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <h1>Dashboard technika</h1>
+      <p>Lista zleceń według priorytetu obsługi.</p>
+    </div>
+  </div>
 
-  <h2>Nowe</h2>
-  {% if orders_new %}
-    <ul>
-      {% for o in orders_new %}
-        <li>
-          <a href="/tech/orders/{{ o.order_number }}/"><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
-          (status: {{ o.get_status_display }})
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Brak nowych zleceń.</p>
-  {% endif %}
+  <div class="order-columns">
+    <section class="order-column order-column--urgent">
+      <h2>Przeterminowane / pilne</h2>
+      {% if orders_overdue %}
+        <ul class="order-list">
+          {% for o in orders_overdue %}
+            <li class="order-item">
+              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
+              <span>{{ o.customer_name }}</span>
+              <span>Status: {{ o.get_status_display }}</span>
+              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="order-list">
+          <p class="empty">Brak przeterminowanych zleceń.</p>
+        </div>
+      {% endif %}
+    </section>
 
-  <hr />
+    <section class="order-column">
+      <h2>Nowe</h2>
+      {% if orders_new %}
+        <ul class="order-list">
+          {% for o in orders_new %}
+            <li class="order-item">
+              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
+              <span>{{ o.customer_name }}</span>
+              <span>Status: {{ o.get_status_display }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="order-list">
+          <p class="empty">Brak nowych zleceń.</p>
+        </div>
+      {% endif %}
+    </section>
 
-  <h2>W toku</h2>
-  {% if orders_in_progress %}
-    <ul>
-      {% for o in orders_in_progress %}
-        <li>
-          <a href="/tech/orders/{{ o.order_number }}/"><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
-          (status: {{ o.get_status_display }}, estymacja: {{ o.estimated_completion_at|default:"brak" }})
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Brak zleceń w toku.</p>
-  {% endif %}
-</body>
-</html>
+    <section class="order-column">
+      <h2>W toku</h2>
+      {% if orders_in_progress %}
+        <ul class="order-list">
+          {% for o in orders_in_progress %}
+            <li class="order-item">
+              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
+              <span>{{ o.customer_name }}</span>
+              <span>Status: {{ o.get_status_display }}</span>
+              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="order-list">
+          <p class="empty">Brak zleceń w toku.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

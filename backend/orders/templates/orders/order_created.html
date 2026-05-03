@@ -1,24 +1,26 @@
-<!doctype html>
-<html lang="pl">
-<head>
-  <meta charset="utf-8" />
-  <title>Zlecenie przyjęte</title>
-</head>
-<body>
-  <h1>Zlecenie zostało przyjęte</h1>
+{% extends "orders/base.html" %}
 
-  <p>
-    Numer zlecenia:
-    <strong>{{ order_number }}</strong>
-  </p>
+{% block title %}Zlecenie przyjęte | Serwis komputerowy{% endblock %}
 
-  <p>
-    Status zlecenia możesz sprawdzić tutaj:
-    <a href="/track/">/track/</a>
-  </p>
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <h1>Zlecenie zostało przyjęte</h1>
+      <p>Numer zlecenia zachowaj do śledzenia statusu.</p>
+    </div>
+  </div>
 
-  <p>
-    Dziękujemy za skorzystanie z naszych usług.
-  </p>
-</body>
-</html>
+  <section class="panel">
+    <div class="panel__body">
+      <div class="metric">
+        <span class="metric__label">Numer zlecenia</span>
+        <span class="metric__value">{{ order_number }}</span>
+      </div>
+
+      <div class="button-row">
+        <a class="button" href="/track/">Sprawdź status</a>
+        <a class="button button--ghost" href="/services/">Wróć do katalogu</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

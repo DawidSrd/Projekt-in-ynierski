@@ -1,116 +1,150 @@
-<!doctype html>
-<html lang="pl">
-<head>
-  <meta charset="utf-8" />
-  <title>Szczegóły zlecenia</title>
-</head>
-<body>
-  <p><a href="/tech/dashboard/">← Wróć do dashboardu</a></p>
+{% extends "orders/base.html" %}
 
-  <h1>Zlecenie {{ order.order_number }}</h1>
+{% block title %}Szczegóły zlecenia | Serwis komputerowy{% endblock %}
 
-  <h3>Dane klienta</h3>
-  <p>{{ order.customer_name }} — {{ order.customer_email }} — {{ order.customer_phone }}</p>
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <h1>Zlecenie {{ order.order_number }}</h1>
+      <p>{{ order.customer_name }} — {{ order.customer_email }} — {{ order.customer_phone }}</p>
+    </div>
+    <a class="button button--ghost" href="/tech/dashboard/">Wróć do dashboardu</a>
+  </div>
 
-  <h3>Status i estymacja</h3>
-  <p>Status: <strong>{{ order.get_status_display }}</strong></p>
-  <p>Estymacja: <strong>{{ order.estimated_completion_at|default:"brak" }}</strong></p>
-  <p>Przeterminowane: <strong>{{ order.is_overdue|yesno:"TAK,NIE" }}</strong></p>
+  <div class="result-grid">
+    <div class="metric">
+      <span class="metric__label">Status</span>
+      <span class="metric__value">{{ order.get_status_display }}</span>
+    </div>
+    <div class="metric">
+      <span class="metric__label">Estymacja</span>
+      <span class="metric__value">{{ order.estimated_completion_at|default:"brak" }}</span>
+    </div>
+    <div class="metric">
+      <span class="metric__label">Przeterminowane</span>
+      <span class="metric__value">{{ order.is_overdue|yesno:"TAK,NIE" }}</span>
+    </div>
+  </div>
 
-
-<hr />
-<h3>Aktualizacja zlecenia</h3>
-
-<form method="post">
-  {% csrf_token %}
-  <input type="hidden" name="action" value="update_order" />
-
-  <label>Nowy status</label><br />
-  <select name="status">
-    {% for code, label in status_choices %}
-      <option value="{{ code }}" {% if code == order.status %}selected{% endif %}>
-        {{ label }}
-      </option>
-    {% endfor %}
-  </select>
-
-  <br /><br />
-
-  <label>Estymacja zakończenia (YYYY-MM-DD HH:MM)</label><br />
-  <input type="text" name="estimated_completion_at" value="{{ est_default }}" />
-
-  <br /><br />
-
-  <button type="submit">Zapisz zmiany</button>
-</form>
-
-{% if message %}
-  <p style="color:green;">{{ message }}</p>
-{% endif %}
-{% if error %}
-  <p style="color:red;">{{ error }}</p>
-{% endif %}
-
-
-  <hr />
-  <h3>Dodaj komentarz</h3>
-
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="add_comment" />
-
-    <label>Widoczność</label><br />
-    <select name="visibility">
-      {% for code, label in comment_visibility_choices %}
-        <option value="{{ code }}">{{ label }}</option>
-      {% endfor %}
-    </select>
-
-    <br /><br />
-
-    <label>Treść</label><br />
-    <textarea name="content" rows="4" cols="70"></textarea>
-
-    <br /><br />
-
-    <button type="submit">Dodaj komentarz</button>
-  </form>
-
-
-  <hr />
-  <h3>Komentarze publiczne (dla klienta)</h3>
-  {% if comments_public %}
-    <ul>
-      {% for c in comments_public %}
-        <li>{{ c.created_at }} — {{ c.content }}</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Brak.</p>
+  {% if message %}
+    <p class="message message--success">{{ message }}</p>
+  {% endif %}
+  {% if error %}
+    <p class="message message--error">{{ error }}</p>
   {% endif %}
 
-  <h3>Komentarze wewnętrzne (tylko serwis)</h3>
-  {% if comments_internal %}
-    <ul>
-      {% for c in comments_internal %}
-        <li>{{ c.created_at }} — {{ c.content }}</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Brak.</p>
-  {% endif %}
+  <div class="detail-layout section">
+    <div class="stack">
+      <section class="panel">
+        <div class="panel__body">
+          <h2>Aktualizacja zlecenia</h2>
 
-  <hr />
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_order" />
 
-  <h3>Audit log</h3>
-  {% if audit_entries %}
-    <ul>
-      {% for a in audit_entries %}
-        <li>{{ a.performed_at }} — {{ a.get_action_display }} ({{ a.old_value|default:"" }} → {{ a.new_value|default:"" }})</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Brak wpisów.</p>
-  {% endif %}
-</body>
-</html>
+            <div class="form-grid">
+              <div class="field">
+                <label>Nowy status</label>
+                <select name="status">
+                  {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if code == order.status %}selected{% endif %}>
+                      {{ label }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Estymacja zakończenia (YYYY-MM-DD HH:MM)</label>
+                <input type="text" name="estimated_completion_at" value="{{ est_default }}" />
+              </div>
+            </div>
+
+            <div class="button-row">
+              <button type="submit">Zapisz zmiany</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__body">
+          <h2>Dodaj komentarz</h2>
+
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_comment" />
+
+            <div class="form-grid">
+              <div class="field">
+                <label>Widoczność</label>
+                <select name="visibility">
+                  {% for code, label in comment_visibility_choices %}
+                    <option value="{{ code }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="field section">
+              <label>Treść</label>
+              <textarea name="content" rows="4"></textarea>
+            </div>
+
+            <div class="button-row">
+              <button type="submit">Dodaj komentarz</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__body">
+          <h2>Audit log</h2>
+          {% if audit_entries %}
+            <ul class="clean-list">
+              {% for a in audit_entries %}
+                <li>{{ a.performed_at }} — {{ a.get_action_display }} ({{ a.old_value|default:"" }} → {{ a.new_value|default:"" }})</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Brak wpisów.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="panel">
+        <div class="panel__body">
+          <h2>Komentarze publiczne</h2>
+          {% if comments_public %}
+            <ul class="clean-list">
+              {% for c in comments_public %}
+                <li>{{ c.created_at }} — {{ c.content }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Brak.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__body">
+          <h2>Komentarze wewnętrzne</h2>
+          {% if comments_internal %}
+            <ul class="clean-list">
+              {% for c in comments_internal %}
+                <li>{{ c.created_at }} — {{ c.content }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Brak.</p>
+          {% endif %}
+        </div>
+      </section>
+    </aside>
+  </div>
+{% endblock %}
