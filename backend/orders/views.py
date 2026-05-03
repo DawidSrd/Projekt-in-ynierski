@@ -307,63 +307,95 @@ def tech_order_detail(request, order_number: str):
     error = None
 
     if request.method == "POST":
-        new_status = request.POST.get("status")
-        estimate_raw = (request.POST.get("estimated_completion_at") or "").strip()
+        action = request.POST.get("action") or "update_order"
 
-        old_status = order.status
-        old_estimate = order.estimated_completion_at
+        if action == "update_order":
+            new_status = request.POST.get("status")
+            estimate_raw = (request.POST.get("estimated_completion_at") or "").strip()
 
-        if new_status not in dict(ServiceOrderStatus.choices):
-            error = "Wybrano nieprawidłowy status."
+            old_status = order.status
+            old_estimate = order.estimated_completion_at
+
+            if new_status not in dict(ServiceOrderStatus.choices):
+                error = "Wybrano nieprawidłowy status."
+            else:
+                new_estimate = None
+                if estimate_raw:
+                    parsed = parse_datetime(estimate_raw.replace(" ", "T"))
+                    if parsed is None:
+                        error = "Nieprawidłowy format estymacji. Użyj YYYY-MM-DD HH:MM."
+                    else:
+                        new_estimate = parsed
+                        if timezone.is_naive(new_estimate):
+                            new_estimate = timezone.make_aware(new_estimate)
+
+                if error is None:
+                    order.status = new_status
+                    order.estimated_completion_at = new_estimate
+                    order.save()
+
+                    if old_status != order.status:
+                        AuditLog.objects.create(
+                            order=order,
+                            entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                            entity_id=order.id,
+                            action=AuditLog.Action.STATUS_CHANGED,
+                            old_value=old_status,
+                            new_value=order.status,
+                            performed_by=request.user,
+                        )
+
+                        send_mail(
+                            subject=f"Zmiana statusu zlecenia {order.order_number}",
+                            message=(
+                                f"Status Twojego zlecenia {order.order_number} został zmieniony.\n\n"
+                                f"Aktualny status: {order.get_status_display()}\n"
+                            ),
+                            from_email=None,
+                            recipient_list=[order.customer_email],
+                        )
+
+                    if old_estimate != order.estimated_completion_at:
+                        AuditLog.objects.create(
+                            order=order,
+                            entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                            entity_id=order.id,
+                            action=AuditLog.Action.ESTIMATE_SET,
+                            old_value=str(old_estimate),
+                            new_value=str(order.estimated_completion_at),
+                            performed_by=request.user,
+                        )
+
+                    message = "Zlecenie zostało zaktualizowane."
+
+        elif action == "add_comment":
+            visibility = request.POST.get("visibility")
+            content = (request.POST.get("content") or "").strip()
+
+            if visibility not in dict(ServiceOrderComment.Visibility.choices):
+                error = "Wybrano nieprawidłowy typ komentarza."
+            elif not content:
+                error = "Treść komentarza nie może być pusta."
+            else:
+                comment = ServiceOrderComment.objects.create(
+                    order=order,
+                    visibility=visibility,
+                    content=content,
+                )
+
+                AuditLog.objects.create(
+                    order=order,
+                    entity_type=AuditLog.EntityType.SERVICE_ORDER_COMMENT,
+                    entity_id=comment.id,
+                    action=AuditLog.Action.COMMENT_ADDED,
+                    new_value=f"visibility={comment.visibility}",
+                    performed_by=request.user,
+                )
+
+                message = "Komentarz został dodany."
+
         else:
-            new_estimate = None
-            if estimate_raw:
-                parsed = parse_datetime(estimate_raw.replace(" ", "T"))
-                if parsed is None:
-                    error = "Nieprawidłowy format estymacji. Użyj YYYY-MM-DD HH:MM."
-                else:
-                    new_estimate = parsed
-                    if timezone.is_naive(new_estimate):
-                        new_estimate = timezone.make_aware(new_estimate)
-
-            if error is None:
-                order.status = new_status
-                order.estimated_completion_at = new_estimate
-                order.save()
-
-                if old_status != order.status:
-                    AuditLog.objects.create(
-                        order=order,
-                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                        entity_id=order.id,
-                        action=AuditLog.Action.STATUS_CHANGED,
-                        old_value=old_status,
-                        new_value=order.status,
-                        performed_by=request.user,
-                    )
-
-                    send_mail(
-                        subject=f"Zmiana statusu zlecenia {order.order_number}",
-                        message=(
-                            f"Status Twojego zlecenia {order.order_number} został zmieniony.\n\n"
-                            f"Aktualny status: {order.get_status_display()}\n"
-                        ),
-                        from_email=None,
-                        recipient_list=[order.customer_email],
-                    )
-
-                if old_estimate != order.estimated_completion_at:
-                    AuditLog.objects.create(
-                        order=order,
-                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                        entity_id=order.id,
-                        action=AuditLog.Action.ESTIMATE_SET,
-                        old_value=str(old_estimate),
-                        new_value=str(order.estimated_completion_at),
-                        performed_by=request.user,
-                    )
-
-                message = "Zlecenie zostało zaktualizowane."
+            error = "Nieznana akcja formularza."
 
     comments_internal = ServiceOrderComment.objects.filter(
         order=order,
@@ -386,6 +418,7 @@ def tech_order_detail(request, order_number: str):
             "comments_public": comments_public,
             "audit_entries": audit_entries,
             "status_choices": ServiceOrderStatus.choices,
+            "comment_visibility_choices": ServiceOrderComment.Visibility.choices,
             "est_default": (
                 timezone.localtime(order.estimated_completion_at).strftime("%Y-%m-%d %H:%M")
                 if order.estimated_completion_at

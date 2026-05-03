@@ -9,6 +9,7 @@ from .models import (
     ServiceOption,
     ServiceOptionGroup,
     ServiceOrder,
+    ServiceOrderComment,
     ServiceOrderItem,
     ServiceOrderItemOption,
 )
@@ -40,6 +41,7 @@ class TechnicianViewsTests(TestCase):
         response = self.client.post(
             reverse("tech_order_detail", args=[self.order.order_number]),
             {
+                "action": "update_order",
                 "status": ServiceOrderStatus.IN_PROGRESS,
                 "estimated_completion_at": "2026-05-03 16:30",
             },
@@ -61,6 +63,47 @@ class TechnicianViewsTests(TestCase):
                 action=AuditLog.Action.ESTIMATE_SET,
             ).exists()
         )
+
+    def test_staff_can_add_public_comment_visible_in_tracking(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "add_comment",
+                "visibility": ServiceOrderComment.Visibility.PUBLIC,
+                "content": "Sprzęt czeka na odbiór.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        comment = ServiceOrderComment.objects.get(order=self.order)
+        self.assertEqual(comment.visibility, ServiceOrderComment.Visibility.PUBLIC)
+        self.assertEqual(comment.content, "Sprzęt czeka na odbiór.")
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=self.order,
+                entity_type=AuditLog.EntityType.SERVICE_ORDER_COMMENT,
+                entity_id=comment.id,
+                action=AuditLog.Action.COMMENT_ADDED,
+            ).exists()
+        )
+
+        self.client.logout()
+        track_response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertContains(track_response, "Sprzęt czeka na odbiór.")
 
 
 class ServiceConfiguratorTests(TestCase):

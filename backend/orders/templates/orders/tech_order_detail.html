@@ -23,6 +23,7 @@
 
 <form method="post">
   {% csrf_token %}
+  <input type="hidden" name="action" value="update_order" />
 
   <label>Nowy status</label><br />
   <select name="status">
@@ -50,6 +51,30 @@
   <p style="color:red;">{{ error }}</p>
 {% endif %}
 
+
+  <hr />
+  <h3>Dodaj komentarz</h3>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_comment" />
+
+    <label>Widoczność</label><br />
+    <select name="visibility">
+      {% for code, label in comment_visibility_choices %}
+        <option value="{{ code }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <br /><br />
+
+    <label>Treść</label><br />
+    <textarea name="content" rows="4" cols="70"></textarea>
+
+    <br /><br />
+
+    <button type="submit">Dodaj komentarz</button>
+  </form>
 
 
   <hr />
