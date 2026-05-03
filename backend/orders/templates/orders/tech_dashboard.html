@@ -44,7 +44,7 @@
     <ul>
       {% for o in orders_in_progress %}
         <li>
-          <a href="/tech/orders/{{ o.order_number }}/"></a><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
+          <a href="/tech/orders/{{ o.order_number }}/"><strong>{{ o.order_number }}</strong></a> — {{ o.customer_name }}
           (status: {{ o.get_status_display }}, estymacja: {{ o.estimated_completion_at|default:"brak" }})
         </li>
       {% endfor %}

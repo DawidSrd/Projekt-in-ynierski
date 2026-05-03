@@ -1,9 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from .models import Service, ServiceOptionGroup, ServiceOption
 from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, ServiceOrderItemOption
 from django.core.mail import send_mail
 from .models import AuditLog
-from django.shortcuts import redirect
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from .choices import ServiceOrderStatus
 
 
@@ -69,16 +71,6 @@ def track_order(request):
                 old_label = STATUS_LABELS.get(a.old_value, a.old_value)
                 new_label = STATUS_LABELS.get(a.new_value, a.new_value)
                 audit_timeline.append((a.performed_at, f"Zmiana statusu: {old_label} → {new_label}"))
-
-
-        audit_timeline = []
-        for a in audit_entries:
-            if a.action == AuditLog.Action.ORDER_CREATED:
-                audit_timeline.append((a.performed_at, "Zlecenie przyjęte"))
-            elif a.action == AuditLog.Action.STATUS_CHANGED:
-                old_label = STATUS_LABELS.get(a.old_value, a.old_value)
-                new_label = STATUS_LABELS.get(a.new_value, a.new_value)
-                audit_timeline.append((a.performed_at, f"Zmiana statusu: {old_label} → {new_label}"))
             elif a.action == AuditLog.Action.ESTIMATE_SET:
                 old_txt = "brak" if not a.old_value or a.old_value == "None" else a.old_value
                 new_txt = "brak" if not a.new_value or a.new_value == "None" else a.new_value
@@ -125,7 +117,7 @@ def service_configurator(request, service_id: int):
     - pokazuje grupy opcji i dostępne opcje
     - po POST liczy widełki ceny (min/max)
     """
-    service = Service.objects.get(pk=service_id, is_active=True)
+    service = get_object_or_404(Service, pk=service_id, is_active=True)
 
     groups = ServiceOptionGroup.objects.filter(
         service=service,
@@ -171,7 +163,12 @@ def service_configurator(request, service_id: int):
                 chosen_list = request.POST.getlist(field_name)
                 selected_option_ids.extend([int(x) for x in chosen_list if x])
 
-        selected_options = ServiceOption.objects.filter(id__in=selected_option_ids)
+        selected_options = ServiceOption.objects.filter(
+            id__in=selected_option_ids,
+            group__service=service,
+            group__is_active=True,
+            is_active=True,
+        )
 
         # Liczymy widełki ceny: baza + sumy delt
         total_min = service.base_price_min
@@ -272,6 +269,7 @@ def order_created(request, order_number: str):
         {"order_number": order_number},
     )
 
+@staff_member_required
 def tech_dashboard(request):
     """
     Dashboard technika: podział zleceń na Nowe / W toku / Przeterminowane.
@@ -299,11 +297,73 @@ def tech_dashboard(request):
     )
 
 
+@staff_member_required
 def tech_order_detail(request, order_number: str):
     """
     Widok szczegółów zlecenia dla technika.
     """
-    order = ServiceOrder.objects.get(order_number=order_number)
+    order = get_object_or_404(ServiceOrder, order_number=order_number)
+    message = None
+    error = None
+
+    if request.method == "POST":
+        new_status = request.POST.get("status")
+        estimate_raw = (request.POST.get("estimated_completion_at") or "").strip()
+
+        old_status = order.status
+        old_estimate = order.estimated_completion_at
+
+        if new_status not in dict(ServiceOrderStatus.choices):
+            error = "Wybrano nieprawidłowy status."
+        else:
+            new_estimate = None
+            if estimate_raw:
+                parsed = parse_datetime(estimate_raw.replace(" ", "T"))
+                if parsed is None:
+                    error = "Nieprawidłowy format estymacji. Użyj YYYY-MM-DD HH:MM."
+                else:
+                    new_estimate = parsed
+                    if timezone.is_naive(new_estimate):
+                        new_estimate = timezone.make_aware(new_estimate)
+
+            if error is None:
+                order.status = new_status
+                order.estimated_completion_at = new_estimate
+                order.save()
+
+                if old_status != order.status:
+                    AuditLog.objects.create(
+                        order=order,
+                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                        entity_id=order.id,
+                        action=AuditLog.Action.STATUS_CHANGED,
+                        old_value=old_status,
+                        new_value=order.status,
+                        performed_by=request.user,
+                    )
+
+                    send_mail(
+                        subject=f"Zmiana statusu zlecenia {order.order_number}",
+                        message=(
+                            f"Status Twojego zlecenia {order.order_number} został zmieniony.\n\n"
+                            f"Aktualny status: {order.get_status_display()}\n"
+                        ),
+                        from_email=None,
+                        recipient_list=[order.customer_email],
+                    )
+
+                if old_estimate != order.estimated_completion_at:
+                    AuditLog.objects.create(
+                        order=order,
+                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                        entity_id=order.id,
+                        action=AuditLog.Action.ESTIMATE_SET,
+                        old_value=str(old_estimate),
+                        new_value=str(order.estimated_completion_at),
+                        performed_by=request.user,
+                    )
+
+                message = "Zlecenie zostało zaktualizowane."
 
     comments_internal = ServiceOrderComment.objects.filter(
         order=order,
@@ -325,5 +385,13 @@ def tech_order_detail(request, order_number: str):
             "comments_internal": comments_internal,
             "comments_public": comments_public,
             "audit_entries": audit_entries,
+            "status_choices": ServiceOrderStatus.choices,
+            "est_default": (
+                timezone.localtime(order.estimated_completion_at).strftime("%Y-%m-%d %H:%M")
+                if order.estimated_completion_at
+                else ""
+            ),
+            "message": message,
+            "error": error,
         },
     )

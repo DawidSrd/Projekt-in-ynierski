@@ -76,9 +76,11 @@ class OverdueFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() == "yes":
-            return [o for o in queryset if o.is_overdue()]
+            overdue_ids = [o.id for o in queryset if o.is_overdue()]
+            return queryset.filter(id__in=overdue_ids)
         if self.value() == "no":
-            return [o for o in queryset if not o.is_overdue()]
+            overdue_ids = [o.id for o in queryset if o.is_overdue()]
+            return queryset.exclude(id__in=overdue_ids)
         return queryset
 
 

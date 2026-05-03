@@ -1,6 +1,5 @@
 from django.urls import path
 from . import views
-from django.shortcuts import render
 
 urlpatterns = [
     path("track/", views.track_order, name="track_order"),
@@ -10,15 +9,3 @@ urlpatterns = [
     path("tech/dashboard/", views.tech_dashboard, name="tech_dashboard"),
     path("tech/orders/<str:order_number>/", views.tech_order_detail, name="tech_order_detail"),
 ]
-
-def order_created(request, order_number: str):
-    """
-    Strona potwierdzenia utworzenia zlecenia (PRG redirect – GET).
-    """
-    return render(
-        request,
-        "orders/order_created.html",
-        {
-            "order_number": order_number,
-        },
-    )
