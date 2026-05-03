@@ -13,6 +13,20 @@ from .choices import ServiceOrderStatus
 STATUS_LABELS = dict(ServiceOrderStatus.choices)
 
 
+def get_verified_order(order_number: str, email: str, phone: str):
+    order = ServiceOrder.objects.filter(order_number=order_number).first()
+
+    if not order:
+        return None
+
+    email_ok = email and (order.customer_email.lower() == email)
+    phone_ok = phone and (order.customer_phone == phone)
+
+    if not (email_ok or phone_ok):
+        return None
+
+    return order
+
 
 def track_order(request):
     """
@@ -21,9 +35,10 @@ def track_order(request):
     GET  -> pokazuje formularz
     POST -> weryfikuje dane i pokazuje wynik
     """
-    context = {"result": None, "error": None}
+    context = {"result": None, "error": None, "message": None}
 
     if request.method == "POST":
+        action = request.POST.get("action") or "track_order"
         order_number = (request.POST.get("order_number") or "").strip().upper()
         email = (request.POST.get("email") or "").strip().lower()
         phone = (request.POST.get("phone") or "").strip()
@@ -33,21 +48,44 @@ def track_order(request):
             context["error"] = "Podaj numer zlecenia oraz e-mail lub numer telefonu."
             return render(request, "orders/track_order.html", context)
 
-        # Szukamy zlecenia
-        order = ServiceOrder.objects.filter(order_number=order_number).first()
+        order = get_verified_order(order_number, email, phone)
 
-        # Bezpieczeństwo: nie mówimy, czy numer jest poprawny.
         if not order:
             context["error"] = "Nie znaleziono zlecenia dla podanych danych."
             return render(request, "orders/track_order.html", context)
 
-        # Weryfikacja: email lub telefon musi pasować do zlecenia
-        email_ok = email and (order.customer_email.lower() == email)
-        phone_ok = phone and (order.customer_phone == phone)
+        if action == "cancel_order":
+            if order.can_cancel():
+                old_status = order.status
+                order.status = ServiceOrderStatus.CANCELED
+                order.save()
 
-        if not (email_ok or phone_ok):
-            context["error"] = "Nie znaleziono zlecenia dla podanych danych."
-            return render(request, "orders/track_order.html", context)
+                AuditLog.objects.create(
+                    order=order,
+                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                    entity_id=order.id,
+                    action=AuditLog.Action.ORDER_CANCELED,
+                    old_value=old_status,
+                    new_value=order.status,
+                    performed_by=None,
+                )
+
+                send_mail(
+                    subject=f"Anulowanie zlecenia {order.order_number}",
+                    message=(
+                        f"Twoje zlecenie {order.order_number} zostało anulowane.\n\n"
+                        f"Aktualny status: {order.get_status_display()}\n"
+                    ),
+                    from_email=None,
+                    recipient_list=[order.customer_email],
+                )
+
+                context["message"] = "Zlecenie zostało anulowane."
+            else:
+                context["error"] = (
+                    "Anulowanie online jest dostępne tylko dla nowych zleceń. "
+                    "Skontaktuj się telefonicznie z serwisem."
+                )
 
         public_comments = ServiceOrderComment.objects.filter(
             order=order,
@@ -60,6 +98,7 @@ def track_order(request):
                 AuditLog.Action.ORDER_CREATED,
                 AuditLog.Action.STATUS_CHANGED,
                 AuditLog.Action.ESTIMATE_SET,
+                AuditLog.Action.ORDER_CANCELED,
             ],
         ).order_by("performed_at")
 
@@ -77,6 +116,8 @@ def track_order(request):
                 audit_timeline.append(
                     (a.performed_at, f"Zmiana estymacji: {old_txt} → {new_txt}")
                 )
+            elif a.action == AuditLog.Action.ORDER_CANCELED:
+                audit_timeline.append((a.performed_at, "Zlecenie anulowane"))
 
 
 
@@ -90,6 +131,9 @@ def track_order(request):
             "comments": public_comments,
             "audit_entries": audit_entries,
             "audit_timeline": audit_timeline,
+            "can_cancel": order.can_cancel(),
+            "email": email,
+            "phone": phone,
         }
 
 

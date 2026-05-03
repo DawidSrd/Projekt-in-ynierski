@@ -9,6 +9,7 @@
 
   <form method="post">
     {% csrf_token %}
+    <input type="hidden" name="action" value="track_order" />
 
     <div>
       <label>Numer zlecenia</label><br />
@@ -34,12 +35,30 @@
     <p style="color:red; margin-top:15px;">{{ error }}</p>
   {% endif %}
 
+  {% if message %}
+    <p style="color:green; margin-top:15px;">{{ message }}</p>
+  {% endif %}
+
   {% if result %}
     <hr />
     <h2>Wynik</h2>
     <p><strong>Numer:</strong> {{ result.order_number }}</p>
     <p><strong>Status:</strong> {{ result.status }}</p>
     <p><strong>Estymacja:</strong> {{ result.estimated_completion_at|default:"brak" }}</p>
+
+    <h3>Anulowanie zlecenia</h3>
+    {% if result.can_cancel %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="cancel_order" />
+        <input type="hidden" name="order_number" value="{{ result.order_number }}" />
+        <input type="hidden" name="email" value="{{ result.email }}" />
+        <input type="hidden" name="phone" value="{{ result.phone }}" />
+        <button type="submit">Anuluj zlecenie</button>
+      </form>
+    {% else %}
+      <p>Anulowanie online jest dostępne tylko dla nowych zleceń. W celu anulowania skontaktuj się telefonicznie z serwisem.</p>
+    {% endif %}
 
     <h3>Komentarze (publiczne)</h3>
     {% if result.comments %}

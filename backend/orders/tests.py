@@ -106,6 +106,65 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(track_response, "Sprzęt czeka na odbiór.")
 
 
+class GuestAccessCancellationTests(TestCase):
+    def setUp(self):
+        self.order = ServiceOrder.objects.create(
+            customer_name="Jan Kowalski",
+            customer_email="jan@example.com",
+            customer_phone="123456789",
+        )
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_customer_can_cancel_new_order(self):
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "action": "cancel_order",
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, ServiceOrderStatus.CANCELED)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.ORDER_CANCELED,
+                old_value=ServiceOrderStatus.NEW,
+                new_value=ServiceOrderStatus.CANCELED,
+                performed_by=None,
+            ).exists()
+        )
+        self.assertContains(response, "Zlecenie zostało anulowane.")
+        self.assertContains(response, "Zlecenie anulowane")
+
+    def test_customer_cannot_cancel_order_after_service_started(self):
+        self.order.status = ServiceOrderStatus.IN_PROGRESS
+        self.order.save()
+
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "action": "cancel_order",
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, ServiceOrderStatus.IN_PROGRESS)
+        self.assertFalse(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.ORDER_CANCELED,
+            ).exists()
+        )
+        self.assertContains(response, "Skontaktuj się telefonicznie z serwisem.")
+
+
 class ServiceConfiguratorTests(TestCase):
     def test_create_order_ignores_options_from_other_service(self):
         service = Service.objects.create(
