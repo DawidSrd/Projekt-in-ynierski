@@ -253,7 +253,10 @@ class TechnicianViewsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Karta obsługi zlecenia serwisowego")
+        self.assertContains(response, "Obsługa zlecenia")
         self.assertContains(response, "Zakres usługi i wycena")
+        self.assertContains(response, "Snapshot usługi")
         self.assertContains(response, "Czyszczenie laptopa")
         self.assertContains(response, "Pasta premium")
         self.assertContains(response, "150.00 - 230.00 zł")

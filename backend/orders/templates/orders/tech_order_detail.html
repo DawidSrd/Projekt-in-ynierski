@@ -6,25 +6,44 @@
   <div class="page-heading">
     <div>
       <h1>Zlecenie {{ order.order_number }}</h1>
-      <p>{{ order.customer_name }} — {{ order.customer_email }} — {{ order.customer_phone }}</p>
+      <p>Karta obsługi zlecenia serwisowego.</p>
     </div>
     <a class="button button--ghost" href="/tech/dashboard/">Wróć do dashboardu</a>
   </div>
 
-  <div class="result-grid">
-    <div class="metric">
-      <span class="metric__label">Status</span>
-      <span class="metric__value">{{ order.get_status_display }}</span>
+  <section class="panel order-summary">
+    <div class="panel__body">
+      <div class="order-summary__grid">
+        <div>
+          <span class="metric__label">Klient</span>
+          <h2>{{ order.customer_name }}</h2>
+          <div class="contact-list">
+            <a href="mailto:{{ order.customer_email }}">{{ order.customer_email }}</a>
+            <a href="tel:{{ order.customer_phone }}">{{ order.customer_phone }}</a>
+          </div>
+        </div>
+
+        <div class="order-summary__meta">
+          <div>
+            <span class="metric__label">Status</span>
+            <span class="status-badge">{{ order.get_status_display }}</span>
+          </div>
+          <div>
+            <span class="metric__label">Estymacja</span>
+            <strong>{{ order.estimated_completion_at|default:"brak" }}</strong>
+          </div>
+          <div>
+            <span class="metric__label">Termin</span>
+            {% if order.is_overdue %}
+              <span class="status-badge status-badge--danger">Po terminie</span>
+            {% else %}
+              <span class="status-badge">W normie</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="metric">
-      <span class="metric__label">Estymacja</span>
-      <span class="metric__value">{{ order.estimated_completion_at|default:"brak" }}</span>
-    </div>
-    <div class="metric">
-      <span class="metric__label">Przeterminowane</span>
-      <span class="metric__value">{{ order.is_overdue|yesno:"TAK,NIE" }}</span>
-    </div>
-  </div>
+  </section>
 
   {% if message %}
     <p class="message message--success">{{ message }}</p>
@@ -37,7 +56,10 @@
     <div class="stack">
       <section class="panel">
         <div class="panel__body">
-          <h2>Aktualizacja zlecenia</h2>
+          <div class="section-title">
+            <h2>Obsługa zlecenia</h2>
+            <p>Zmień status, ustaw estymację i zdecyduj, czy klient ma dostać e-mail.</p>
+          </div>
 
           <form method="post" data-confirm-mail-form>
             {% csrf_token %}
@@ -75,7 +97,45 @@
 
       <section class="panel">
         <div class="panel__body">
-          <h2>Dodaj komentarz</h2>
+          <div class="section-title">
+            <h2>Zakres usługi i wycena</h2>
+            <p>Snapshot usługi z momentu utworzenia zlecenia.</p>
+          </div>
+
+          {% if order_items %}
+            <div class="service-snapshot-list">
+              {% for item in order_items %}
+                <article class="service-snapshot">
+                  <div class="service-snapshot__header">
+                    <h3>{{ item.service_name_snapshot }}</h3>
+                    <span class="pill">{{ item.calculated_price_min }} - {{ item.calculated_price_max }} zł</span>
+                  </div>
+                  <p class="muted">Cena bazowa: {{ item.base_price_min_snapshot }} - {{ item.base_price_max_snapshot }} zł</p>
+
+                  {% if item.selected_options.all %}
+                    <ul class="sub-list">
+                      {% for option in item.selected_options.all %}
+                        <li>{{ option.option_name_snapshot }} ({{ option.price_delta_min_snapshot }} - {{ option.price_delta_max_snapshot }} zł)</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p class="empty">Brak wybranych opcji.</p>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="empty">Brak pozycji zlecenia.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__body">
+          <div class="section-title">
+            <h2>Dodaj komentarz</h2>
+            <p>Komentarz publiczny będzie widoczny dla klienta w śledzeniu zlecenia.</p>
+          </div>
 
           <form method="post">
             {% csrf_token %}
@@ -103,60 +163,19 @@
           </form>
         </div>
       </section>
-
-      <section class="panel">
-        <div class="panel__body">
-          <h2>Audit log</h2>
-          {% if audit_entries %}
-            <ul class="clean-list">
-              {% for a in audit_entries %}
-                <li>{{ a.performed_at }} — {{ a.get_action_display }} ({{ a.old_value|default:"" }} → {{ a.new_value|default:"" }})</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="empty">Brak wpisów.</p>
-          {% endif %}
-        </div>
-      </section>
     </div>
 
     <aside class="stack">
-      <section class="panel">
-        <div class="panel__body">
-          <h2>Zakres usługi i wycena</h2>
-          {% if order_items %}
-            <ul class="clean-list">
-              {% for item in order_items %}
-                <li>
-                  <strong>{{ item.service_name_snapshot }}</strong><br />
-                  <span class="muted">Cena bazowa: {{ item.base_price_min_snapshot }} - {{ item.base_price_max_snapshot }} zł</span><br />
-                  <span class="muted">Wycena końcowa: {{ item.calculated_price_min }} - {{ item.calculated_price_max }} zł</span>
-
-                  {% if item.selected_options.all %}
-                    <ul class="sub-list">
-                      {% for option in item.selected_options.all %}
-                        <li>{{ option.option_name_snapshot }} ({{ option.price_delta_min_snapshot }} - {{ option.price_delta_max_snapshot }} zł)</li>
-                      {% endfor %}
-                    </ul>
-                  {% else %}
-                    <p class="empty">Brak wybranych opcji.</p>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="empty">Brak pozycji zlecenia.</p>
-          {% endif %}
-        </div>
-      </section>
-
       <section class="panel">
         <div class="panel__body">
           <h2>Komentarze publiczne</h2>
           {% if comments_public %}
             <ul class="clean-list">
               {% for c in comments_public %}
-                <li>{{ c.created_at }} — {{ c.content }}</li>
+                <li>
+                  <span class="muted">{{ c.created_at }}</span><br />
+                  {{ c.content }}
+                </li>
               {% endfor %}
             </ul>
           {% else %}
@@ -171,11 +190,32 @@
           {% if comments_internal %}
             <ul class="clean-list">
               {% for c in comments_internal %}
-                <li>{{ c.created_at }} — {{ c.content }}</li>
+                <li>
+                  <span class="muted">{{ c.created_at }}</span><br />
+                  {{ c.content }}
+                </li>
               {% endfor %}
             </ul>
           {% else %}
             <p class="empty">Brak.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__body">
+          <h2>Historia zmian</h2>
+          {% if audit_entries %}
+            <ul class="clean-list">
+              {% for a in audit_entries %}
+                <li>
+                  <span class="muted">{{ a.performed_at }}</span><br />
+                  {{ a.get_action_display }} ({{ a.old_value|default:"" }} → {{ a.new_value|default:"" }})
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Brak wpisów.</p>
           {% endif %}
         </div>
       </section>
