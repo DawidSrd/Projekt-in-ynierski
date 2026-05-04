@@ -391,6 +391,8 @@ class TechnicianViewsTests(TestCase):
         )
 
         self.assertContains(track_response, "Sprzęt czeka na odbiór.")
+        self.assertContains(track_response, "Wiadomości z serwisu")
+        self.assertContains(track_response, "Historia zlecenia")
 
 
 class GuestAccessCancellationTests(TestCase):

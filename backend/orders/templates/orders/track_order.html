@@ -6,7 +6,7 @@
   <div class="page-heading">
     <div>
       <h1>Śledzenie zlecenia</h1>
-      <p>Podaj numer zlecenia oraz e-mail albo telefon.</p>
+      <p>Podaj numer zlecenia oraz e-mail albo telefon podany przy zgłoszeniu.</p>
     </div>
   </div>
 
@@ -49,77 +49,97 @@
   </section>
 
   {% if result %}
-    <section class="section">
-      <div class="page-heading">
-        <div>
-          <h2>Wynik</h2>
-        </div>
-      </div>
-
-      <div class="result-grid">
-        <div class="metric">
-          <span class="metric__label">Numer</span>
-          <span class="metric__value">{{ result.order_number }}</span>
-        </div>
-        <div class="metric">
-          <span class="metric__label">Status</span>
-          <span class="metric__value">{{ result.status }}</span>
-        </div>
-        <div class="metric">
-          <span class="metric__label">Estymacja</span>
-          <span class="metric__value">{{ result.estimated_completion_at|default:"brak" }}</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="section panel">
+    <section class="panel section tracking-summary">
       <div class="panel__body">
-        <h2>Anulowanie zlecenia</h2>
-        {% if result.can_cancel %}
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="cancel_order" />
-            <input type="hidden" name="order_number" value="{{ result.order_number }}" />
-            <input type="hidden" name="email" value="{{ result.email }}" />
-            <input type="hidden" name="phone" value="{{ result.phone }}" />
-            <button class="button--danger" type="submit">Anuluj zlecenie</button>
-          </form>
-        {% else %}
-          <p class="empty">Anulowanie online jest dostępne tylko dla nowych zleceń. W celu anulowania skontaktuj się telefonicznie z serwisem.</p>
-        {% endif %}
+        <div class="tracking-summary__grid">
+          <div>
+            <span class="metric__label">Numer zlecenia</span>
+            <h2>{{ result.order_number }}</h2>
+          </div>
+
+          <div class="tracking-summary__meta">
+            <div>
+              <span class="metric__label">Status</span>
+              <span class="status-badge">{{ result.status }}</span>
+            </div>
+            <div>
+              <span class="metric__label">Estymacja</span>
+              <strong>{{ result.estimated_completion_at|default:"brak" }}</strong>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <div class="detail-layout section">
-      <section class="panel">
-        <div class="panel__body">
-          <h2>Komentarze publiczne</h2>
-          {% if result.comments %}
-            <ul class="clean-list">
-              {% for c in result.comments %}
-                <li>{{ c.created_at }} — {{ c.content }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="empty">Brak komentarzy.</p>
-          {% endif %}
-        </div>
-      </section>
+    <div class="tracking-layout section">
+      <div class="stack">
+        <section class="panel">
+          <div class="panel__body">
+            <div class="section-title">
+              <h2>Wiadomości z serwisu</h2>
+              <p>Publiczne komentarze dodane przez pracownika serwisu.</p>
+            </div>
 
-      <section class="panel">
-        <div class="panel__body">
-          <h2>Historia statusów</h2>
-          {% if result.audit_timeline %}
-            <ul class="clean-list">
-              {% for dt, text in result.audit_timeline %}
-                <li>{{ dt }} — {{ text }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="empty">Brak historii statusów.</p>
-          {% endif %}
-        </div>
-      </section>
+            {% if result.comments %}
+              <ul class="clean-list">
+                {% for c in result.comments %}
+                  <li>
+                    <span class="muted">{{ c.created_at }}</span><br />
+                    {{ c.content }}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty">Brak wiadomości z serwisu.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__body">
+            <div class="section-title">
+              <h2>Historia zlecenia</h2>
+              <p>Najważniejsze zdarzenia związane ze zgłoszeniem.</p>
+            </div>
+
+            {% if result.audit_timeline %}
+              <ul class="timeline-list">
+                {% for dt, text in result.audit_timeline %}
+                  <li>
+                    <span class="timeline-list__date">{{ dt }}</span>
+                    <span class="timeline-list__text">{{ text }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty">Brak historii statusów.</p>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel__body">
+            <h2>Anulowanie zlecenia</h2>
+            {% if result.can_cancel %}
+              <p class="muted">Zlecenie można anulować online tylko przed rozpoczęciem obsługi.</p>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="cancel_order" />
+                <input type="hidden" name="order_number" value="{{ result.order_number }}" />
+                <input type="hidden" name="email" value="{{ result.email }}" />
+                <input type="hidden" name="phone" value="{{ result.phone }}" />
+                <div class="button-row">
+                  <button class="button--danger" type="submit">Anuluj zlecenie</button>
+                </div>
+              </form>
+            {% else %}
+              <p class="empty">Anulowanie online jest dostępne tylko dla nowych zleceń. W celu anulowania skontaktuj się telefonicznie z serwisem.</p>
+            {% endif %}
+          </div>
+        </section>
+      </aside>
     </div>
   {% endif %}
 {% endblock %}
