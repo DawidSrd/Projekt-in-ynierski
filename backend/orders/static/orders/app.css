@@ -350,10 +350,24 @@ fieldset {
 }
 
 .metric {
+  display: block;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fafbf9;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.metric--link:hover {
+  border-color: var(--primary);
+  background: #f0f6f2;
+  color: var(--text);
+}
+
+.metric--danger {
+  border-color: #e2b5b5;
+  background: #fff8f8;
 }
 
 .metric__label {
@@ -386,7 +400,7 @@ fieldset {
 
 .order-columns {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 18px;
 }
 
@@ -419,6 +433,11 @@ fieldset {
   list-style: none;
 }
 
+.order-list--standalone {
+  border-top: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 .order-item {
   padding: 13px;
   border: 1px solid var(--line);
@@ -434,6 +453,13 @@ fieldset {
   display: block;
   color: var(--muted);
   font-size: 14px;
+}
+
+.dashboard-filter {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) auto;
+  gap: 18px;
+  align-items: end;
 }
 
 .detail-layout {
@@ -478,7 +504,8 @@ fieldset {
   }
 
   .order-columns,
-  .detail-layout {
+  .detail-layout,
+  .dashboard-filter {
     grid-template-columns: 1fr;
   }
 }

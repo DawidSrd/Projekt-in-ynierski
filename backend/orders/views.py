@@ -322,6 +322,10 @@ def tech_dashboard(request):
     """
     Dashboard technika: podział zleceń na Nowe / W toku / Przeterminowane.
     """
+    selected_status = request.GET.get("status") or ""
+    if selected_status not in dict(ServiceOrderStatus.choices):
+        selected_status = ""
+
     orders_new = ServiceOrder.objects.filter(status=ServiceOrderStatus.NEW).order_by("-created_at")
 
     orders_in_progress = ServiceOrder.objects.filter(
@@ -332,19 +336,43 @@ def tech_dashboard(request):
         ]
     ).order_by("-created_at")
 
-    # Przeterminowane liczymy metodą is_overdue 
+    orders_ready = ServiceOrder.objects.filter(status=ServiceOrderStatus.READY).order_by("-created_at")
+
+    filtered_orders = ServiceOrder.objects.none()
+    selected_status_label = None
+    if selected_status:
+        filtered_orders = ServiceOrder.objects.filter(status=selected_status).order_by("-created_at")
+        selected_status_label = STATUS_LABELS[selected_status]
+
+    dashboard_counts = {
+        "new": orders_new.count(),
+        "in_progress": orders_in_progress.count(),
+        "ready": orders_ready.count(),
+        "active": ServiceOrder.objects.exclude(
+            status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
+        ).count(),
+        "completed": ServiceOrder.objects.filter(status=ServiceOrderStatus.COMPLETED).count(),
+    }
+
     all_active = ServiceOrder.objects.exclude(
         status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
     ).order_by("-created_at")
     orders_overdue = [o for o in all_active if o.is_overdue()]
+    dashboard_counts["overdue"] = len(orders_overdue)
 
     return render(
         request,
         "orders/tech_dashboard.html",
         {
+            "dashboard_counts": dashboard_counts,
+            "filtered_orders": filtered_orders,
             "orders_new": orders_new,
             "orders_in_progress": orders_in_progress,
             "orders_overdue": orders_overdue,
+            "orders_ready": orders_ready,
+            "selected_status": selected_status,
+            "selected_status_label": selected_status_label,
+            "status_choices": ServiceOrderStatus.choices,
         },
     )
 

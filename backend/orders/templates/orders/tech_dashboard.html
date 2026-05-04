@@ -10,7 +10,83 @@
     </div>
   </div>
 
-  <div class="order-columns">
+  <section class="result-grid">
+    <a class="metric metric--link" href="/tech/dashboard/?status=NEW">
+      <span class="metric__label">Nowe zlecenia</span>
+      <span class="metric__value">{{ dashboard_counts.new }}</span>
+    </a>
+    <a class="metric metric--link" href="/tech/dashboard/?status=IN_PROGRESS">
+      <span class="metric__label">W toku</span>
+      <span class="metric__value">{{ dashboard_counts.in_progress }}</span>
+    </a>
+    <a class="metric metric--link" href="/tech/dashboard/?status=READY">
+      <span class="metric__label">Gotowe do odbioru</span>
+      <span class="metric__value">{{ dashboard_counts.ready }}</span>
+    </a>
+    <div class="metric metric--danger">
+      <span class="metric__label">Przeterminowane</span>
+      <span class="metric__value">{{ dashboard_counts.overdue }}</span>
+    </div>
+    <div class="metric">
+      <span class="metric__label">Aktywne łącznie</span>
+      <span class="metric__value">{{ dashboard_counts.active }}</span>
+    </div>
+    <a class="metric metric--link" href="/tech/dashboard/?status=COMPLETED">
+      <span class="metric__label">Zakończone</span>
+      <span class="metric__value">{{ dashboard_counts.completed }}</span>
+    </a>
+  </section>
+
+  <section class="panel section">
+    <div class="panel__body">
+      <form method="get" class="dashboard-filter">
+        <div class="field">
+          <label>Filtr statusu</label>
+          <select name="status">
+            <option value="">Wszystkie kolejki</option>
+            {% for code, label in status_choices %}
+              <option value="{{ code }}" {% if code == selected_status %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="button-row">
+          <button type="submit">Filtruj</button>
+          <a class="button button--ghost" href="/tech/dashboard/">Wyczyść</a>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  {% if selected_status %}
+    <section class="section">
+      <div class="page-heading">
+        <div>
+          <h2>Wynik filtrowania: {{ selected_status_label }}</h2>
+        </div>
+      </div>
+
+      {% if filtered_orders %}
+        <ul class="order-list order-list--standalone">
+          {% for o in filtered_orders %}
+            <li class="order-item">
+              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
+              <span>{{ o.customer_name }}</span>
+              <span>Status: {{ o.get_status_display }}</span>
+              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="panel">
+          <div class="panel__body">
+            <p class="empty">Brak zleceń dla wybranego statusu.</p>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  <div class="order-columns section">
     <section class="order-column order-column--urgent">
       <h2>Przeterminowane / pilne</h2>
       {% if orders_overdue %}
@@ -66,6 +142,26 @@
       {% else %}
         <div class="order-list">
           <p class="empty">Brak zleceń w toku.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="order-column">
+      <h2>Gotowe do odbioru</h2>
+      {% if orders_ready %}
+        <ul class="order-list">
+          {% for o in orders_ready %}
+            <li class="order-item">
+              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
+              <span>{{ o.customer_name }}</span>
+              <span>Status: {{ o.get_status_display }}</span>
+              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="order-list">
+          <p class="empty">Brak zleceń gotowych do odbioru.</p>
         </div>
       {% endif %}
     </section>

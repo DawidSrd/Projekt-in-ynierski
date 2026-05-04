@@ -29,6 +29,40 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/admin/login/", response["Location"])
 
+    def test_tech_dashboard_shows_counts_ready_orders_and_status_filter(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        ServiceOrder.objects.create(
+            customer_name="Anna Nowak",
+            customer_email="anna@example.com",
+            customer_phone="111222333",
+            status=ServiceOrderStatus.READY,
+        )
+        ServiceOrder.objects.create(
+            customer_name="Piotr Zielinski",
+            customer_email="piotr@example.com",
+            customer_phone="444555666",
+            status=ServiceOrderStatus.RECEIVED,
+        )
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {"status": ServiceOrderStatus.READY},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["dashboard_counts"]["new"], 1)
+        self.assertEqual(response.context["dashboard_counts"]["ready"], 1)
+        self.assertEqual(response.context["dashboard_counts"]["in_progress"], 1)
+        self.assertEqual(response.context["selected_status"], ServiceOrderStatus.READY)
+        self.assertContains(response, "Gotowe do odbioru")
+        self.assertContains(response, "Wynik filtrowania: Gotowe do odbioru")
+        self.assertContains(response, "Anna Nowak")
+
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_staff_can_update_order_status_and_estimate(self):
         User.objects.create_user(
