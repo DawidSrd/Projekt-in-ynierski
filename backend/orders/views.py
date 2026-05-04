@@ -468,6 +468,7 @@ def tech_order_detail(request, order_number: str):
         if action == "update_order":
             new_status = request.POST.get("status")
             estimate_raw = (request.POST.get("estimated_completion_at") or "").strip()
+            notify_customer = request.POST.get("notify_customer") == "on"
 
             old_status = order.status
             old_estimate = order.estimated_completion_at
@@ -503,15 +504,16 @@ def tech_order_detail(request, order_number: str):
                             performed_by=request.user,
                         )
 
-                        send_mail(
-                            subject=f"Zmiana statusu zlecenia {order.order_number}",
-                            message=(
-                                f"Status Twojego zlecenia {order.order_number} został zmieniony.\n\n"
-                                f"Aktualny status: {order.get_status_display()}\n"
-                            ),
-                            from_email=None,
-                            recipient_list=[order.customer_email],
-                        )
+                        if notify_customer:
+                            send_mail(
+                                subject=f"Zmiana statusu zlecenia {order.order_number}",
+                                message=(
+                                    f"Status Twojego zlecenia {order.order_number} został zmieniony.\n\n"
+                                    f"Aktualny status: {order.get_status_display()}\n"
+                                ),
+                                from_email=None,
+                                recipient_list=[order.customer_email],
+                            )
 
                     if old_estimate != order.estimated_completion_at:
                         AuditLog.objects.create(
@@ -524,7 +526,10 @@ def tech_order_detail(request, order_number: str):
                             performed_by=request.user,
                         )
 
-                    message = "Zlecenie zostało zaktualizowane."
+                    if notify_customer and old_status != order.status:
+                        message = "Zlecenie zostało zaktualizowane, a klient otrzymał wiadomość e-mail."
+                    else:
+                        message = "Zlecenie zostało zaktualizowane."
 
         elif action == "add_comment":
             visibility = request.POST.get("visibility")

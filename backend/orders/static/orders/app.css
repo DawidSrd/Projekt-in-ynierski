@@ -489,6 +489,10 @@ fieldset {
   font-weight: 400;
 }
 
+.choice--inline {
+  margin-top: 16px;
+}
+
 .message {
   margin: 16px 0 0;
   padding: 12px 14px;

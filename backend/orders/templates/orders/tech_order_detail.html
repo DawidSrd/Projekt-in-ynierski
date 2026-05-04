@@ -39,7 +39,7 @@
         <div class="panel__body">
           <h2>Aktualizacja zlecenia</h2>
 
-          <form method="post">
+          <form method="post" data-confirm-mail-form>
             {% csrf_token %}
             <input type="hidden" name="action" value="update_order" />
 
@@ -60,6 +60,11 @@
                 <input type="text" name="estimated_completion_at" value="{{ est_default }}" />
               </div>
             </div>
+
+            <label class="choice choice--inline">
+              <input type="checkbox" name="notify_customer" data-confirm-mail-checkbox />
+              <span>Wyślij klientowi wiadomość e-mail o zmianie statusu</span>
+            </label>
 
             <div class="button-row">
               <button type="submit">Zapisz zmiany</button>
@@ -176,4 +181,19 @@
       </section>
     </aside>
   </div>
+
+  <script>
+    const mailForm = document.querySelector("[data-confirm-mail-form]");
+    if (mailForm) {
+      mailForm.addEventListener("submit", function (event) {
+        const checkbox = mailForm.querySelector("[data-confirm-mail-checkbox]");
+        if (checkbox && checkbox.checked) {
+          const confirmed = window.confirm("Czy na pewno wysłać wiadomość e-mail do klienta?");
+          if (!confirmed) {
+            event.preventDefault();
+          }
+        }
+      });
+    }
+  </script>
 {% endblock %}

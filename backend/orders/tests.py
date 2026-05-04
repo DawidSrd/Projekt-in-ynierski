@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -279,6 +280,7 @@ class TechnicianViewsTests(TestCase):
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
         self.assertIsNotNone(self.order.estimated_completion_at)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertTrue(
             AuditLog.objects.filter(
                 order=self.order,
@@ -291,6 +293,32 @@ class TechnicianViewsTests(TestCase):
                 action=AuditLog.Action.ESTIMATE_SET,
             ).exists()
         )
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_staff_can_send_status_email_when_checkbox_is_selected(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "update_order",
+                "status": ServiceOrderStatus.RECEIVED,
+                "estimated_completion_at": "",
+                "notify_customer": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.order.customer_email])
+        self.assertContains(response, "klient otrzymał wiadomość e-mail")
 
     def test_staff_cannot_skip_status_workflow(self):
         User.objects.create_user(
