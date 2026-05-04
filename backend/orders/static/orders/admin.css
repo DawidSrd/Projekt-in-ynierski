@@ -208,8 +208,121 @@ textarea {
   max-width: 1180px;
 }
 
-.dashboard .app-orders {
+.service-admin-dashboard-page #content {
+  max-width: 1180px;
+}
+
+.service-admin-dashboard {
+  display: grid;
+  gap: 18px;
+}
+
+.service-admin-panel {
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(31, 42, 39, 0.07);
+}
+
+.service-admin-eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.service-admin-panel h1 {
+  margin: 0 0 10px;
+  font-size: 28px;
+}
+
+.service-admin-panel p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--body-quiet-color);
+}
+
+.service-admin-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.service-admin-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 112px;
+  padding: 18px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #f9fbf9;
+  color: var(--body-fg);
+  text-decoration: none;
+}
+
+.service-admin-action:hover {
+  border-color: var(--primary);
+  background: var(--selected-bg);
+  color: var(--body-fg);
+}
+
+.service-admin-action--primary {
+  border-color: #adc9c0;
+  background: #f3f8f5;
+}
+
+.service-admin-action span {
+  color: #1e2f2a;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.service-admin-action small {
+  margin-top: 6px;
+  color: var(--body-quiet-color);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.service-admin-details {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 42, 39, 0.05);
+}
+
+.service-admin-details summary {
+  padding: 15px 18px;
+  color: #1e2f2a;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.service-admin-details[open] summary {
+  border-bottom: 1px solid var(--hairline-color);
+}
+
+.service-admin-app-list {
+  padding: 16px;
+}
+
+.service-admin-app-list .module {
+  box-shadow: none;
+}
+
+.service-admin-recent .module {
   border-top: 4px solid var(--accent);
+}
+
+.service-admin-empty {
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #ffffff;
 }
 
 @media (max-width: 767px) {
@@ -231,5 +344,9 @@ textarea {
 
   #content {
     padding: 18px;
+  }
+
+  .service-admin-actions {
+    grid-template-columns: 1fr;
   }
 }

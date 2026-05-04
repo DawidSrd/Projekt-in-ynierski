@@ -10,16 +10,21 @@
 <body class="{% block body_class %}{% endblock %}">
   <header class="app-header">
     <div class="app-shell app-header__inner">
-      <a class="brand" href="/services/">
+      <a class="brand" href="/">
         <span class="brand__name">Serwis komputerowy</span>
         <span class="brand__label">Obsługa zleceń</span>
       </a>
 
       <nav class="main-nav" aria-label="Nawigacja główna">
+        <a href="/">Start</a>
         <a href="/services/">Usługi</a>
         <a href="/track/">Śledzenie</a>
-        <a href="/tech/dashboard/">Panel technika</a>
-        <a href="/admin/">Admin</a>
+        {% if request.user.is_staff %}
+          <a href="/tech/dashboard/">Panel technika</a>
+        {% endif %}
+        {% if request.user.is_superuser %}
+          <a href="/admin/">Admin</a>
+        {% endif %}
       </nav>
     </div>
   </header>

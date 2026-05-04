@@ -1,0 +1,38 @@
+{% extends "orders/base.html" %}
+
+{% block title %}Start | Serwis komputerowy{% endblock %}
+
+{% block content %}
+  <section class="home-start">
+    <div class="home-start__copy">
+      <span class="home-eyebrow">Serwis komputerowy</span>
+      <h1>Zgłoś naprawę lub sprawdź status zlecenia</h1>
+      <p>Wybierz usługę z katalogu, skonfiguruj zakres naprawy i otrzymaj numer zlecenia do późniejszego śledzenia.</p>
+    </div>
+  </section>
+
+  <section class="home-client" aria-label="Strefa klienta">
+    <div class="home-client__intro">
+      <h2>Jak możemy pomóc?</h2>
+      <p>Wybierz jedną z opcji poniżej.</p>
+    </div>
+
+    <div class="home-actions">
+      <a class="home-action home-action--primary" href="/services/">
+        <span>
+          <span class="home-action__title">Zgłoś nowe zlecenie</span>
+          <span class="home-action__text">Przejdź do katalogu usług i wybierz zakres naprawy.</span>
+        </span>
+        <span class="pill">Katalog usług</span>
+      </a>
+
+      <a class="home-action" href="/track/">
+        <span>
+          <span class="home-action__title">Sprawdź status zlecenia</span>
+          <span class="home-action__text">Podaj numer zlecenia oraz e-mail albo telefon.</span>
+        </span>
+        <span class="pill">Śledzenie</span>
+      </a>
+    </div>
+  </section>
+{% endblock %}

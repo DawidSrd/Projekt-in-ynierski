@@ -1,0 +1,83 @@
+{% extends "admin/base_site.html" %}
+{% load i18n log %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard service-admin-dashboard-page{% endblock %}
+
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block nav-sidebar %}{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="content-main" class="service-admin-dashboard">
+  <section class="service-admin-panel">
+    <span class="service-admin-eyebrow">Panel administratora</span>
+    <h1>Administracja serwisem</h1>
+    <p>Zarządzaj zleceniami, ofertą usług i konfiguracją formularza klienta.</p>
+
+    <div class="service-admin-actions" aria-label="Główne akcje administratora">
+      <a class="service-admin-action service-admin-action--primary" href="{% url 'admin:orders_serviceorder_changelist' %}">
+        <span>Zlecenia</span>
+        <small>Przegląd i obsługa zgłoszeń klientów</small>
+      </a>
+
+      <a class="service-admin-action" href="{% url 'admin:orders_service_changelist' %}">
+        <span>Usługi</span>
+        <small>Katalog usług widoczny dla klienta</small>
+      </a>
+
+      <a class="service-admin-action" href="{% url 'admin:orders_serviceoptiongroup_changelist' %}">
+        <span>Konfigurator</span>
+        <small>Grupy opcji, warianty i dopłaty</small>
+      </a>
+    </div>
+  </section>
+
+  {% if app_list %}
+    <details class="service-admin-details">
+      <summary>Pokaż wszystkie dane systemu</summary>
+      <div class="service-admin-app-list">
+        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+      </div>
+    </details>
+  {% else %}
+    <section class="service-admin-empty">
+      <p>Brak uprawnień do podglądu lub edycji danych.</p>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related" class="service-admin-recent">
+  <div class="module" id="recent-actions-module">
+    <h2>Ostatnie działania</h2>
+    <h3>Moje akcje</h3>
+    {% get_admin_log 8 as admin_log for_user user %}
+    {% if not admin_log %}
+      <p>Brak ostatnich działań.</p>
+    {% else %}
+      <ul class="actionlist">
+        {% for entry in admin_log %}
+          <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+            {% if entry.is_deletion or not entry.get_admin_url %}
+              {{ entry.object_repr }}
+            {% else %}
+              <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+            {% endif %}
+            <br>
+            {% if entry.content_type %}
+              <span class="mini quiet">{{ entry.content_type.name|capfirst }}</span>
+            {% else %}
+              <span class="mini quiet">{% translate 'Unknown content' %}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

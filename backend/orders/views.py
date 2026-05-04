@@ -17,6 +17,10 @@ from .choices import (
 STATUS_LABELS = dict(ServiceOrderStatus.choices)
 
 
+def home(request):
+    return render(request, "orders/home.html")
+
+
 def get_verified_order(order_number: str, email: str, phone: str):
     order = ServiceOrder.objects.filter(order_number=order_number).first()
 

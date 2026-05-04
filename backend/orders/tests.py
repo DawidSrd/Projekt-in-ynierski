@@ -15,6 +15,73 @@ from .models import (
 )
 
 
+class HomePageTests(TestCase):
+    def test_anonymous_home_page_shows_client_entry_points(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Zgłoś naprawę lub sprawdź status zlecenia")
+        self.assertContains(response, "Jak możemy pomóc?")
+        self.assertContains(response, "Katalog usług")
+        self.assertContains(response, "Sprawdź status zlecenia")
+        self.assertContains(response, 'href="/services/"')
+        self.assertContains(response, 'href="/track/"')
+        self.assertNotContains(response, "Utworzenie zlecenia")
+        self.assertNotContains(response, "Śledzenie statusu")
+        self.assertNotContains(response, "Panel technika")
+        self.assertNotContains(response, "Admin")
+        self.assertNotContains(response, 'href="/tech/dashboard/"')
+        self.assertNotContains(response, 'href="/admin/"')
+
+    def test_staff_user_sees_technician_navigation_only(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Panel technika")
+        self.assertContains(response, 'href="/tech/dashboard/"')
+        self.assertNotContains(response, "Admin")
+        self.assertNotContains(response, 'href="/admin/"')
+
+    def test_superuser_sees_technician_and_admin_navigation(self):
+        User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        self.client.login(username="admin", password="testpass123")
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Panel technika")
+        self.assertContains(response, "Admin")
+        self.assertContains(response, 'href="/tech/dashboard/"')
+        self.assertContains(response, 'href="/admin/"')
+
+    def test_admin_index_uses_custom_dashboard(self):
+        User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        self.client.login(username="admin", password="testpass123")
+
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Panel administratora")
+        self.assertContains(response, "Administracja serwisem")
+        self.assertContains(response, "Pokaż wszystkie dane systemu")
+        self.assertContains(response, "Ostatnie działania")
+
+
 class TechnicianViewsTests(TestCase):
     def setUp(self):
         self.order = ServiceOrder.objects.create(
