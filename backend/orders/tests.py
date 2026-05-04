@@ -26,6 +26,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Sprawdź status zlecenia")
         self.assertContains(response, 'href="/services/"')
         self.assertContains(response, 'href="/track/"')
+        self.assertContains(response, 'href="/staff/login/"')
         self.assertNotContains(response, "Utworzenie zlecenia")
         self.assertNotContains(response, "Śledzenie statusu")
         self.assertNotContains(response, "Panel technika")
@@ -46,6 +47,7 @@ class HomePageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Panel technika")
         self.assertContains(response, 'href="/tech/dashboard/"')
+        self.assertContains(response, 'action="/staff/logout/"')
         self.assertNotContains(response, "Admin")
         self.assertNotContains(response, 'href="/admin/"')
 
@@ -81,6 +83,79 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Pokaż wszystkie dane systemu")
         self.assertContains(response, "Ostatnie działania")
 
+    def test_staff_login_page_is_available(self):
+        response = self.client.get(reverse("staff_login"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Logowanie pracownika")
+        self.assertContains(response, "Dostęp do tej części systemu")
+
+    def test_staff_user_can_login_to_technician_panel(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+
+        response = self.client.post(
+            reverse("staff_login"),
+            {
+                "username": "technik",
+                "password": "testpass123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/tech/dashboard/")
+
+    def test_non_staff_user_cannot_login_to_staff_panel(self):
+        User.objects.create_user(
+            username="klient",
+            password="testpass123",
+            is_staff=False,
+        )
+
+        response = self.client.post(
+            reverse("staff_login"),
+            {
+                "username": "klient",
+                "password": "testpass123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "To konto nie ma dostępu do panelu pracownika.")
+
+    def test_staff_logout_logs_user_out(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.post(reverse("staff_logout"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("home"))
+
+        home_response = self.client.get(reverse("home"))
+        self.assertNotContains(home_response, "Panel technika")
+        self.assertContains(home_response, 'href="/staff/login/"')
+
+    def test_staff_user_cannot_open_admin_index(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response["Location"])
+
 
 class TechnicianViewsTests(TestCase):
     def setUp(self):
@@ -94,7 +169,7 @@ class TechnicianViewsTests(TestCase):
         response = self.client.get(reverse("tech_dashboard"))
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn("/admin/login/", response["Location"])
+        self.assertIn("/staff/login/", response["Location"])
 
     def test_tech_dashboard_shows_counts_ready_orders_and_status_filter(self):
         User.objects.create_user(

@@ -1,0 +1,39 @@
+{% extends "orders/base.html" %}
+
+{% block title %}Logowanie pracownika | Serwis komputerowy{% endblock %}
+
+{% block content %}
+  <section class="staff-login">
+    <div class="panel staff-login__panel">
+      <div class="panel__body">
+        <span class="home-eyebrow">Panel pracownika</span>
+        <h1>Logowanie pracownika</h1>
+        <p class="muted">Dostęp do tej części systemu mają tylko technicy i administratorzy.</p>
+
+        <form method="post" class="staff-login__form">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next_url }}" />
+
+          <div class="field">
+            <label for="id_username">Login</label>
+            <input id="id_username" type="text" name="username" autocomplete="username" required autofocus />
+          </div>
+
+          <div class="field">
+            <label for="id_password">Hasło</label>
+            <input id="id_password" type="password" name="password" autocomplete="current-password" required />
+          </div>
+
+          {% if error %}
+            <p class="message message--error">{{ error }}</p>
+          {% endif %}
+
+          <div class="button-row">
+            <button type="submit">Zaloguj</button>
+            <a class="button button--ghost" href="/">Wróć na stronę klienta</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

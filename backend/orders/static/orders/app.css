@@ -107,6 +107,30 @@ a:hover {
   padding: 34px 0 54px;
 }
 
+.app-footer {
+  padding: 20px 0 28px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.app-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.app-footer a {
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  color: var(--primary);
+}
+
 .page-heading {
   display: flex;
   align-items: flex-end;
@@ -242,6 +266,27 @@ a:hover {
   color: var(--muted);
 }
 
+.staff-login {
+  display: grid;
+  justify-content: center;
+}
+
+.staff-login__panel {
+  width: min(100%, 520px);
+}
+
+.staff-login__panel h1 {
+  margin: 0 0 10px;
+  color: #1e302b;
+  font-size: 28px;
+}
+
+.staff-login__form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
 .service-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -345,6 +390,26 @@ button:hover {
 
 .button--ghost:hover {
   background: var(--surface-soft);
+  color: var(--primary-dark);
+}
+
+.main-nav__form {
+  margin: 0;
+}
+
+.main-nav button.main-nav__button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.main-nav button.main-nav__button:hover {
+  background: #ffffff;
   color: var(--primary-dark);
 }
 

@@ -25,6 +25,12 @@
         {% if request.user.is_superuser %}
           <a href="/admin/">Admin</a>
         {% endif %}
+        {% if request.user.is_staff %}
+          <form class="main-nav__form" method="post" action="/staff/logout/">
+            {% csrf_token %}
+            <button class="main-nav__button" type="submit">Wyloguj</button>
+          </form>
+        {% endif %}
       </nav>
     </div>
   </header>
@@ -32,5 +38,16 @@
   <main class="app-shell app-main">
     {% block content %}{% endblock %}
   </main>
+
+  <footer class="app-footer">
+    <div class="app-shell app-footer__inner">
+      <span>Serwis komputerowy</span>
+      {% if request.user.is_staff %}
+        <span>Zalogowano: {{ request.user.username }}</span>
+      {% else %}
+        <a href="/staff/login/">Panel pracownika</a>
+      {% endif %}
+    </div>
+  </footer>
 </body>
 </html>

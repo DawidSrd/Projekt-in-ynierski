@@ -4,8 +4,10 @@ from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, Service
 from django.core.mail import send_mail
 from .models import AuditLog
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.http import url_has_allowed_host_and_scheme
 from .choices import (
     ServiceOrderStatus,
     can_change_order_status,
@@ -19,6 +21,56 @@ STATUS_LABELS = dict(ServiceOrderStatus.choices)
 
 def home(request):
     return render(request, "orders/home.html")
+
+
+def get_staff_redirect_url(request, next_url=None):
+    target = next_url or request.GET.get("next") or request.POST.get("next") or ""
+
+    if target and url_has_allowed_host_and_scheme(
+        target,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return target
+
+    return "/tech/dashboard/"
+
+
+def staff_login(request):
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
+    error = None
+
+    if request.user.is_staff:
+        return redirect(get_staff_redirect_url(request, next_url))
+
+    if request.method == "POST":
+        username = (request.POST.get("username") or "").strip()
+        password = request.POST.get("password") or ""
+        user = authenticate(request, username=username, password=password)
+
+        if user is None:
+            error = "Nieprawidłowy login lub hasło."
+        elif not user.is_staff:
+            error = "To konto nie ma dostępu do panelu pracownika."
+        else:
+            auth_login(request, user)
+            return redirect(get_staff_redirect_url(request, next_url))
+
+    return render(
+        request,
+        "orders/staff_login.html",
+        {
+            "error": error,
+            "next_url": next_url,
+        },
+    )
+
+
+def staff_logout(request):
+    if request.method == "POST":
+        auth_logout(request)
+
+    return redirect("home")
 
 
 def get_verified_order(order_number: str, email: str, phone: str):
@@ -321,7 +373,7 @@ def order_created(request, order_number: str):
         {"order_number": order_number},
     )
 
-@staff_member_required
+@staff_member_required(login_url="staff_login")
 def tech_dashboard(request):
     """
     Dashboard technika: podział zleceń na Nowe / W toku / Przeterminowane.
@@ -381,7 +433,7 @@ def tech_dashboard(request):
     )
 
 
-@staff_member_required
+@staff_member_required(login_url="staff_login")
 def tech_order_detail(request, order_number: str):
     """
     Widok szczegółów zlecenia dla technika.

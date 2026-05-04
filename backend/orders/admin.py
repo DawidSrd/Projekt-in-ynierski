@@ -17,6 +17,7 @@ from .models import (
 admin.site.site_header = "Panel administracyjny serwisu komputerowego"
 admin.site.site_title = "Serwis komputerowy"
 admin.site.index_title = "Zarządzanie systemem obsługi zleceń"
+admin.site.has_permission = lambda request: request.user.is_active and request.user.is_superuser
 
 
 class ServiceOptionGroupInline(admin.TabularInline):
