@@ -489,6 +489,7 @@ class ServiceConfiguratorTests(TestCase):
                 "customer_name": "Jan Kowalski",
                 "customer_email": "jan@example.com",
                 "customer_phone": "123456789",
+                "customer_consent": "on",
                 "action": "create_order",
             },
         )
@@ -498,3 +499,27 @@ class ServiceConfiguratorTests(TestCase):
         self.assertEqual(item.calculated_price_min, service.base_price_min)
         self.assertEqual(item.calculated_price_max, service.base_price_max)
         self.assertEqual(ServiceOrderItemOption.objects.count(), 0)
+
+    def test_create_order_requires_consent_and_valid_contact_data(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                "customer_name": "J1",
+                "customer_email": "niepoprawny-email",
+                "customer_phone": "12",
+                "action": "create_order",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ServiceOrder.objects.count(), 0)
+        self.assertContains(response, "Podaj poprawne imię i nazwisko.")
+        self.assertContains(response, "Podaj poprawny adres e-mail.")
+        self.assertContains(response, "Podaj poprawny numer telefonu.")
+        self.assertContains(response, "Potwierdź zgodę na kontakt w sprawie zlecenia.")

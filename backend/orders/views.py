@@ -1,7 +1,11 @@
+import re
+
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import Service, ServiceOptionGroup, ServiceOption
 from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, ServiceOrderItemOption
 from django.core.mail import send_mail
+from django.core.validators import validate_email
 from .models import AuditLog
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
@@ -17,6 +21,28 @@ from .choices import (
 
 
 STATUS_LABELS = dict(ServiceOrderStatus.choices)
+PHONE_PATTERN = re.compile(r"^\+?[0-9\s-]{7,20}$")
+
+
+def get_customer_order_errors(customer_name, customer_email, customer_phone, customer_consent):
+    errors = []
+
+    if len(customer_name) < 3 or any(char.isdigit() for char in customer_name):
+        errors.append("Podaj poprawne imię i nazwisko.")
+
+    try:
+        validate_email(customer_email)
+    except ValidationError:
+        errors.append("Podaj poprawny adres e-mail.")
+
+    phone_digits = re.sub(r"\D", "", customer_phone)
+    if not PHONE_PATTERN.match(customer_phone) or len(phone_digits) < 7 or len(phone_digits) > 15:
+        errors.append("Podaj poprawny numer telefonu.")
+
+    if not customer_consent:
+        errors.append("Potwierdź zgodę na kontakt w sprawie zlecenia.")
+
+    return errors
 
 
 def home(request):
@@ -243,6 +269,7 @@ def service_configurator(request, service_id: int):
         "customer_name": "",
         "customer_email": "",
         "customer_phone": "",
+        "customer_consent": False,
     }
 
     if request.method == "POST":
@@ -251,6 +278,7 @@ def service_configurator(request, service_id: int):
             "customer_name": request.POST.get("customer_name", ""),
             "customer_email": request.POST.get("customer_email", ""),
             "customer_phone": request.POST.get("customer_phone", ""),
+            "customer_consent": request.POST.get("customer_consent") == "on",
         }
 
         # Zbieramy zaznaczone opcje z formularza
@@ -291,11 +319,18 @@ def service_configurator(request, service_id: int):
 
         if action == "create_order":
             customer_name = (request.POST.get("customer_name") or "").strip()
-            customer_email = (request.POST.get("customer_email") or "").strip()
+            customer_email = (request.POST.get("customer_email") or "").strip().lower()
             customer_phone = (request.POST.get("customer_phone") or "").strip()
+            customer_consent = request.POST.get("customer_consent") == "on"
+            customer_errors = get_customer_order_errors(
+                customer_name,
+                customer_email,
+                customer_phone,
+                customer_consent,
+            )
 
-            if not customer_name or not customer_email or not customer_phone:
-                result["error"] = "Uzupełnij dane kontaktowe, aby utworzyć zlecenie."
+            if customer_errors:
+                result["error"] = " ".join(customer_errors)
             else:
                 order = ServiceOrder.objects.create(
                     customer_name=customer_name,
@@ -349,6 +384,7 @@ def service_configurator(request, service_id: int):
                 "customer_name": request.POST.get("customer_name", "") if request.method == "POST" else "",
                 "customer_email": request.POST.get("customer_email", "") if request.method == "POST" else "",
                 "customer_phone": request.POST.get("customer_phone", "") if request.method == "POST" else "",
+                "customer_consent": request.POST.get("customer_consent") == "on",
             }
 
     return render(

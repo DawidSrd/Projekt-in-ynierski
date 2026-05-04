@@ -53,23 +53,28 @@
             <div class="form-grid">
               <div class="field">
                 <label>Imię i nazwisko</label>
-                <input type="text" name="customer_name" value="{{ customer_defaults.customer_name }}" />
+                <input type="text" name="customer_name" value="{{ customer_defaults.customer_name }}" required />
               </div>
 
               <div class="field">
                 <label>E-mail</label>
-                <input type="email" name="customer_email" value="{{ customer_defaults.customer_email }}" />
+                <input type="email" name="customer_email" value="{{ customer_defaults.customer_email }}" required />
               </div>
 
               <div class="field">
                 <label>Telefon</label>
-                <input type="text" name="customer_phone" value="{{ customer_defaults.customer_phone }}" />
+                <input type="text" name="customer_phone" value="{{ customer_defaults.customer_phone }}" required />
               </div>
             </div>
+
+            <label class="choice choice--inline">
+              <input type="checkbox" name="customer_consent" {% if customer_defaults.customer_consent %}checked{% endif %} required />
+              <span>Potwierdzam, że podane dane są prawdziwe i zgadzam się na kontakt w sprawie zlecenia.</span>
+            </label>
           </section>
 
           <div class="button-row">
-            <button type="submit" name="action" value="price_only">Policz cenę</button>
+            <button type="submit" name="action" value="price_only" formnovalidate>Policz cenę</button>
             <button class="button--secondary" type="submit" name="action" value="create_order">Złóż zlecenie</button>
           </div>
         </form>
