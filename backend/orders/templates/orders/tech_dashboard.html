@@ -6,13 +6,13 @@
   <div class="page-heading">
     <div>
       <h1>Dashboard technika</h1>
-      <p>Lista zleceń według priorytetu obsługi.</p>
+      <p>Przegląd zleceń wymagających obsługi serwisowej.</p>
     </div>
   </div>
 
   <section class="result-grid">
     <a class="metric metric--link" href="/tech/dashboard/?status=NEW">
-      <span class="metric__label">Nowe zlecenia</span>
+      <span class="metric__label">Nowe</span>
       <span class="metric__value">{{ dashboard_counts.new }}</span>
     </a>
     <a class="metric metric--link" href="/tech/dashboard/?status=IN_PROGRESS">
@@ -20,15 +20,15 @@
       <span class="metric__value">{{ dashboard_counts.in_progress }}</span>
     </a>
     <a class="metric metric--link" href="/tech/dashboard/?status=READY">
-      <span class="metric__label">Gotowe do odbioru</span>
+      <span class="metric__label">Gotowe</span>
       <span class="metric__value">{{ dashboard_counts.ready }}</span>
     </a>
     <div class="metric metric--danger">
-      <span class="metric__label">Przeterminowane</span>
+      <span class="metric__label">Po terminie</span>
       <span class="metric__value">{{ dashboard_counts.overdue }}</span>
     </div>
     <div class="metric">
-      <span class="metric__label">Aktywne łącznie</span>
+      <span class="metric__label">Aktywne</span>
       <span class="metric__value">{{ dashboard_counts.active }}</span>
     </div>
     <a class="metric metric--link" href="/tech/dashboard/?status=COMPLETED">
@@ -41,129 +41,78 @@
     <div class="panel__body">
       <form method="get" class="dashboard-filter">
         <div class="field">
-          <label>Filtr statusu</label>
+          <label>Status zlecenia</label>
           <select name="status">
-            <option value="">Wszystkie kolejki</option>
+            <option value="">Aktywne zlecenia</option>
             {% for code, label in status_choices %}
               <option value="{{ code }}" {% if code == selected_status %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="button-row">
-          <button type="submit">Filtruj</button>
+          <button type="submit">Zastosuj filtr</button>
           <a class="button button--ghost" href="/tech/dashboard/">Wyczyść</a>
         </div>
       </form>
     </div>
   </section>
 
-  {% if selected_status %}
-    <section class="section">
-      <div class="page-heading">
+  <section class="panel section">
+    <div class="panel__body">
+      <div class="table-heading">
         <div>
-          <h2>Wynik filtrowania: {{ selected_status_label }}</h2>
+          {% if selected_status %}
+            <h2>Zlecenia: {{ selected_status_label }}</h2>
+            <p>Lista zleceń ograniczona do wybranego statusu.</p>
+          {% else %}
+            <h2>Zlecenia do obsługi</h2>
+            <p>Aktywne zlecenia posortowane według pilności.</p>
+          {% endif %}
         </div>
       </div>
 
-      {% if filtered_orders %}
-        <ul class="order-list order-list--standalone">
-          {% for o in filtered_orders %}
-            <li class="order-item">
-              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
-              <span>{{ o.customer_name }}</span>
-              <span>Status: {{ o.get_status_display }}</span>
-              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="panel">
-          <div class="panel__body">
-            <p class="empty">Brak zleceń dla wybranego statusu.</p>
-          </div>
+      {% if dashboard_orders %}
+        <div class="table-scroll">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Numer</th>
+                <th>Klient</th>
+                <th>Status</th>
+                <th>Estymacja</th>
+                <th>Utworzono</th>
+                <th>Akcja</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for o in dashboard_orders %}
+                <tr class="{% if o.is_overdue %}orders-table__row--danger{% endif %}">
+                  <td>
+                    <a class="orders-table__number" href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
+                  </td>
+                  <td>
+                    <span class="orders-table__main">{{ o.customer_name }}</span>
+                    <span class="orders-table__sub">{{ o.customer_phone }}</span>
+                  </td>
+                  <td>
+                    <span class="status-badge">{{ o.get_status_display }}</span>
+                    {% if o.is_overdue %}
+                      <span class="status-badge status-badge--danger">Po terminie</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ o.estimated_completion_at|default:"brak" }}</td>
+                  <td>{{ o.created_at }}</td>
+                  <td>
+                    <a class="button button--compact" href="/tech/orders/{{ o.order_number }}/">Szczegóły</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      {% endif %}
-    </section>
-  {% endif %}
-
-  <div class="order-columns section">
-    <section class="order-column order-column--urgent">
-      <h2>Przeterminowane / pilne</h2>
-      {% if orders_overdue %}
-        <ul class="order-list">
-          {% for o in orders_overdue %}
-            <li class="order-item">
-              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
-              <span>{{ o.customer_name }}</span>
-              <span>Status: {{ o.get_status_display }}</span>
-              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
-            </li>
-          {% endfor %}
-        </ul>
       {% else %}
-        <div class="order-list">
-          <p class="empty">Brak przeterminowanych zleceń.</p>
-        </div>
+        <p class="empty">Brak zleceń do wyświetlenia.</p>
       {% endif %}
-    </section>
-
-    <section class="order-column">
-      <h2>Nowe</h2>
-      {% if orders_new %}
-        <ul class="order-list">
-          {% for o in orders_new %}
-            <li class="order-item">
-              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
-              <span>{{ o.customer_name }}</span>
-              <span>Status: {{ o.get_status_display }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="order-list">
-          <p class="empty">Brak nowych zleceń.</p>
-        </div>
-      {% endif %}
-    </section>
-
-    <section class="order-column">
-      <h2>W toku</h2>
-      {% if orders_in_progress %}
-        <ul class="order-list">
-          {% for o in orders_in_progress %}
-            <li class="order-item">
-              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
-              <span>{{ o.customer_name }}</span>
-              <span>Status: {{ o.get_status_display }}</span>
-              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="order-list">
-          <p class="empty">Brak zleceń w toku.</p>
-        </div>
-      {% endif %}
-    </section>
-
-    <section class="order-column">
-      <h2>Gotowe do odbioru</h2>
-      {% if orders_ready %}
-        <ul class="order-list">
-          {% for o in orders_ready %}
-            <li class="order-item">
-              <a href="/tech/orders/{{ o.order_number }}/">{{ o.order_number }}</a>
-              <span>{{ o.customer_name }}</span>
-              <span>Status: {{ o.get_status_display }}</span>
-              <span>Estymacja: {{ o.estimated_completion_at|default:"brak" }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="order-list">
-          <p class="empty">Brak zleceń gotowych do odbioru.</p>
-        </div>
-      {% endif %}
-    </section>
-  </div>
+    </div>
+  </section>
 {% endblock %}

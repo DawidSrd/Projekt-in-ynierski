@@ -416,10 +416,30 @@ def tech_dashboard(request):
     orders_overdue = [o for o in all_active if o.is_overdue()]
     dashboard_counts["overdue"] = len(orders_overdue)
 
+    if selected_status:
+        dashboard_orders = list(filtered_orders)
+    else:
+        status_priority = {
+            ServiceOrderStatus.NEW: 1,
+            ServiceOrderStatus.IN_PROGRESS: 2,
+            ServiceOrderStatus.WAITING_FOR_PARTS: 3,
+            ServiceOrderStatus.RECEIVED: 4,
+            ServiceOrderStatus.READY: 5,
+        }
+        dashboard_orders = sorted(
+            all_active,
+            key=lambda order: (
+                0 if order.is_overdue() else 1,
+                status_priority.get(order.status, 99),
+                order.created_at,
+            ),
+        )
+
     return render(
         request,
         "orders/tech_dashboard.html",
         {
+            "dashboard_orders": dashboard_orders,
             "dashboard_counts": dashboard_counts,
             "filtered_orders": filtered_orders,
             "orders_new": orders_new,

@@ -201,9 +201,11 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(response.context["dashboard_counts"]["ready"], 1)
         self.assertEqual(response.context["dashboard_counts"]["in_progress"], 1)
         self.assertEqual(response.context["selected_status"], ServiceOrderStatus.READY)
-        self.assertContains(response, "Gotowe do odbioru")
-        self.assertContains(response, "Wynik filtrowania: Gotowe do odbioru")
+        self.assertContains(response, "Gotowe")
+        self.assertContains(response, "Zlecenia: Gotowe do odbioru")
         self.assertContains(response, "Anna Nowak")
+        self.assertContains(response, "Szczegóły")
+        self.assertContains(response, 'class="orders-table"')
 
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(
