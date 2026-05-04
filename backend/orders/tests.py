@@ -42,14 +42,14 @@ class TechnicianViewsTests(TestCase):
             reverse("tech_order_detail", args=[self.order.order_number]),
             {
                 "action": "update_order",
-                "status": ServiceOrderStatus.IN_PROGRESS,
+                "status": ServiceOrderStatus.RECEIVED,
                 "estimated_completion_at": "2026-05-03 16:30",
             },
         )
 
         self.assertEqual(response.status_code, 200)
         self.order.refresh_from_db()
-        self.assertEqual(self.order.status, ServiceOrderStatus.IN_PROGRESS)
+        self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
         self.assertIsNotNone(self.order.estimated_completion_at)
         self.assertTrue(
             AuditLog.objects.filter(
@@ -63,6 +63,34 @@ class TechnicianViewsTests(TestCase):
                 action=AuditLog.Action.ESTIMATE_SET,
             ).exists()
         )
+
+    def test_staff_cannot_skip_status_workflow(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "update_order",
+                "status": ServiceOrderStatus.READY,
+                "estimated_completion_at": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, ServiceOrderStatus.NEW)
+        self.assertFalse(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.STATUS_CHANGED,
+            ).exists()
+        )
+        self.assertContains(response, "Taka zmiana statusu nie jest dozwolona")
 
     def test_staff_can_add_public_comment_visible_in_tracking(self):
         User.objects.create_user(

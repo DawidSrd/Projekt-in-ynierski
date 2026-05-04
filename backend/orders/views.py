@@ -6,7 +6,11 @@ from .models import AuditLog
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from .choices import ServiceOrderStatus
+from .choices import (
+    ServiceOrderStatus,
+    can_change_order_status,
+    get_available_order_status_choices,
+)
 
 
 
@@ -321,7 +325,11 @@ def tech_dashboard(request):
     orders_new = ServiceOrder.objects.filter(status=ServiceOrderStatus.NEW).order_by("-created_at")
 
     orders_in_progress = ServiceOrder.objects.filter(
-        status__in=[ServiceOrderStatus.IN_PROGRESS, ServiceOrderStatus.WAITING_FOR_PARTS]
+        status__in=[
+            ServiceOrderStatus.RECEIVED,
+            ServiceOrderStatus.IN_PROGRESS,
+            ServiceOrderStatus.WAITING_FOR_PARTS,
+        ]
     ).order_by("-created_at")
 
     # Przeterminowane liczymy metodą is_overdue 
@@ -362,6 +370,8 @@ def tech_order_detail(request, order_number: str):
 
             if new_status not in dict(ServiceOrderStatus.choices):
                 error = "Wybrano nieprawidłowy status."
+            elif not can_change_order_status(order.status, new_status):
+                error = "Taka zmiana statusu nie jest dozwolona w aktualnym etapie obsługi."
             else:
                 new_estimate = None
                 if estimate_raw:
@@ -461,7 +471,7 @@ def tech_order_detail(request, order_number: str):
             "comments_internal": comments_internal,
             "comments_public": comments_public,
             "audit_entries": audit_entries,
-            "status_choices": ServiceOrderStatus.choices,
+            "status_choices": get_available_order_status_choices(order.status),
             "comment_visibility_choices": ServiceOrderComment.Visibility.choices,
             "est_default": (
                 timezone.localtime(order.estimated_completion_at).strftime("%Y-%m-%d %H:%M")

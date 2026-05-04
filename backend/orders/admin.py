@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.core.mail import send_mail
 
+from .choices import get_available_order_status_choices
 from .models import (
     Service,
     ServiceOptionGroup,
@@ -220,6 +221,14 @@ class ServiceOrderAdmin(admin.ModelAdmin):
     @admin.display(description="Pozycje")
     def items_count(self, obj):
         return obj.items.count()
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+
+        if obj and "status" in form.base_fields:
+            form.base_fields["status"].choices = get_available_order_status_choices(obj.status)
+
+        return form
 
     def save_model(self, request, obj, form, change):
         """
