@@ -453,6 +453,20 @@ class GuestAccessCancellationTests(TestCase):
 
 
 class ServiceConfiguratorTests(TestCase):
+    def test_order_created_page_links_to_prefilled_tracking(self):
+        response = self.client.get(reverse("order_created", args=["SRV-ABC12345"]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Dziękujemy za zgłoszenie")
+        self.assertContains(response, "SRV-ABC12345")
+        self.assertContains(response, 'href="/track/?order_number=SRV-ABC12345"')
+
+    def test_tracking_form_can_be_prefilled_with_order_number(self):
+        response = self.client.get(reverse("track_order"), {"order_number": "srv-abc12345"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="SRV-ABC12345"')
+
     def test_create_order_ignores_options_from_other_service(self):
         service = Service.objects.create(
             name="Czyszczenie laptopa",

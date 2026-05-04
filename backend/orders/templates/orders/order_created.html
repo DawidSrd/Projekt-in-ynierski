@@ -3,23 +3,33 @@
 {% block title %}Zlecenie przyjęte | Serwis komputerowy{% endblock %}
 
 {% block content %}
-  <div class="page-heading">
-    <div>
-      <h1>Zlecenie zostało przyjęte</h1>
-      <p>Numer zlecenia zachowaj do śledzenia statusu.</p>
-    </div>
-  </div>
+  <section class="confirmation">
+    <div class="panel">
+      <div class="panel__body">
+        <span class="home-eyebrow">Zlecenie przyjęte</span>
+        <h1>Dziękujemy za zgłoszenie</h1>
+        <p class="muted">Zachowaj numer zlecenia. Będzie potrzebny do sprawdzania statusu naprawy.</p>
 
-  <section class="panel">
-    <div class="panel__body">
-      <div class="metric">
-        <span class="metric__label">Numer zlecenia</span>
-        <span class="metric__value">{{ order_number }}</span>
-      </div>
+        <div class="confirmation-number" aria-label="Numer zlecenia">
+          <span>Numer zlecenia</span>
+          <strong>{{ order_number }}</strong>
+        </div>
 
-      <div class="button-row">
-        <a class="button" href="/track/">Sprawdź status</a>
-        <a class="button button--ghost" href="/services/">Wróć do katalogu</a>
+        <div class="confirmation-info">
+          <div>
+            <span class="metric__label">Śledzenie statusu</span>
+            <p>Do sprawdzenia statusu potrzebujesz numeru zlecenia oraz e-maila albo telefonu podanego w formularzu.</p>
+          </div>
+          <div>
+            <span class="metric__label">Potwierdzenie</span>
+            <p>Na podany adres e-mail została wysłana wiadomość z podstawowymi informacjami o zgłoszeniu.</p>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <a class="button" href="{{ track_url }}">Śledź zlecenie</a>
+          <a class="button button--ghost" href="/services/">Wróć do katalogu</a>
+        </div>
       </div>
     </div>
   </section>

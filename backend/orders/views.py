@@ -121,7 +121,12 @@ def track_order(request):
     GET  -> pokazuje formularz
     POST -> weryfikuje dane i pokazuje wynik
     """
-    context = {"result": None, "error": None, "message": None}
+    context = {
+        "result": None,
+        "error": None,
+        "message": None,
+        "order_number_default": (request.GET.get("order_number") or "").strip().upper(),
+    }
 
     if request.method == "POST":
         action = request.POST.get("action") or "track_order"
@@ -406,7 +411,10 @@ def order_created(request, order_number: str):
     return render(
         request,
         "orders/order_created.html",
-        {"order_number": order_number},
+        {
+            "order_number": order_number,
+            "track_url": f"/track/?order_number={order_number}",
+        },
     )
 
 @staff_member_required(login_url="staff_login")
