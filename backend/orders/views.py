@@ -489,6 +489,8 @@ def tech_order_detail(request, order_number: str):
         visibility=ServiceOrderComment.Visibility.PUBLIC,
     ).order_by("-created_at")
 
+    order_items = order.items.prefetch_related("selected_options").order_by("created_at")
+
     audit_entries = AuditLog.objects.filter(order=order).order_by("-performed_at")
 
     return render(
@@ -498,6 +500,7 @@ def tech_order_detail(request, order_number: str):
             "order": order,
             "comments_internal": comments_internal,
             "comments_public": comments_public,
+            "order_items": order_items,
             "audit_entries": audit_entries,
             "status_choices": get_available_order_status_choices(order.status),
             "comment_visibility_choices": ServiceOrderComment.Visibility.choices,

@@ -63,6 +63,56 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Wynik filtrowania: Gotowe do odbioru")
         self.assertContains(response, "Anna Nowak")
 
+    def test_tech_order_detail_shows_service_snapshot_and_price(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=120,
+            base_price_max=180,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Pasta termiczna",
+            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
+        )
+        option = ServiceOption.objects.create(
+            group=group,
+            name="Pasta premium",
+            price_delta_min=30,
+            price_delta_max=50,
+        )
+        item = ServiceOrderItem.objects.create(
+            order=self.order,
+            service=service,
+            service_name_snapshot=service.name,
+            base_price_min_snapshot=service.base_price_min,
+            base_price_max_snapshot=service.base_price_max,
+            calculated_price_min=150,
+            calculated_price_max=230,
+        )
+        ServiceOrderItemOption.objects.create(
+            order_item=item,
+            option=option,
+            option_name_snapshot=option.name,
+            price_delta_min_snapshot=option.price_delta_min,
+            price_delta_max_snapshot=option.price_delta_max,
+        )
+
+        response = self.client.get(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Zakres usługi i wycena")
+        self.assertContains(response, "Czyszczenie laptopa")
+        self.assertContains(response, "Pasta premium")
+        self.assertContains(response, "150.00 - 230.00 zł")
+
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_staff_can_update_order_status_and_estimate(self):
         User.objects.create_user(
