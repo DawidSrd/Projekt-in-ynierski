@@ -106,6 +106,10 @@ class ServiceOrder(models.Model):
     Przechowuje dane identyfikacyjne klienta oraz aktualny status workflow.
     """
 
+    class DeviceType(models.TextChoices):
+        LAPTOP = "LAPTOP", "Laptop"
+        DESKTOP = "DESKTOP", "Komputer stacjonarny"
+
     # Identyfikator biznesowy (publiczny) - używany w guest access / komunikacji z klientem
     order_number = models.CharField(
         max_length=20,
@@ -119,6 +123,16 @@ class ServiceOrder(models.Model):
     customer_name = models.CharField(max_length=200)
     customer_email = models.EmailField()
     customer_phone = models.CharField(max_length=30)
+
+    device_type = models.CharField(
+        max_length=20,
+        choices=DeviceType.choices,
+        blank=True,
+        default="",
+    )
+    device_brand = models.CharField(max_length=100, blank=True)
+    device_model = models.CharField(max_length=100, blank=True)
+    device_issue_description = models.TextField(blank=True)
 
     # Aktualny status workflow zlecenia
     status = models.CharField(

@@ -21,6 +21,18 @@
             <a href="mailto:{{ order.customer_email }}">{{ order.customer_email }}</a>
             <a href="tel:{{ order.customer_phone }}">{{ order.customer_phone }}</a>
           </div>
+
+          <div class="device-summary">
+            <span class="metric__label">Urządzenie</span>
+            <strong>
+              {% if order.device_type %}{{ order.get_device_type_display }}{% else %}brak typu{% endif %}{% if order.device_brand %} / {{ order.device_brand }}{% endif %}{% if order.device_model %} {{ order.device_model }}{% endif %}
+            </strong>
+            {% if order.device_issue_description %}
+              <p>{{ order.device_issue_description }}</p>
+            {% else %}
+              <p class="empty">Brak opisu problemu.</p>
+            {% endif %}
+          </div>
         </div>
 
         <div class="order-summary__meta">

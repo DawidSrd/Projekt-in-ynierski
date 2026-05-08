@@ -49,6 +49,35 @@
           {% endfor %}
 
           <section class="section">
+            <h2>Dane urządzenia</h2>
+            <div class="form-grid">
+              <div class="field">
+                <label>Typ urządzenia</label>
+                <select name="device_type" required>
+                  <option value="">Wybierz typ</option>
+                  <option value="LAPTOP" {% if customer_defaults.device_type == "LAPTOP" %}selected{% endif %}>Laptop</option>
+                  <option value="DESKTOP" {% if customer_defaults.device_type == "DESKTOP" %}selected{% endif %}>Komputer stacjonarny</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Marka</label>
+                <input type="text" name="device_brand" value="{{ customer_defaults.device_brand }}" placeholder="np. Lenovo, Dell, HP, składany" required />
+              </div>
+
+              <div class="field">
+                <label>Model</label>
+                <input type="text" name="device_model" value="{{ customer_defaults.device_model }}" placeholder="opcjonalnie" />
+              </div>
+            </div>
+
+            <div class="field section">
+              <label>Opis problemu</label>
+              <textarea name="device_issue_description" rows="4" required>{{ customer_defaults.device_issue_description }}</textarea>
+            </div>
+          </section>
+
+          <section class="section">
             <h2>Dane kontaktowe</h2>
             <div class="form-grid">
               <div class="field">

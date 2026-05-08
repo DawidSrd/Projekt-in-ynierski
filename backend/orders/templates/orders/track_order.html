@@ -55,6 +55,15 @@
           <div>
             <span class="metric__label">Numer zlecenia</span>
             <h2>{{ result.order_number }}</h2>
+            <div class="tracking-summary__device">
+              <span class="metric__label">Urządzenie</span>
+              <strong>
+                {% if result.device_type %}{{ result.device_type }}{% else %}brak typu{% endif %}{% if result.device_brand %} / {{ result.device_brand }}{% endif %}{% if result.device_model %} {{ result.device_model }}{% endif %}
+              </strong>
+              {% if result.device_issue_description %}
+                <p>{{ result.device_issue_description }}</p>
+              {% endif %}
+            </div>
           </div>
 
           <div class="tracking-summary__meta">

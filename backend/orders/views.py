@@ -45,6 +45,21 @@ def get_customer_order_errors(customer_name, customer_email, customer_phone, cus
     return errors
 
 
+def get_device_order_errors(device_type, device_brand, device_issue_description):
+    errors = []
+
+    if device_type not in dict(ServiceOrder.DeviceType.choices):
+        errors.append("Wybierz typ urządzenia.")
+
+    if len(device_brand) < 2:
+        errors.append("Podaj markę urządzenia.")
+
+    if len(device_issue_description) < 5:
+        errors.append("Opisz krótko problem z urządzeniem.")
+
+    return errors
+
+
 def home(request):
     return render(request, "orders/home.html")
 
@@ -219,6 +234,10 @@ def track_order(request):
             "order_number": order.order_number,
             "status": order.get_status_display(),
             "estimated_completion_at": order.estimated_completion_at,
+            "device_type": order.get_device_type_display() if order.device_type else "",
+            "device_brand": order.device_brand,
+            "device_model": order.device_model,
+            "device_issue_description": order.device_issue_description,
             "comments": public_comments,
             "audit_entries": audit_entries,
             "audit_timeline": audit_timeline,
@@ -275,6 +294,10 @@ def service_configurator(request, service_id: int):
         "customer_email": "",
         "customer_phone": "",
         "customer_consent": False,
+        "device_type": "",
+        "device_brand": "",
+        "device_model": "",
+        "device_issue_description": "",
     }
 
     if request.method == "POST":
@@ -284,6 +307,10 @@ def service_configurator(request, service_id: int):
             "customer_email": request.POST.get("customer_email", ""),
             "customer_phone": request.POST.get("customer_phone", ""),
             "customer_consent": request.POST.get("customer_consent") == "on",
+            "device_type": request.POST.get("device_type", ""),
+            "device_brand": request.POST.get("device_brand", ""),
+            "device_model": request.POST.get("device_model", ""),
+            "device_issue_description": request.POST.get("device_issue_description", ""),
         }
 
         # Zbieramy zaznaczone opcje z formularza
@@ -327,20 +354,33 @@ def service_configurator(request, service_id: int):
             customer_email = (request.POST.get("customer_email") or "").strip().lower()
             customer_phone = (request.POST.get("customer_phone") or "").strip()
             customer_consent = request.POST.get("customer_consent") == "on"
+            device_type = (request.POST.get("device_type") or "").strip()
+            device_brand = (request.POST.get("device_brand") or "").strip()
+            device_model = (request.POST.get("device_model") or "").strip()
+            device_issue_description = (request.POST.get("device_issue_description") or "").strip()
             customer_errors = get_customer_order_errors(
                 customer_name,
                 customer_email,
                 customer_phone,
                 customer_consent,
             )
+            device_errors = get_device_order_errors(
+                device_type,
+                device_brand,
+                device_issue_description,
+            )
 
-            if customer_errors:
-                result["error"] = " ".join(customer_errors)
+            if customer_errors or device_errors:
+                result["error"] = " ".join([*customer_errors, *device_errors])
             else:
                 order = ServiceOrder.objects.create(
                     customer_name=customer_name,
                     customer_email=customer_email,
                     customer_phone=customer_phone,
+                    device_type=device_type,
+                    device_brand=device_brand,
+                    device_model=device_model,
+                    device_issue_description=device_issue_description,
                 )
 
                 AuditLog.objects.create(
@@ -358,6 +398,8 @@ def service_configurator(request, service_id: int):
                         f"Dziękujemy! Twoje zlecenie zostało przyjęte.\n\n"
                         f"Numer zlecenia: {order.order_number}\n"
                         f"Status: {order.get_status_display()}\n\n"
+                        f"Urządzenie: {order.get_device_type_display()} {order.device_brand} {order.device_model}\n"
+                        f"Opis problemu: {order.device_issue_description}\n\n"
                         f"Możesz śledzić status tutaj: /track/\n"
                         f"(podaj numer zlecenia oraz e-mail lub telefon)\n"
                     ),
@@ -390,6 +432,10 @@ def service_configurator(request, service_id: int):
                 "customer_email": request.POST.get("customer_email", "") if request.method == "POST" else "",
                 "customer_phone": request.POST.get("customer_phone", "") if request.method == "POST" else "",
                 "customer_consent": request.POST.get("customer_consent") == "on",
+                "device_type": request.POST.get("device_type", ""),
+                "device_brand": request.POST.get("device_brand", ""),
+                "device_model": request.POST.get("device_model", ""),
+                "device_issue_description": request.POST.get("device_issue_description", ""),
             }
 
     return render(

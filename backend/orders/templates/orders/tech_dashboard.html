@@ -78,6 +78,7 @@
               <tr>
                 <th>Numer</th>
                 <th>Klient</th>
+                <th>Urządzenie</th>
                 <th>Status</th>
                 <th>Estymacja</th>
                 <th>Utworzono</th>
@@ -93,6 +94,13 @@
                   <td>
                     <span class="orders-table__main">{{ o.customer_name }}</span>
                     <span class="orders-table__sub">{{ o.customer_phone }}</span>
+                  </td>
+                  <td>
+                    <span class="orders-table__main">{% if o.device_type %}{{ o.get_device_type_display }}{% else %}brak{% endif %}</span>
+                    <span class="orders-table__sub">
+                      {% if o.device_brand %}{{ o.device_brand }}{% endif %}
+                      {% if o.device_model %} {{ o.device_model }}{% endif %}
+                    </span>
                   </td>
                   <td>
                     <span class="status-badge">{{ o.get_status_display }}</span>

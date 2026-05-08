@@ -197,20 +197,33 @@ class ServiceOrderAdmin(admin.ModelAdmin):
     list_display = (
         "order_number",
         "customer_name",
+        "device_display",
         "status",
         "estimated_completion_at",
         "overdue_display",
         "items_count",
         "created_at",
     )
-    list_filter = ("status", OverdueFilter, "created_at")
-    search_fields = ("order_number", "customer_name", "customer_email", "customer_phone")
+    list_filter = ("status", "device_type", OverdueFilter, "created_at")
+    search_fields = (
+        "order_number",
+        "customer_name",
+        "customer_email",
+        "customer_phone",
+        "device_brand",
+        "device_model",
+        "device_issue_description",
+    )
     readonly_fields = ("order_number", "created_at", "updated_at", "overdue_display")
     inlines = [ServiceOrderItemInline, ServiceOrderCommentInline, AuditLogInline]
     date_hierarchy = "created_at"
     fieldsets = (
         ("Identyfikacja", {"fields": ("order_number", "status")}),
         ("Dane klienta", {"fields": ("customer_name", "customer_email", "customer_phone")}),
+        (
+            "Urządzenie",
+            {"fields": ("device_type", "device_brand", "device_model", "device_issue_description")},
+        ),
         ("Obsługa serwisowa", {"fields": ("estimated_completion_at", "overdue_display")}),
         ("Metadane", {"fields": ("created_at", "updated_at")}),
     )
@@ -222,6 +235,15 @@ class ServiceOrderAdmin(admin.ModelAdmin):
     @admin.display(description="Pozycje")
     def items_count(self, obj):
         return obj.items.count()
+
+    @admin.display(description="Urządzenie")
+    def device_display(self, obj):
+        parts = [
+            obj.get_device_type_display() if obj.device_type else "",
+            obj.device_brand,
+            obj.device_model,
+        ]
+        return " ".join(part for part in parts if part) or "brak"
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)

@@ -351,6 +351,19 @@ a:hover {
   font-size: 32px;
 }
 
+.tracking-summary__device {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.tracking-summary__device p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .tracking-summary__meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -871,6 +884,19 @@ fieldset {
   margin: 4px 0 10px;
   color: #1e302b;
   font-size: 26px;
+}
+
+.device-summary {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.device-summary p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .order-summary__meta {

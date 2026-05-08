@@ -164,6 +164,10 @@ class TechnicianViewsTests(TestCase):
             customer_name="Jan Kowalski",
             customer_email="jan@example.com",
             customer_phone="123456789",
+            device_type=ServiceOrder.DeviceType.LAPTOP,
+            device_brand="Lenovo",
+            device_model="ThinkPad T14",
+            device_issue_description="Nie uruchamia się po aktualizacji.",
         )
 
     def test_tech_dashboard_requires_staff_login(self):
@@ -207,6 +211,7 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Anna Nowak")
         self.assertContains(response, "Szczegóły")
         self.assertContains(response, 'class="orders-table"')
+        self.assertContains(response, "Urządzenie")
 
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(
@@ -257,6 +262,9 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Obsługa zlecenia")
         self.assertContains(response, "Zakres usługi i wycena")
         self.assertContains(response, "Snapshot usługi")
+        self.assertContains(response, "Urządzenie")
+        self.assertContains(response, "Laptop / Lenovo ThinkPad T14")
+        self.assertContains(response, "Nie uruchamia się po aktualizacji.")
         self.assertContains(response, "Czyszczenie laptopa")
         self.assertContains(response, "Pasta premium")
         self.assertContains(response, "150.00 - 230.00 zł")
@@ -393,6 +401,8 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(track_response, "Sprzęt czeka na odbiór.")
         self.assertContains(track_response, "Wiadomości z serwisu")
         self.assertContains(track_response, "Historia zlecenia")
+        self.assertContains(track_response, "Laptop / Lenovo ThinkPad T14")
+        self.assertContains(track_response, "Nie uruchamia się po aktualizacji.")
 
 
 class GuestAccessCancellationTests(TestCase):
@@ -506,11 +516,20 @@ class ServiceConfiguratorTests(TestCase):
                 "customer_email": "jan@example.com",
                 "customer_phone": "123456789",
                 "customer_consent": "on",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+                "device_brand": "Lenovo",
+                "device_model": "ThinkPad T14",
+                "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
                 "action": "create_order",
             },
         )
 
         self.assertEqual(response.status_code, 302)
+        order = ServiceOrder.objects.get()
+        self.assertEqual(order.device_type, ServiceOrder.DeviceType.LAPTOP)
+        self.assertEqual(order.device_brand, "Lenovo")
+        self.assertEqual(order.device_model, "ThinkPad T14")
+        self.assertEqual(order.device_issue_description, "Laptop nie uruchamia się po aktualizacji.")
         item = ServiceOrderItem.objects.get()
         self.assertEqual(item.calculated_price_min, service.base_price_min)
         self.assertEqual(item.calculated_price_max, service.base_price_max)
@@ -539,3 +558,6 @@ class ServiceConfiguratorTests(TestCase):
         self.assertContains(response, "Podaj poprawny adres e-mail.")
         self.assertContains(response, "Podaj poprawny numer telefonu.")
         self.assertContains(response, "Potwierdź zgodę na kontakt w sprawie zlecenia.")
+        self.assertContains(response, "Wybierz typ urządzenia.")
+        self.assertContains(response, "Podaj markę urządzenia.")
+        self.assertContains(response, "Opisz krótko problem z urządzeniem.")
