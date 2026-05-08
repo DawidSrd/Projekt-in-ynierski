@@ -773,7 +773,7 @@ fieldset {
 
 .dashboard-filter {
   display: grid;
-  grid-template-columns: minmax(220px, 360px) auto;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 260px) minmax(180px, 260px) auto;
   gap: 18px;
   align-items: end;
 }
@@ -803,7 +803,7 @@ fieldset {
 
 .orders-table {
   width: 100%;
-  min-width: 760px;
+  min-width: 920px;
   border-collapse: collapse;
 }
 

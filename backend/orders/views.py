@@ -1,6 +1,7 @@
 import re
 
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import Service, ServiceOptionGroup, ServiceOption
 from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, ServiceOrderItemOption
@@ -472,6 +473,12 @@ def tech_dashboard(request):
     if selected_status not in dict(ServiceOrderStatus.choices):
         selected_status = ""
 
+    selected_device_type = request.GET.get("device_type") or ""
+    if selected_device_type not in dict(ServiceOrder.DeviceType.choices):
+        selected_device_type = ""
+
+    search_query = (request.GET.get("q") or "").strip()
+
     orders_new = ServiceOrder.objects.filter(status=ServiceOrderStatus.NEW).order_by("-created_at")
 
     orders_in_progress = ServiceOrder.objects.filter(
@@ -484,11 +491,13 @@ def tech_dashboard(request):
 
     orders_ready = ServiceOrder.objects.filter(status=ServiceOrderStatus.READY).order_by("-created_at")
 
-    filtered_orders = ServiceOrder.objects.none()
     selected_status_label = None
     if selected_status:
-        filtered_orders = ServiceOrder.objects.filter(status=selected_status).order_by("-created_at")
         selected_status_label = STATUS_LABELS[selected_status]
+
+    selected_device_type_label = None
+    if selected_device_type:
+        selected_device_type_label = dict(ServiceOrder.DeviceType.choices)[selected_device_type]
 
     dashboard_counts = {
         "new": orders_new.count(),
@@ -507,7 +516,28 @@ def tech_dashboard(request):
     dashboard_counts["overdue"] = len(orders_overdue)
 
     if selected_status:
-        dashboard_orders = list(filtered_orders)
+        dashboard_queryset = ServiceOrder.objects.filter(status=selected_status)
+    else:
+        dashboard_queryset = ServiceOrder.objects.exclude(
+            status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
+        )
+
+    if selected_device_type:
+        dashboard_queryset = dashboard_queryset.filter(device_type=selected_device_type)
+
+    if search_query:
+        dashboard_queryset = dashboard_queryset.filter(
+            Q(order_number__icontains=search_query)
+            | Q(customer_name__icontains=search_query)
+            | Q(customer_email__icontains=search_query)
+            | Q(customer_phone__icontains=search_query)
+            | Q(device_brand__icontains=search_query)
+            | Q(device_model__icontains=search_query)
+            | Q(device_issue_description__icontains=search_query)
+        )
+
+    if selected_status:
+        dashboard_orders = list(dashboard_queryset.order_by("-created_at"))
     else:
         status_priority = {
             ServiceOrderStatus.NEW: 1,
@@ -517,7 +547,7 @@ def tech_dashboard(request):
             ServiceOrderStatus.READY: 5,
         }
         dashboard_orders = sorted(
-            all_active,
+            dashboard_queryset.order_by("-created_at"),
             key=lambda order: (
                 0 if order.is_overdue() else 1,
                 status_priority.get(order.status, 99),
@@ -531,11 +561,15 @@ def tech_dashboard(request):
         {
             "dashboard_orders": dashboard_orders,
             "dashboard_counts": dashboard_counts,
-            "filtered_orders": filtered_orders,
             "orders_new": orders_new,
             "orders_in_progress": orders_in_progress,
             "orders_overdue": orders_overdue,
             "orders_ready": orders_ready,
+            "device_type_choices": ServiceOrder.DeviceType.choices,
+            "has_dashboard_filters": bool(selected_status or selected_device_type or search_query),
+            "search_query": search_query,
+            "selected_device_type": selected_device_type,
+            "selected_device_type_label": selected_device_type_label,
             "selected_status": selected_status,
             "selected_status_label": selected_status_label,
             "status_choices": ServiceOrderStatus.choices,

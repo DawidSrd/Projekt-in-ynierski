@@ -207,11 +207,46 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(response.context["dashboard_counts"]["in_progress"], 1)
         self.assertEqual(response.context["selected_status"], ServiceOrderStatus.READY)
         self.assertContains(response, "Gotowe")
-        self.assertContains(response, "Zlecenia: Gotowe do odbioru")
+        self.assertContains(response, "Wyniki filtrowania")
+        self.assertContains(response, "Status: Gotowe do odbioru.")
         self.assertContains(response, "Anna Nowak")
         self.assertContains(response, "Szczegóły")
         self.assertContains(response, 'class="orders-table"')
         self.assertContains(response, "Urządzenie")
+
+    def test_tech_dashboard_can_filter_by_search_and_device_type(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        ServiceOrder.objects.create(
+            customer_name="Anna Nowak",
+            customer_email="anna@example.com",
+            customer_phone="111222333",
+            device_type=ServiceOrder.DeviceType.DESKTOP,
+            device_brand="Dell",
+            device_model="OptiPlex",
+            device_issue_description="Komputer wyłącza się pod obciążeniem.",
+        )
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {
+                "q": "ThinkPad",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["search_query"], "ThinkPad")
+        self.assertEqual(response.context["selected_device_type"], ServiceOrder.DeviceType.LAPTOP)
+        self.assertContains(response, "Wyniki filtrowania")
+        self.assertContains(response, "Jan Kowalski")
+        self.assertContains(response, "ThinkPad T14")
+        self.assertNotContains(response, "Anna Nowak")
+        self.assertNotContains(response, "OptiPlex")
 
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(

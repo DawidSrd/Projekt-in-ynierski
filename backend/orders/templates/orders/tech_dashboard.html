@@ -41,6 +41,11 @@
     <div class="panel__body">
       <form method="get" class="dashboard-filter">
         <div class="field">
+          <label>Szukaj</label>
+          <input type="text" name="q" value="{{ search_query }}" placeholder="Numer, klient, telefon, marka lub model" />
+        </div>
+
+        <div class="field">
           <label>Status zlecenia</label>
           <select name="status">
             <option value="">Aktywne zlecenia</option>
@@ -49,6 +54,17 @@
             {% endfor %}
           </select>
         </div>
+
+        <div class="field">
+          <label>Typ urządzenia</label>
+          <select name="device_type">
+            <option value="">Wszystkie typy</option>
+            {% for code, label in device_type_choices %}
+              <option value="{{ code }}" {% if code == selected_device_type %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
         <div class="button-row">
           <button type="submit">Zastosuj filtr</button>
           <a class="button button--ghost" href="/tech/dashboard/">Wyczyść</a>
@@ -61,9 +77,14 @@
     <div class="panel__body">
       <div class="table-heading">
         <div>
-          {% if selected_status %}
-            <h2>Zlecenia: {{ selected_status_label }}</h2>
-            <p>Lista zleceń ograniczona do wybranego statusu.</p>
+          {% if has_dashboard_filters %}
+            <h2>Wyniki filtrowania</h2>
+            <p>
+              Liczba zleceń: {{ dashboard_orders|length }}.
+              {% if selected_status_label %}Status: {{ selected_status_label }}.{% endif %}
+              {% if selected_device_type_label %}Typ urządzenia: {{ selected_device_type_label }}.{% endif %}
+              {% if search_query %}Szukana fraza: "{{ search_query }}".{% endif %}
+            </p>
           {% else %}
             <h2>Zlecenia do obsługi</h2>
             <p>Aktywne zlecenia posortowane według pilności.</p>
