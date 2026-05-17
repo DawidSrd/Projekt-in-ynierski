@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load i18n log %}
+{% load i18n log admin_dashboard %}
 
 {% block coltype %}colMS{% endblock %}
 
@@ -12,6 +12,7 @@
 {% block content_title %}{% endblock %}
 
 {% block content %}
+{% admin_dashboard_stats as dashboard_stats %}
 <div id="content-main" class="service-admin-dashboard">
   <section class="service-admin-panel">
     <span class="service-admin-eyebrow">Panel administratora</span>
@@ -34,6 +35,71 @@
         <small>Grupy opcji, warianty i dopłaty</small>
       </a>
     </div>
+  </section>
+
+  <section class="service-admin-stats" aria-label="Statystyki zleceń">
+    <article class="service-admin-stat">
+      <span>Aktywne</span>
+      <strong>{{ dashboard_stats.active }}</strong>
+    </article>
+    <article class="service-admin-stat">
+      <span>Nowe</span>
+      <strong>{{ dashboard_stats.new }}</strong>
+    </article>
+    <article class="service-admin-stat service-admin-stat--danger">
+      <span>Po terminie</span>
+      <strong>{{ dashboard_stats.overdue }}</strong>
+    </article>
+    <article class="service-admin-stat">
+      <span>Nieprzypisane</span>
+      <strong>{{ dashboard_stats.unassigned }}</strong>
+    </article>
+    <article class="service-admin-stat">
+      <span>Czeka na klienta</span>
+      <strong>{{ dashboard_stats.awaiting_acceptance }}</strong>
+    </article>
+    <article class="service-admin-stat">
+      <span>Zakończone</span>
+      <strong>{{ dashboard_stats.completed }}</strong>
+    </article>
+  </section>
+
+  <section class="service-admin-panel service-admin-orders">
+    <div class="service-admin-section-heading">
+      <h2>Ostatnie zlecenia</h2>
+      <a href="{% url 'admin:orders_serviceorder_changelist' %}">Pokaż wszystkie</a>
+    </div>
+
+    {% if dashboard_stats.recent_orders %}
+      <div class="service-admin-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Numer</th>
+              <th>Klient</th>
+              <th>Status</th>
+              <th>Technik</th>
+              <th>Utworzono</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order in dashboard_stats.recent_orders %}
+              <tr>
+                <td>
+                  <a href="{% url 'admin:orders_serviceorder_change' order.id %}">{{ order.order_number }}</a>
+                </td>
+                <td>{{ order.customer_name }}</td>
+                <td>{{ order.get_status_display }}</td>
+                <td>{{ order.assigned_technician|default:"nieprzypisane" }}</td>
+                <td>{{ order.created_at }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>Brak zleceń do wyświetlenia.</p>
+    {% endif %}
   </section>
 
   {% if app_list %}

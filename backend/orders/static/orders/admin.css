@@ -251,6 +251,44 @@ textarea {
   margin-top: 22px;
 }
 
+.service-admin-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.service-admin-stat {
+  min-height: 94px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 42, 39, 0.05);
+}
+
+.service-admin-stat span {
+  display: block;
+  color: var(--body-quiet-color);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.service-admin-stat strong {
+  display: block;
+  margin-top: 8px;
+  color: #1e2f2a;
+  font-size: 28px;
+}
+
+.service-admin-stat--danger {
+  border-color: #ddb4b4;
+  background: #fff8f8;
+}
+
+.service-admin-stat--danger strong {
+  color: #9d3939;
+}
+
 .service-admin-action {
   display: flex;
   flex-direction: column;
@@ -286,6 +324,37 @@ textarea {
   color: var(--body-quiet-color);
   font-size: 13px;
   line-height: 1.35;
+}
+
+.service-admin-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.service-admin-section-heading h2 {
+  margin: 0;
+  color: #1e2f2a;
+  font-size: 20px;
+}
+
+.service-admin-section-heading a {
+  font-weight: 700;
+}
+
+.service-admin-table-wrap {
+  overflow-x: auto;
+}
+
+.service-admin-orders table {
+  width: 100%;
+}
+
+.service-admin-orders th,
+.service-admin-orders td {
+  padding: 12px;
 }
 
 .service-admin-details {
@@ -348,5 +417,9 @@ textarea {
 
   .service-admin-actions {
     grid-template-columns: 1fr;
+  }
+
+  .service-admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

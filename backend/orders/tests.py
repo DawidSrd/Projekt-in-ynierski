@@ -76,6 +76,19 @@ class HomePageTests(TestCase):
             password="testpass123",
             email="admin@example.com",
         )
+        ServiceOrder.objects.create(
+            customer_name="Jan Kowalski",
+            customer_email="jan@example.com",
+            customer_phone="123456789",
+            diagnosis="Uszkodzony dysk SSD.",
+            final_price=350,
+        )
+        ServiceOrder.objects.create(
+            customer_name="Anna Nowak",
+            customer_email="anna@example.com",
+            customer_phone="111222333",
+            status=ServiceOrderStatus.COMPLETED,
+        )
         self.client.login(username="admin", password="testpass123")
 
         response = self.client.get(reverse("admin:index"))
@@ -83,6 +96,11 @@ class HomePageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Panel administratora")
         self.assertContains(response, "Administracja serwisem")
+        self.assertContains(response, "Aktywne")
+        self.assertContains(response, "Nieprzypisane")
+        self.assertContains(response, "Czeka na klienta")
+        self.assertContains(response, "Ostatnie zlecenia")
+        self.assertContains(response, "Jan Kowalski")
         self.assertContains(response, "Pokaż wszystkie dane systemu")
         self.assertContains(response, "Ostatnie działania")
 
