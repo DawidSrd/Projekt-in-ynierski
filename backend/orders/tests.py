@@ -218,7 +218,7 @@ class TechnicianViewsTests(TestCase):
 
         response = self.client.get(
             reverse("tech_dashboard"),
-            {"status": ServiceOrderStatus.READY},
+            {"scope": "all", "status": ServiceOrderStatus.READY},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -254,6 +254,7 @@ class TechnicianViewsTests(TestCase):
         response = self.client.get(
             reverse("tech_dashboard"),
             {
+                "scope": "all",
                 "q": "ThinkPad",
                 "device_type": ServiceOrder.DeviceType.LAPTOP,
             },
@@ -291,14 +292,45 @@ class TechnicianViewsTests(TestCase):
 
         response = self.client.get(
             reverse("tech_dashboard"),
-            {"assignment": "mine"},
+            {"scope": "mine"},
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["assignment_filter"], "mine")
-        self.assertContains(response, "Przypisanie: Moje zlecenia.")
+        self.assertEqual(response.context["scope"], "mine")
+        self.assertContains(response, "Moje zlecenia")
         self.assertContains(response, "Jan Kowalski")
         self.assertNotContains(response, "Anna Nowak")
+
+    def test_tech_dashboard_can_show_all_orders(self):
+        technician = User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        other_technician = User.objects.create_user(
+            username="technik2",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        self.order.assigned_technician = technician
+        self.order.save()
+        ServiceOrder.objects.create(
+            customer_name="Anna Nowak",
+            customer_email="anna@example.com",
+            customer_phone="111222333",
+            assigned_technician=other_technician,
+        )
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {"scope": "all"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["scope"], "all")
+        self.assertContains(response, "Jan Kowalski")
+        self.assertContains(response, "Anna Nowak")
 
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(

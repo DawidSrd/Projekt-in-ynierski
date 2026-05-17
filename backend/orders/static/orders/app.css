@@ -782,9 +782,45 @@ fieldset {
 
 .dashboard-filter {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(170px, 220px)) auto;
+  grid-template-columns: minmax(260px, 1fr) repeat(2, minmax(170px, 220px)) auto;
   gap: 18px;
   align-items: end;
+}
+
+.scope-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.scope-tabs__item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.scope-tabs__item:hover {
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+}
+
+.scope-tabs__item--active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.scope-tabs__item--active:hover {
+  background: var(--primary-dark);
+  color: #ffffff;
 }
 
 .table-heading {

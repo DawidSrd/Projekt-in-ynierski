@@ -573,15 +573,22 @@ def tech_dashboard(request):
     if selected_device_type not in dict(ServiceOrder.DeviceType.choices):
         selected_device_type = ""
 
-    assignment_filter = request.GET.get("assignment") or ""
-    if assignment_filter not in {"mine", "unassigned"}:
-        assignment_filter = ""
+    scope = request.GET.get("scope") or "mine"
+    if scope not in {"mine", "all", "unassigned"}:
+        scope = "mine"
 
     search_query = (request.GET.get("q") or "").strip()
 
-    orders_new = ServiceOrder.objects.filter(status=ServiceOrderStatus.NEW).order_by("-created_at")
+    if scope == "mine":
+        scoped_orders = ServiceOrder.objects.filter(assigned_technician=request.user)
+    elif scope == "unassigned":
+        scoped_orders = ServiceOrder.objects.filter(assigned_technician__isnull=True)
+    else:
+        scoped_orders = ServiceOrder.objects.all()
 
-    orders_in_progress = ServiceOrder.objects.filter(
+    orders_new = scoped_orders.filter(status=ServiceOrderStatus.NEW).order_by("-created_at")
+
+    orders_in_progress = scoped_orders.filter(
         status__in=[
             ServiceOrderStatus.RECEIVED,
             ServiceOrderStatus.IN_PROGRESS,
@@ -589,7 +596,7 @@ def tech_dashboard(request):
         ]
     ).order_by("-created_at")
 
-    orders_ready = ServiceOrder.objects.filter(status=ServiceOrderStatus.READY).order_by("-created_at")
+    orders_ready = scoped_orders.filter(status=ServiceOrderStatus.READY).order_by("-created_at")
 
     selected_status_label = None
     if selected_status:
@@ -603,32 +610,27 @@ def tech_dashboard(request):
         "new": orders_new.count(),
         "in_progress": orders_in_progress.count(),
         "ready": orders_ready.count(),
-        "active": ServiceOrder.objects.exclude(
+        "active": scoped_orders.exclude(
             status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
         ).count(),
-        "completed": ServiceOrder.objects.filter(status=ServiceOrderStatus.COMPLETED).count(),
+        "completed": scoped_orders.filter(status=ServiceOrderStatus.COMPLETED).count(),
     }
 
-    all_active = ServiceOrder.objects.exclude(
+    all_active = scoped_orders.exclude(
         status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
     ).order_by("-created_at")
     orders_overdue = [o for o in all_active if o.is_overdue()]
     dashboard_counts["overdue"] = len(orders_overdue)
 
     if selected_status:
-        dashboard_queryset = ServiceOrder.objects.filter(status=selected_status)
+        dashboard_queryset = scoped_orders.filter(status=selected_status)
     else:
-        dashboard_queryset = ServiceOrder.objects.exclude(
+        dashboard_queryset = scoped_orders.exclude(
             status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
         )
 
     if selected_device_type:
         dashboard_queryset = dashboard_queryset.filter(device_type=selected_device_type)
-
-    if assignment_filter == "mine":
-        dashboard_queryset = dashboard_queryset.filter(assigned_technician=request.user)
-    elif assignment_filter == "unassigned":
-        dashboard_queryset = dashboard_queryset.filter(assigned_technician__isnull=True)
 
     if search_query:
         dashboard_queryset = dashboard_queryset.filter(
@@ -673,13 +675,14 @@ def tech_dashboard(request):
             "orders_overdue": orders_overdue,
             "orders_ready": orders_ready,
             "device_type_choices": ServiceOrder.DeviceType.choices,
-            "assignment_filter": assignment_filter,
-            "assignment_filter_label": {
+            "scope": scope,
+            "scope_label": {
                 "mine": "Moje zlecenia",
+                "all": "Wszystkie zlecenia",
                 "unassigned": "Nieprzypisane",
-            }.get(assignment_filter),
+            }[scope],
             "has_dashboard_filters": bool(
-                selected_status or selected_device_type or assignment_filter or search_query
+                selected_status or selected_device_type or search_query
             ),
             "search_query": search_query,
             "selected_device_type": selected_device_type,
