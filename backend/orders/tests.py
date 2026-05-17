@@ -366,6 +366,77 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(mail.outbox[0].to, [self.order.customer_email])
         self.assertContains(response, "klient otrzymał wiadomość e-mail")
 
+    def test_staff_can_update_diagnosis_and_final_price_visible_for_customer(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "update_diagnosis",
+                "diagnosis": "Uszkodzony dysk SSD.",
+                "repair_notes": "Wymieniono dysk i zainstalowano system.",
+                "final_price": "350.00",
+                "customer_accepted_repair": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.diagnosis, "Uszkodzony dysk SSD.")
+        self.assertEqual(self.order.repair_notes, "Wymieniono dysk i zainstalowano system.")
+        self.assertEqual(str(self.order.final_price), "350.00")
+        self.assertTrue(self.order.customer_accepted_repair)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.DIAGNOSIS_UPDATED,
+            ).exists()
+        )
+
+        self.client.logout()
+        track_response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertContains(track_response, "Diagnoza i rozliczenie")
+        self.assertContains(track_response, "Uszkodzony dysk SSD.")
+        self.assertContains(track_response, "Wymieniono dysk i zainstalowano system.")
+        self.assertContains(track_response, "350.00 zł")
+        self.assertContains(track_response, "Zaakceptowana przez klienta")
+        self.assertContains(track_response, "Aktualizacja diagnozy i rozliczenia")
+
+    def test_staff_cannot_save_negative_final_price(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "update_diagnosis",
+                "diagnosis": "Test",
+                "repair_notes": "",
+                "final_price": "-10",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.final_price)
+        self.assertContains(response, "Koszt końcowy nie może być ujemny.")
+
     def test_staff_cannot_skip_status_workflow(self):
         User.objects.create_user(
             username="technik",

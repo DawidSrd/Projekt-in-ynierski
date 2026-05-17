@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -206,6 +207,7 @@ def track_order(request):
                 AuditLog.Action.STATUS_CHANGED,
                 AuditLog.Action.ESTIMATE_SET,
                 AuditLog.Action.ORDER_CANCELED,
+                AuditLog.Action.DIAGNOSIS_UPDATED,
             ],
         ).order_by("performed_at")
 
@@ -225,6 +227,8 @@ def track_order(request):
                 )
             elif a.action == AuditLog.Action.ORDER_CANCELED:
                 audit_timeline.append((a.performed_at, "Zlecenie anulowane"))
+            elif a.action == AuditLog.Action.DIAGNOSIS_UPDATED:
+                audit_timeline.append((a.performed_at, "Aktualizacja diagnozy i rozliczenia"))
 
 
 
@@ -239,6 +243,16 @@ def track_order(request):
             "device_brand": order.device_brand,
             "device_model": order.device_model,
             "device_issue_description": order.device_issue_description,
+            "diagnosis": order.diagnosis,
+            "repair_notes": order.repair_notes,
+            "final_price": order.final_price,
+            "customer_accepted_repair": order.customer_accepted_repair,
+            "has_service_result": bool(
+                order.diagnosis
+                or order.repair_notes
+                or order.final_price is not None
+                or order.customer_accepted_repair
+            ),
             "comments": public_comments,
             "audit_entries": audit_entries,
             "audit_timeline": audit_timeline,
@@ -534,6 +548,8 @@ def tech_dashboard(request):
             | Q(device_brand__icontains=search_query)
             | Q(device_model__icontains=search_query)
             | Q(device_issue_description__icontains=search_query)
+            | Q(diagnosis__icontains=search_query)
+            | Q(repair_notes__icontains=search_query)
         )
 
     if selected_status:
@@ -680,6 +696,52 @@ def tech_order_detail(request, order_number: str):
                 )
 
                 message = "Komentarz został dodany."
+
+        elif action == "update_diagnosis":
+            diagnosis = (request.POST.get("diagnosis") or "").strip()
+            repair_notes = (request.POST.get("repair_notes") or "").strip()
+            final_price_raw = (request.POST.get("final_price") or "").strip().replace(",", ".")
+            customer_accepted_repair = request.POST.get("customer_accepted_repair") == "on"
+
+            final_price = None
+            if final_price_raw:
+                try:
+                    final_price = Decimal(final_price_raw)
+                except InvalidOperation:
+                    error = "Podaj poprawny koszt końcowy."
+                else:
+                    if final_price < 0:
+                        error = "Koszt końcowy nie może być ujemny."
+
+            if error is None:
+                old_value = (
+                    f"diagnosis={order.diagnosis}; repair_notes={order.repair_notes}; "
+                    f"final_price={order.final_price}; accepted={order.customer_accepted_repair}"
+                )
+
+                order.diagnosis = diagnosis
+                order.repair_notes = repair_notes
+                order.final_price = final_price
+                order.customer_accepted_repair = customer_accepted_repair
+                order.save()
+
+                new_value = (
+                    f"diagnosis={order.diagnosis}; repair_notes={order.repair_notes}; "
+                    f"final_price={order.final_price}; accepted={order.customer_accepted_repair}"
+                )
+
+                if old_value != new_value:
+                    AuditLog.objects.create(
+                        order=order,
+                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                        entity_id=order.id,
+                        action=AuditLog.Action.DIAGNOSIS_UPDATED,
+                        old_value=old_value,
+                        new_value=new_value,
+                        performed_by=request.user,
+                    )
+
+                message = "Diagnoza i rozliczenie zostały zapisane."
 
         else:
             error = "Nieznana akcja formularza."

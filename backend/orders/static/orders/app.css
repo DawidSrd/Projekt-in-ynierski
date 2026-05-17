@@ -650,6 +650,10 @@ fieldset {
   gap: 14px;
 }
 
+.result-grid--compact {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
 .metric {
   display: block;
   padding: 16px;
@@ -682,6 +686,11 @@ fieldset {
   margin-top: 4px;
   font-size: 20px;
   font-weight: 700;
+}
+
+.metric__value--text {
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .clean-list {

@@ -82,6 +82,47 @@
 
     <div class="tracking-layout section">
       <div class="stack">
+        {% if result.has_service_result %}
+          <section class="panel">
+            <div class="panel__body">
+              <div class="section-title">
+                <h2>Diagnoza i rozliczenie</h2>
+                <p>Informacje uzupełnione przez serwis po sprawdzeniu sprzętu.</p>
+              </div>
+
+              <div class="result-grid result-grid--compact">
+                {% if result.diagnosis %}
+                  <div class="metric">
+                    <span class="metric__label">Diagnoza</span>
+                    <span class="metric__value metric__value--text">{{ result.diagnosis }}</span>
+                  </div>
+                {% endif %}
+
+                {% if result.repair_notes %}
+                  <div class="metric">
+                    <span class="metric__label">Wykonane czynności</span>
+                    <span class="metric__value metric__value--text">{{ result.repair_notes }}</span>
+                  </div>
+                {% endif %}
+
+                {% if result.final_price %}
+                  <div class="metric">
+                    <span class="metric__label">Koszt końcowy</span>
+                    <span class="metric__value">{{ result.final_price }} zł</span>
+                  </div>
+                {% endif %}
+
+                {% if result.customer_accepted_repair %}
+                  <div class="metric">
+                    <span class="metric__label">Akceptacja naprawy</span>
+                    <span class="metric__value metric__value--text">Zaakceptowana przez klienta</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </section>
+        {% endif %}
+
         <section class="panel">
           <div class="panel__body">
             <div class="section-title">

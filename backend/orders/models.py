@@ -134,6 +134,11 @@ class ServiceOrder(models.Model):
     device_model = models.CharField(max_length=100, blank=True)
     device_issue_description = models.TextField(blank=True)
 
+    diagnosis = models.TextField(blank=True)
+    repair_notes = models.TextField(blank=True)
+    final_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    customer_accepted_repair = models.BooleanField(default=False)
+
     # Aktualny status workflow zlecenia
     status = models.CharField(
         max_length=20,
@@ -278,6 +283,7 @@ class AuditLog(models.Model):
         ESTIMATE_SET = "ESTIMATE_SET", "Ustawienie estymacji"
         ORDER_CANCELED = "ORDER_CANCELED", "Anulowanie zlecenia"
         ORDER_CREATED = "ORDER_CREATED", "Utworzenie zlecenia"
+        DIAGNOSIS_UPDATED = "DIAGNOSIS_UPDATED", "Aktualizacja diagnozy"
 
 
     # Powiązanie wpisu audytowego z konkretnym zleceniem (do widoku inline)
