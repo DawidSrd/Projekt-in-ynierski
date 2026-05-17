@@ -782,7 +782,7 @@ fieldset {
 
 .dashboard-filter {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(180px, 260px) minmax(180px, 260px) auto;
+  grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(170px, 220px)) auto;
   gap: 18px;
   align-items: end;
 }
@@ -812,7 +812,7 @@ fieldset {
 
 .orders-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1040px;
   border-collapse: collapse;
 }
 
@@ -958,6 +958,10 @@ fieldset {
 .section-title p {
   margin: 6px 0 0;
   color: var(--muted);
+}
+
+.claim-order-form {
+  margin-bottom: 18px;
 }
 
 .service-snapshot-list {

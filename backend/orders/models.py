@@ -138,6 +138,13 @@ class ServiceOrder(models.Model):
     repair_notes = models.TextField(blank=True)
     final_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     customer_accepted_repair = models.BooleanField(default=False)
+    assigned_technician = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_service_orders",
+    )
 
     # Aktualny status workflow zlecenia
     status = models.CharField(
@@ -293,6 +300,7 @@ class AuditLog(models.Model):
         ORDER_CREATED = "ORDER_CREATED", "Utworzenie zlecenia"
         DIAGNOSIS_UPDATED = "DIAGNOSIS_UPDATED", "Aktualizacja diagnozy"
         REPAIR_ACCEPTED = "REPAIR_ACCEPTED", "Akceptacja naprawy"
+        TECHNICIAN_ASSIGNED = "TECHNICIAN_ASSIGNED", "Przypisanie technika"
 
 
     # Powiązanie wpisu audytowego z konkretnym zleceniem (do widoku inline)

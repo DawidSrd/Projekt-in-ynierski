@@ -198,6 +198,7 @@ class ServiceOrderAdmin(admin.ModelAdmin):
         "order_number",
         "customer_name",
         "device_display",
+        "assigned_technician",
         "status",
         "final_price",
         "customer_accepted_repair",
@@ -206,7 +207,14 @@ class ServiceOrderAdmin(admin.ModelAdmin):
         "items_count",
         "created_at",
     )
-    list_filter = ("status", "device_type", "customer_accepted_repair", OverdueFilter, "created_at")
+    list_filter = (
+        "status",
+        "device_type",
+        "assigned_technician",
+        "customer_accepted_repair",
+        OverdueFilter,
+        "created_at",
+    )
     search_fields = (
         "order_number",
         "customer_name",
@@ -217,6 +225,7 @@ class ServiceOrderAdmin(admin.ModelAdmin):
         "device_issue_description",
         "diagnosis",
         "repair_notes",
+        "assigned_technician__username",
     )
     readonly_fields = ("order_number", "created_at", "updated_at", "overdue_display")
     inlines = [ServiceOrderItemInline, ServiceOrderCommentInline, AuditLogInline]
@@ -232,7 +241,10 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             "Diagnoza i rozliczenie",
             {"fields": ("diagnosis", "repair_notes", "final_price", "customer_accepted_repair")},
         ),
-        ("Obsługa serwisowa", {"fields": ("estimated_completion_at", "overdue_display")}),
+        (
+            "Obsługa serwisowa",
+            {"fields": ("assigned_technician", "estimated_completion_at", "overdue_display")},
+        ),
         ("Metadane", {"fields": ("created_at", "updated_at")}),
     )
 
@@ -268,11 +280,13 @@ class ServiceOrderAdmin(admin.ModelAdmin):
         old_status = None
         old_estimate = None
         old_service_result = None
+        old_assigned_technician = None
 
         if change:
             old_obj = ServiceOrder.objects.get(pk=obj.pk)
             old_status = old_obj.status
             old_estimate = old_obj.estimated_completion_at
+            old_assigned_technician = old_obj.assigned_technician
             old_service_result = (
                 f"diagnosis={old_obj.diagnosis}; repair_notes={old_obj.repair_notes}; "
                 f"final_price={old_obj.final_price}; accepted={old_obj.customer_accepted_repair}"
@@ -323,6 +337,17 @@ class ServiceOrderAdmin(admin.ModelAdmin):
                 action=AuditLog.Action.ESTIMATE_SET,
                 old_value=str(old_estimate),
                 new_value=str(obj.estimated_completion_at),
+                performed_by=request.user,
+            )
+
+        if old_assigned_technician != obj.assigned_technician:
+            AuditLog.objects.create(
+                order=obj,
+                entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                entity_id=obj.id,
+                action=AuditLog.Action.TECHNICIAN_ASSIGNED,
+                old_value=old_assigned_technician.username if old_assigned_technician else "",
+                new_value=obj.assigned_technician.username if obj.assigned_technician else "",
                 performed_by=request.user,
             )
 

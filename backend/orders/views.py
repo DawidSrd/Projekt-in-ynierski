@@ -230,6 +230,7 @@ def track_order(request):
                 AuditLog.Action.ORDER_CANCELED,
                 AuditLog.Action.DIAGNOSIS_UPDATED,
                 AuditLog.Action.REPAIR_ACCEPTED,
+                AuditLog.Action.TECHNICIAN_ASSIGNED,
             ],
         ).order_by("performed_at")
 
@@ -253,6 +254,8 @@ def track_order(request):
                 audit_timeline.append((a.performed_at, "Aktualizacja diagnozy i rozliczenia"))
             elif a.action == AuditLog.Action.REPAIR_ACCEPTED:
                 audit_timeline.append((a.performed_at, "Klient zaakceptował naprawę"))
+            elif a.action == AuditLog.Action.TECHNICIAN_ASSIGNED:
+                audit_timeline.append((a.performed_at, f"Przypisano technika: {a.new_value}"))
 
 
 
@@ -516,6 +519,10 @@ def tech_dashboard(request):
     if selected_device_type not in dict(ServiceOrder.DeviceType.choices):
         selected_device_type = ""
 
+    assignment_filter = request.GET.get("assignment") or ""
+    if assignment_filter not in {"mine", "unassigned"}:
+        assignment_filter = ""
+
     search_query = (request.GET.get("q") or "").strip()
 
     orders_new = ServiceOrder.objects.filter(status=ServiceOrderStatus.NEW).order_by("-created_at")
@@ -564,6 +571,11 @@ def tech_dashboard(request):
     if selected_device_type:
         dashboard_queryset = dashboard_queryset.filter(device_type=selected_device_type)
 
+    if assignment_filter == "mine":
+        dashboard_queryset = dashboard_queryset.filter(assigned_technician=request.user)
+    elif assignment_filter == "unassigned":
+        dashboard_queryset = dashboard_queryset.filter(assigned_technician__isnull=True)
+
     if search_query:
         dashboard_queryset = dashboard_queryset.filter(
             Q(order_number__icontains=search_query)
@@ -607,7 +619,14 @@ def tech_dashboard(request):
             "orders_overdue": orders_overdue,
             "orders_ready": orders_ready,
             "device_type_choices": ServiceOrder.DeviceType.choices,
-            "has_dashboard_filters": bool(selected_status or selected_device_type or search_query),
+            "assignment_filter": assignment_filter,
+            "assignment_filter_label": {
+                "mine": "Moje zlecenia",
+                "unassigned": "Nieprzypisane",
+            }.get(assignment_filter),
+            "has_dashboard_filters": bool(
+                selected_status or selected_device_type or assignment_filter or search_query
+            ),
             "search_query": search_query,
             "selected_device_type": selected_device_type,
             "selected_device_type_label": selected_device_type_label,
@@ -630,7 +649,28 @@ def tech_order_detail(request, order_number: str):
     if request.method == "POST":
         action = request.POST.get("action") or "update_order"
 
-        if action == "update_order":
+        if action == "claim_order":
+            if order.assigned_technician is None:
+                order.assigned_technician = request.user
+                order.save()
+
+                AuditLog.objects.create(
+                    order=order,
+                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                    entity_id=order.id,
+                    action=AuditLog.Action.TECHNICIAN_ASSIGNED,
+                    old_value="",
+                    new_value=request.user.username,
+                    performed_by=request.user,
+                )
+
+                message = "Zlecenie zostało przypisane do Ciebie."
+            elif order.assigned_technician == request.user:
+                message = "To zlecenie jest już przypisane do Ciebie."
+            else:
+                error = "Zlecenie jest już przypisane do innego technika."
+
+        elif action == "update_order":
             new_status = request.POST.get("status")
             estimate_raw = (request.POST.get("estimated_completion_at") or "").strip()
             notify_customer = request.POST.get("notify_customer") == "on"

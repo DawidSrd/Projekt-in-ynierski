@@ -52,6 +52,14 @@
               <span class="status-badge">W normie</span>
             {% endif %}
           </div>
+          <div>
+            <span class="metric__label">Prowadzący technik</span>
+            {% if order.assigned_technician %}
+              <strong>{{ order.assigned_technician.username }}</strong>
+            {% else %}
+              <strong>nieprzypisane</strong>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -72,6 +80,14 @@
             <h2>Obsługa zlecenia</h2>
             <p>Zmień status, ustaw estymację i zdecyduj, czy klient ma dostać e-mail.</p>
           </div>
+
+          {% if not order.assigned_technician %}
+            <form method="post" class="claim-order-form">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="claim_order" />
+              <button class="button--secondary" type="submit">Przejmij zlecenie</button>
+            </form>
+          {% endif %}
 
           <form method="post" data-confirm-mail-form>
             {% csrf_token %}

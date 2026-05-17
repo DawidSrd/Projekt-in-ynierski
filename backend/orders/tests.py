@@ -248,6 +248,38 @@ class TechnicianViewsTests(TestCase):
         self.assertNotContains(response, "Anna Nowak")
         self.assertNotContains(response, "OptiPlex")
 
+    def test_tech_dashboard_can_show_only_current_technician_orders(self):
+        technician = User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        other_technician = User.objects.create_user(
+            username="technik2",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        self.order.assigned_technician = technician
+        self.order.save()
+        ServiceOrder.objects.create(
+            customer_name="Anna Nowak",
+            customer_email="anna@example.com",
+            customer_phone="111222333",
+            assigned_technician=other_technician,
+        )
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {"assignment": "mine"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["assignment_filter"], "mine")
+        self.assertContains(response, "Przypisanie: Moje zlecenia.")
+        self.assertContains(response, "Jan Kowalski")
+        self.assertNotContains(response, "Anna Nowak")
+
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(
             username="technik",
@@ -303,6 +335,37 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Czyszczenie laptopa")
         self.assertContains(response, "Pasta premium")
         self.assertContains(response, "150.00 - 230.00 zł")
+
+    def test_staff_can_claim_unassigned_order(self):
+        technician = User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "claim_order",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.assigned_technician, technician)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.TECHNICIAN_ASSIGNED,
+                old_value="",
+                new_value="technik",
+                performed_by=technician,
+            ).exists()
+        )
+        self.assertContains(response, "Zlecenie zostało przypisane do Ciebie.")
+        self.assertContains(response, "Prowadzący technik")
+        self.assertContains(response, "technik")
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_staff_can_update_order_status_and_estimate(self):
