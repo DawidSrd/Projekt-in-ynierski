@@ -224,6 +224,37 @@ class ServiceOrderComment(models.Model):
         return f"Comment({self.visibility}) for {self.order.order_number}"
     
 
+class ServiceOrderAttachment(models.Model):
+    class Visibility(models.TextChoices):
+        INTERNAL = "INTERNAL", "Wewnętrzny"
+        PUBLIC = "PUBLIC", "Publiczny"
+
+    order = models.ForeignKey(
+        ServiceOrder,
+        on_delete=models.CASCADE,
+        related_name="attachments",
+    )
+    visibility = models.CharField(
+        max_length=20,
+        choices=Visibility.choices,
+        default=Visibility.INTERNAL,
+        db_index=True,
+    )
+    file = models.FileField(upload_to="order_attachments/%Y/%m/")
+    original_name = models.CharField(max_length=255)
+    uploaded_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="service_order_attachments",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Attachment({self.visibility}) for {self.order.order_number}"
+
+
 class ServiceOrderItem(models.Model):
     """
     Pozycja zlecenia - snapshot usługi i wyceny w momencie złożenia zamówienia.
@@ -301,6 +332,7 @@ class AuditLog(models.Model):
         DIAGNOSIS_UPDATED = "DIAGNOSIS_UPDATED", "Aktualizacja diagnozy"
         REPAIR_ACCEPTED = "REPAIR_ACCEPTED", "Akceptacja naprawy"
         TECHNICIAN_ASSIGNED = "TECHNICIAN_ASSIGNED", "Przypisanie technika"
+        ATTACHMENT_ADDED = "ATTACHMENT_ADDED", "Dodanie załącznika"
 
 
     # Powiązanie wpisu audytowego z konkretnym zleceniem (do widoku inline)

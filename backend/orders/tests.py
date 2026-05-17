@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -10,6 +11,7 @@ from .models import (
     ServiceOption,
     ServiceOptionGroup,
     ServiceOrder,
+    ServiceOrderAttachment,
     ServiceOrderComment,
     ServiceOrderItem,
     ServiceOrderItemOption,
@@ -366,6 +368,79 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Zlecenie zostało przypisane do Ciebie.")
         self.assertContains(response, "Prowadzący technik")
         self.assertContains(response, "technik")
+
+    def test_staff_can_add_public_attachment_visible_in_tracking(self):
+        technician = User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        uploaded_file = SimpleUploadedFile(
+            "diagnoza.pdf",
+            b"test-pdf-content",
+            content_type="application/pdf",
+        )
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "add_attachment",
+                "visibility": ServiceOrderAttachment.Visibility.PUBLIC,
+                "file": uploaded_file,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        attachment = ServiceOrderAttachment.objects.get(order=self.order)
+        self.assertEqual(attachment.visibility, ServiceOrderAttachment.Visibility.PUBLIC)
+        self.assertEqual(attachment.original_name, "diagnoza.pdf")
+        self.assertEqual(attachment.uploaded_by, technician)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.ATTACHMENT_ADDED,
+            ).exists()
+        )
+
+        self.client.logout()
+        track_response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertContains(track_response, "Załączniki z serwisu")
+        self.assertContains(track_response, "diagnoza.pdf")
+        self.assertContains(track_response, "Dodano załącznik")
+
+    def test_staff_cannot_add_unsupported_attachment(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        uploaded_file = SimpleUploadedFile(
+            "skrypt.exe",
+            b"binary",
+            content_type="application/octet-stream",
+        )
+
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "add_attachment",
+                "visibility": ServiceOrderAttachment.Visibility.INTERNAL,
+                "file": uploaded_file,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ServiceOrderAttachment.objects.count(), 0)
+        self.assertContains(response, "Dozwolone są tylko pliki JPG, PNG lub PDF.")
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_staff_can_update_order_status_and_estimate(self):
@@ -791,3 +866,88 @@ class ServiceConfiguratorTests(TestCase):
         self.assertContains(response, "Wybierz typ urządzenia.")
         self.assertContains(response, "Podaj markę urządzenia.")
         self.assertContains(response, "Opisz krótko problem z urządzeniem.")
+
+    def test_customer_can_add_public_attachment_when_creating_order(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+        uploaded_file = SimpleUploadedFile(
+            "usterka.png",
+            b"png-content",
+            content_type="image/png",
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                "customer_name": "Jan Kowalski",
+                "customer_email": "jan@example.com",
+                "customer_phone": "123456789",
+                "customer_consent": "on",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+                "device_brand": "Lenovo",
+                "device_model": "ThinkPad T14",
+                "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
+                "attachment": uploaded_file,
+                "action": "create_order",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        order = ServiceOrder.objects.get()
+        attachment = ServiceOrderAttachment.objects.get(order=order)
+        self.assertEqual(attachment.visibility, ServiceOrderAttachment.Visibility.PUBLIC)
+        self.assertEqual(attachment.original_name, "usterka.png")
+        self.assertIsNone(attachment.uploaded_by)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=order,
+                action=AuditLog.Action.ATTACHMENT_ADDED,
+                performed_by=None,
+            ).exists()
+        )
+
+        track_response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": order.order_number,
+                "email": order.customer_email,
+            },
+        )
+
+        self.assertContains(track_response, "Załączniki z serwisu")
+        self.assertContains(track_response, "usterka.png")
+
+    def test_customer_cannot_add_unsupported_attachment_when_creating_order(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+        uploaded_file = SimpleUploadedFile(
+            "plik.exe",
+            b"binary",
+            content_type="application/octet-stream",
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                "customer_name": "Jan Kowalski",
+                "customer_email": "jan@example.com",
+                "customer_phone": "123456789",
+                "customer_consent": "on",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+                "device_brand": "Lenovo",
+                "device_model": "ThinkPad T14",
+                "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
+                "attachment": uploaded_file,
+                "action": "create_order",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ServiceOrder.objects.count(), 0)
+        self.assertContains(response, "Dozwolone są tylko pliki JPG, PNG lub PDF.")

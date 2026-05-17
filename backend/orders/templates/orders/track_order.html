@@ -150,6 +150,28 @@
         <section class="panel">
           <div class="panel__body">
             <div class="section-title">
+              <h2>Załączniki z serwisu</h2>
+              <p>Pliki udostępnione przez pracownika serwisu.</p>
+            </div>
+
+            {% if result.attachments %}
+              <ul class="clean-list">
+                {% for attachment in result.attachments %}
+                  <li>
+                    <span class="muted">{{ attachment.created_at }}</span><br />
+                    <a href="{{ attachment.file.url }}">{{ attachment.original_name }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty">Brak załączników z serwisu.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__body">
+            <div class="section-title">
               <h2>Historia zlecenia</h2>
               <p>Najważniejsze zdarzenia związane ze zgłoszeniem.</p>
             </div>

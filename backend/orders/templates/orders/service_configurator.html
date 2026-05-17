@@ -21,7 +21,7 @@
           <span class="pill">Czas bazowy: {{ service.base_duration_minutes }} min</span>
         </div>
 
-        <form method="post" class="section">
+        <form method="post" enctype="multipart/form-data" class="section">
           {% csrf_token %}
 
           {% for g, options in group_options %}
@@ -74,6 +74,11 @@
             <div class="field section">
               <label>Opis problemu</label>
               <textarea name="device_issue_description" rows="4" required>{{ customer_defaults.device_issue_description }}</textarea>
+            </div>
+
+            <div class="field section">
+              <label>Zdjęcie lub plik pomocniczy</label>
+              <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" />
             </div>
           </section>
 

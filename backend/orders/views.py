@@ -1,11 +1,18 @@
 import re
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import Service, ServiceOptionGroup, ServiceOption
-from .models import ServiceOrder, ServiceOrderComment, ServiceOrderItem, ServiceOrderItemOption
+from .models import (
+    ServiceOrder,
+    ServiceOrderAttachment,
+    ServiceOrderComment,
+    ServiceOrderItem,
+    ServiceOrderItemOption,
+)
 from django.core.mail import send_mail
 from django.core.validators import validate_email
 from .models import AuditLog
@@ -24,6 +31,8 @@ from .choices import (
 
 STATUS_LABELS = dict(ServiceOrderStatus.choices)
 PHONE_PATTERN = re.compile(r"^\+?[0-9\s-]{7,20}$")
+ALLOWED_ATTACHMENT_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
+MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024
 
 
 def get_customer_order_errors(customer_name, customer_email, customer_phone, customer_consent):
@@ -60,6 +69,20 @@ def get_device_order_errors(device_type, device_brand, device_issue_description)
         errors.append("Opisz krótko problem z urządzeniem.")
 
     return errors
+
+
+def get_attachment_error(uploaded_file):
+    if uploaded_file is None:
+        return "Wybierz plik do dodania."
+
+    extension = Path(uploaded_file.name).suffix.lower()
+    if extension not in ALLOWED_ATTACHMENT_EXTENSIONS:
+        return "Dozwolone są tylko pliki JPG, PNG lub PDF."
+
+    if uploaded_file.size > MAX_ATTACHMENT_SIZE:
+        return "Plik może mieć maksymalnie 5 MB."
+
+    return None
 
 
 def home(request):
@@ -221,6 +244,11 @@ def track_order(request):
             visibility=ServiceOrderComment.Visibility.PUBLIC,
         ).order_by("created_at")
 
+        public_attachments = ServiceOrderAttachment.objects.filter(
+            order=order,
+            visibility=ServiceOrderAttachment.Visibility.PUBLIC,
+        ).order_by("created_at")
+
         audit_entries = AuditLog.objects.filter(
             order=order,
             action__in=[
@@ -231,6 +259,7 @@ def track_order(request):
                 AuditLog.Action.DIAGNOSIS_UPDATED,
                 AuditLog.Action.REPAIR_ACCEPTED,
                 AuditLog.Action.TECHNICIAN_ASSIGNED,
+                AuditLog.Action.ATTACHMENT_ADDED,
             ],
         ).order_by("performed_at")
 
@@ -256,6 +285,8 @@ def track_order(request):
                 audit_timeline.append((a.performed_at, "Klient zaakceptował naprawę"))
             elif a.action == AuditLog.Action.TECHNICIAN_ASSIGNED:
                 audit_timeline.append((a.performed_at, f"Przypisano technika: {a.new_value}"))
+            elif a.action == AuditLog.Action.ATTACHMENT_ADDED:
+                audit_timeline.append((a.performed_at, "Dodano załącznik"))
 
 
 
@@ -282,6 +313,7 @@ def track_order(request):
                 or order.customer_accepted_repair
             ),
             "comments": public_comments,
+            "attachments": public_attachments,
             "audit_entries": audit_entries,
             "audit_timeline": audit_timeline,
             "can_cancel": order.can_cancel(),
@@ -401,6 +433,7 @@ def service_configurator(request, service_id: int):
             device_brand = (request.POST.get("device_brand") or "").strip()
             device_model = (request.POST.get("device_model") or "").strip()
             device_issue_description = (request.POST.get("device_issue_description") or "").strip()
+            uploaded_file = request.FILES.get("attachment")
             customer_errors = get_customer_order_errors(
                 customer_name,
                 customer_email,
@@ -412,9 +445,12 @@ def service_configurator(request, service_id: int):
                 device_brand,
                 device_issue_description,
             )
+            attachment_error = get_attachment_error(uploaded_file) if uploaded_file else None
 
-            if customer_errors or device_errors:
-                result["error"] = " ".join([*customer_errors, *device_errors])
+            if customer_errors or device_errors or attachment_error:
+                result["error"] = " ".join(
+                    [*customer_errors, *device_errors, *([attachment_error] if attachment_error else [])]
+                )
             else:
                 order = ServiceOrder.objects.create(
                     customer_name=customer_name,
@@ -434,6 +470,24 @@ def service_configurator(request, service_id: int):
                     new_value=f"status={order.status}",
                     performed_by=None,
                 )
+
+                if uploaded_file:
+                    attachment = ServiceOrderAttachment.objects.create(
+                        order=order,
+                        visibility=ServiceOrderAttachment.Visibility.PUBLIC,
+                        file=uploaded_file,
+                        original_name=uploaded_file.name,
+                        uploaded_by=None,
+                    )
+
+                    AuditLog.objects.create(
+                        order=order,
+                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                        entity_id=order.id,
+                        action=AuditLog.Action.ATTACHMENT_ADDED,
+                        new_value=f"visibility={attachment.visibility}; file={attachment.original_name}",
+                        performed_by=None,
+                    )
 
                 send_mail(
                     subject=f"Potwierdzenie przyjęcia zlecenia {order.order_number}",
@@ -762,6 +816,35 @@ def tech_order_detail(request, order_number: str):
 
                 message = "Komentarz został dodany."
 
+        elif action == "add_attachment":
+            visibility = request.POST.get("visibility")
+            uploaded_file = request.FILES.get("file")
+            attachment_error = get_attachment_error(uploaded_file)
+
+            if visibility not in dict(ServiceOrderAttachment.Visibility.choices):
+                error = "Wybrano nieprawidłowy typ załącznika."
+            elif attachment_error:
+                error = attachment_error
+            else:
+                attachment = ServiceOrderAttachment.objects.create(
+                    order=order,
+                    visibility=visibility,
+                    file=uploaded_file,
+                    original_name=uploaded_file.name,
+                    uploaded_by=request.user,
+                )
+
+                AuditLog.objects.create(
+                    order=order,
+                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                    entity_id=order.id,
+                    action=AuditLog.Action.ATTACHMENT_ADDED,
+                    new_value=f"visibility={attachment.visibility}; file={attachment.original_name}",
+                    performed_by=request.user,
+                )
+
+                message = "Załącznik został dodany."
+
         elif action == "update_diagnosis":
             diagnosis = (request.POST.get("diagnosis") or "").strip()
             repair_notes = (request.POST.get("repair_notes") or "").strip()
@@ -819,6 +902,16 @@ def tech_order_detail(request, order_number: str):
         visibility=ServiceOrderComment.Visibility.PUBLIC,
     ).order_by("-created_at")
 
+    attachments_internal = ServiceOrderAttachment.objects.filter(
+        order=order,
+        visibility=ServiceOrderAttachment.Visibility.INTERNAL,
+    ).order_by("-created_at")
+
+    attachments_public = ServiceOrderAttachment.objects.filter(
+        order=order,
+        visibility=ServiceOrderAttachment.Visibility.PUBLIC,
+    ).order_by("-created_at")
+
     order_items = order.items.prefetch_related("selected_options").order_by("created_at")
 
     audit_entries = AuditLog.objects.filter(order=order).order_by("-performed_at")
@@ -830,9 +923,12 @@ def tech_order_detail(request, order_number: str):
             "order": order,
             "comments_internal": comments_internal,
             "comments_public": comments_public,
+            "attachments_internal": attachments_internal,
+            "attachments_public": attachments_public,
             "order_items": order_items,
             "audit_entries": audit_entries,
             "status_choices": get_available_order_status_choices(order.status),
+            "attachment_visibility_choices": ServiceOrderAttachment.Visibility.choices,
             "comment_visibility_choices": ServiceOrderComment.Visibility.choices,
             "est_default": (
                 timezone.localtime(order.estimated_completion_at).strftime("%Y-%m-%d %H:%M")

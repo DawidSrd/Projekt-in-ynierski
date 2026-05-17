@@ -7,6 +7,7 @@ from .models import (
     ServiceOptionGroup,
     ServiceOption,
     ServiceOrder,
+    ServiceOrderAttachment,
     ServiceOrderComment,
     ServiceOrderItem,
     ServiceOrderItemOption,
@@ -122,6 +123,13 @@ class ServiceOrderCommentInline(admin.TabularInline):
     readonly_fields = ("created_at",)
 
 
+class ServiceOrderAttachmentInline(admin.TabularInline):
+    model = ServiceOrderAttachment
+    extra = 0
+    fields = ("visibility", "file", "original_name", "uploaded_by", "created_at")
+    readonly_fields = ("original_name", "uploaded_by", "created_at")
+
+
 class AuditLogInline(admin.TabularInline):
     model = AuditLog
     extra = 0
@@ -192,6 +200,15 @@ class ServiceOrderCommentAdmin(admin.ModelAdmin):
             )
 
 
+@admin.register(ServiceOrderAttachment)
+class ServiceOrderAttachmentAdmin(admin.ModelAdmin):
+    list_display = ("order", "original_name", "visibility", "uploaded_by", "created_at")
+    list_filter = ("visibility", "created_at")
+    search_fields = ("original_name", "order__order_number", "uploaded_by__username")
+    readonly_fields = ("original_name", "uploaded_by", "created_at")
+    list_select_related = ("order", "uploaded_by")
+
+
 @admin.register(ServiceOrder)
 class ServiceOrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -228,7 +245,7 @@ class ServiceOrderAdmin(admin.ModelAdmin):
         "assigned_technician__username",
     )
     readonly_fields = ("order_number", "created_at", "updated_at", "overdue_display")
-    inlines = [ServiceOrderItemInline, ServiceOrderCommentInline, AuditLogInline]
+    inlines = [ServiceOrderItemInline, ServiceOrderCommentInline, ServiceOrderAttachmentInline, AuditLogInline]
     date_hierarchy = "created_at"
     fieldsets = (
         ("Identyfikacja", {"fields": ("order_number", "status")}),
