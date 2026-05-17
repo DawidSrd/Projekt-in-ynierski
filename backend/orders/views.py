@@ -195,6 +195,27 @@ def track_order(request):
                     "Skontaktuj się telefonicznie z serwisem."
                 )
 
+        elif action == "accept_repair":
+            if order.can_accept_repair():
+                order.customer_accepted_repair = True
+                order.save()
+
+                AuditLog.objects.create(
+                    order=order,
+                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                    entity_id=order.id,
+                    action=AuditLog.Action.REPAIR_ACCEPTED,
+                    old_value="False",
+                    new_value="True",
+                    performed_by=None,
+                )
+
+                context["message"] = "Naprawa została zaakceptowana."
+            elif order.customer_accepted_repair:
+                context["message"] = "Naprawa została już zaakceptowana."
+            else:
+                context["error"] = "Akceptacja naprawy nie jest jeszcze dostępna."
+
         public_comments = ServiceOrderComment.objects.filter(
             order=order,
             visibility=ServiceOrderComment.Visibility.PUBLIC,
@@ -208,6 +229,7 @@ def track_order(request):
                 AuditLog.Action.ESTIMATE_SET,
                 AuditLog.Action.ORDER_CANCELED,
                 AuditLog.Action.DIAGNOSIS_UPDATED,
+                AuditLog.Action.REPAIR_ACCEPTED,
             ],
         ).order_by("performed_at")
 
@@ -229,6 +251,8 @@ def track_order(request):
                 audit_timeline.append((a.performed_at, "Zlecenie anulowane"))
             elif a.action == AuditLog.Action.DIAGNOSIS_UPDATED:
                 audit_timeline.append((a.performed_at, "Aktualizacja diagnozy i rozliczenia"))
+            elif a.action == AuditLog.Action.REPAIR_ACCEPTED:
+                audit_timeline.append((a.performed_at, "Klient zaakceptował naprawę"))
 
 
 
@@ -247,6 +271,7 @@ def track_order(request):
             "repair_notes": order.repair_notes,
             "final_price": order.final_price,
             "customer_accepted_repair": order.customer_accepted_repair,
+            "can_accept_repair": order.can_accept_repair(),
             "has_service_result": bool(
                 order.diagnosis
                 or order.repair_notes
@@ -701,7 +726,6 @@ def tech_order_detail(request, order_number: str):
             diagnosis = (request.POST.get("diagnosis") or "").strip()
             repair_notes = (request.POST.get("repair_notes") or "").strip()
             final_price_raw = (request.POST.get("final_price") or "").strip().replace(",", ".")
-            customer_accepted_repair = request.POST.get("customer_accepted_repair") == "on"
 
             final_price = None
             if final_price_raw:
@@ -722,7 +746,6 @@ def tech_order_detail(request, order_number: str):
                 order.diagnosis = diagnosis
                 order.repair_notes = repair_notes
                 order.final_price = final_price
-                order.customer_accepted_repair = customer_accepted_repair
                 order.save()
 
                 new_value = (

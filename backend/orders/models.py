@@ -160,6 +160,14 @@ class ServiceOrder(models.Model):
         """
         return self.status == ServiceOrderStatus.NEW
 
+    def can_accept_repair(self) -> bool:
+        return (
+            bool(self.diagnosis)
+            and self.final_price is not None
+            and not self.customer_accepted_repair
+            and self.status not in [ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
+        )
+
     def is_overdue(self) -> bool:
         """
         Zwraca True, jeśli zlecenie ma ustawioną estymację i termin już minął,
@@ -284,6 +292,7 @@ class AuditLog(models.Model):
         ORDER_CANCELED = "ORDER_CANCELED", "Anulowanie zlecenia"
         ORDER_CREATED = "ORDER_CREATED", "Utworzenie zlecenia"
         DIAGNOSIS_UPDATED = "DIAGNOSIS_UPDATED", "Aktualizacja diagnozy"
+        REPAIR_ACCEPTED = "REPAIR_ACCEPTED", "Akceptacja naprawy"
 
 
     # Powiązanie wpisu audytowego z konkretnym zleceniem (do widoku inline)

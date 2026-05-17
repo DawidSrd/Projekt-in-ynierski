@@ -381,7 +381,6 @@ class TechnicianViewsTests(TestCase):
                 "diagnosis": "Uszkodzony dysk SSD.",
                 "repair_notes": "Wymieniono dysk i zainstalowano system.",
                 "final_price": "350.00",
-                "customer_accepted_repair": "on",
             },
         )
 
@@ -390,7 +389,7 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(self.order.diagnosis, "Uszkodzony dysk SSD.")
         self.assertEqual(self.order.repair_notes, "Wymieniono dysk i zainstalowano system.")
         self.assertEqual(str(self.order.final_price), "350.00")
-        self.assertTrue(self.order.customer_accepted_repair)
+        self.assertFalse(self.order.customer_accepted_repair)
         self.assertTrue(
             AuditLog.objects.filter(
                 order=self.order,
@@ -411,7 +410,8 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(track_response, "Uszkodzony dysk SSD.")
         self.assertContains(track_response, "Wymieniono dysk i zainstalowano system.")
         self.assertContains(track_response, "350.00 zł")
-        self.assertContains(track_response, "Zaakceptowana przez klienta")
+        self.assertContains(track_response, "Oczekuje na decyzję klienta")
+        self.assertContains(track_response, "Akceptuję naprawę")
         self.assertContains(track_response, "Aktualizacja diagnozy i rozliczenia")
 
     def test_staff_cannot_save_negative_final_price(self):
@@ -568,6 +568,67 @@ class GuestAccessCancellationTests(TestCase):
             ).exists()
         )
         self.assertContains(response, "Skontaktuj się telefonicznie z serwisem.")
+
+
+class GuestAccessRepairAcceptanceTests(TestCase):
+    def setUp(self):
+        self.order = ServiceOrder.objects.create(
+            customer_name="Jan Kowalski",
+            customer_email="jan@example.com",
+            customer_phone="123456789",
+            diagnosis="Uszkodzony dysk SSD.",
+            final_price=350,
+        )
+
+    def test_customer_can_accept_repair(self):
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "action": "accept_repair",
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.customer_accepted_repair)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.REPAIR_ACCEPTED,
+                old_value="False",
+                new_value="True",
+                performed_by=None,
+            ).exists()
+        )
+        self.assertContains(response, "Naprawa została zaakceptowana.")
+        self.assertContains(response, "Zaakceptowana przez klienta")
+        self.assertContains(response, "Klient zaakceptował naprawę")
+
+    def test_customer_cannot_accept_repair_without_final_price(self):
+        self.order.final_price = None
+        self.order.save()
+
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "action": "accept_repair",
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertFalse(self.order.customer_accepted_repair)
+        self.assertFalse(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.REPAIR_ACCEPTED,
+            ).exists()
+        )
+        self.assertContains(response, "Akceptacja naprawy nie jest jeszcze dostępna.")
 
 
 class ServiceConfiguratorTests(TestCase):

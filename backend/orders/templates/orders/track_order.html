@@ -112,12 +112,14 @@
                   </div>
                 {% endif %}
 
-                {% if result.customer_accepted_repair %}
-                  <div class="metric">
-                    <span class="metric__label">Akceptacja naprawy</span>
+                <div class="metric">
+                  <span class="metric__label">Akceptacja naprawy</span>
+                  {% if result.customer_accepted_repair %}
                     <span class="metric__value metric__value--text">Zaakceptowana przez klienta</span>
-                  </div>
-                {% endif %}
+                  {% else %}
+                    <span class="metric__value metric__value--text">Oczekuje na decyzję klienta</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
           </section>
@@ -169,6 +171,31 @@
       </div>
 
       <aside class="stack">
+        {% if result.has_service_result %}
+          <section class="panel">
+            <div class="panel__body">
+              <h2>Akceptacja naprawy</h2>
+              {% if result.can_accept_repair %}
+                <p class="muted">Potwierdź wykonanie naprawy zgodnie z przedstawioną diagnozą i kosztem końcowym.</p>
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="accept_repair" />
+                  <input type="hidden" name="order_number" value="{{ result.order_number }}" />
+                  <input type="hidden" name="email" value="{{ result.email }}" />
+                  <input type="hidden" name="phone" value="{{ result.phone }}" />
+                  <div class="button-row">
+                    <button type="submit">Akceptuję naprawę</button>
+                  </div>
+                </form>
+              {% elif result.customer_accepted_repair %}
+                <p class="message message--success">Naprawa została zaakceptowana.</p>
+              {% else %}
+                <p class="empty">Akceptacja będzie dostępna po podaniu diagnozy i kosztu końcowego.</p>
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
+
         <section class="panel">
           <div class="panel__body">
             <h2>Anulowanie zlecenia</h2>

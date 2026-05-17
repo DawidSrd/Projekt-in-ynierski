@@ -135,10 +135,14 @@
               </div>
             </div>
 
-            <label class="choice choice--inline">
-              <input type="checkbox" name="customer_accepted_repair" {% if order.customer_accepted_repair %}checked{% endif %} />
-              <span>Klient zaakceptował naprawę</span>
-            </label>
+            <div class="acceptance-summary">
+              <span class="metric__label">Akceptacja naprawy</span>
+              {% if order.customer_accepted_repair %}
+                <span class="status-badge">Zaakceptowana przez klienta</span>
+              {% else %}
+                <span class="status-badge">Oczekuje na decyzję klienta</span>
+              {% endif %}
+            </div>
 
             <div class="button-row">
               <button type="submit">Zapisz diagnozę</button>
