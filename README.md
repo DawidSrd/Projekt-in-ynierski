@@ -2,12 +2,12 @@
 
 Projekt inżynierski: system do obsługi zleceń serwisowych z panelem klienta, technika i administratora.
 
-## Moduły (plan)
-- Katalog usług z konfiguracją i wyceną
-- Zlecenia serwisowe + statusy
-- Panel technika + komentarze
-- Audit log
-- Guest access
+## Zakres systemu
+- Katalog usług z konfiguracją, wyceną i szacowanym czasem realizacji
+- Zlecenia serwisowe, statusy i historia zmian
+- Panel technika z przypisywaniem zleceń, diagnozą, komentarzami i załącznikami
+- Panel administratora do zarządzania ofertą i danymi systemu
+- Śledzenie zlecenia bez zakładania konta klienta
 - Powiadomienia e-mail
 
 ## Uruchamianie lokalne
@@ -15,7 +15,7 @@ Projekt inżynierski: system do obsługi zleceń serwisowych z panelem klienta, 
 Najprostszy sposób na Windows:
 
 1. Uruchom plik `uruchom_projekt.bat` z katalogu głównego projektu.
-2. Otwórz w przeglądarce `http://127.0.0.1:8000/services/`.
+2. Otwórz w przeglądarce `http://127.0.0.1:8000/`.
 3. Aby zatrzymać serwer, naciśnij `CTRL+C` w oknie konsoli.
 
 Ręczne uruchomienie z PowerShella:

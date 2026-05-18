@@ -332,7 +332,6 @@ def track_order(request):
 
 
         context["result"] = {
-            "status_labels": STATUS_LABELS,
             "order_number": order.order_number,
             "status": order.get_status_display(),
             "estimated_completion_at": order.estimated_completion_at,
@@ -353,7 +352,6 @@ def track_order(request):
             ),
             "comments": public_comments,
             "attachments": public_attachments,
-            "audit_entries": audit_entries,
             "audit_timeline": audit_timeline,
             "can_cancel": order.can_cancel(),
             "email": email,
@@ -468,15 +466,18 @@ def service_configurator(request, service_id: int):
 
         total_min = service.base_price_min
         total_max = service.base_price_max
+        total_duration_minutes = service.base_duration_minutes
 
         for opt in selected_options:
             total_min += opt.price_delta_min
             total_max += opt.price_delta_max
+            total_duration_minutes += opt.duration_delta_minutes
 
         result = {
             "has_price": not required_option_errors,
             "total_min": total_min,
             "total_max": total_max,
+            "total_duration_minutes": max(total_duration_minutes, 0),
             "selected_options": selected_options,
         }
         if required_option_errors:
@@ -736,10 +737,6 @@ def tech_dashboard(request):
         {
             "dashboard_orders": dashboard_orders,
             "dashboard_counts": dashboard_counts,
-            "orders_new": orders_new,
-            "orders_in_progress": orders_in_progress,
-            "orders_overdue": orders_overdue,
-            "orders_ready": orders_ready,
             "device_type_choices": ServiceOrder.DeviceType.choices,
             "scope": scope,
             "scope_label": {

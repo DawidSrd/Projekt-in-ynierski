@@ -1,9 +1,12 @@
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib import admin
 from django.test import TestCase, override_settings
+from django.test.client import RequestFactory
 from django.urls import reverse
 
+from .admin import ServiceOrderAdmin
 from .choices import ServiceOrderStatus
 from .models import (
     AuditLog,
@@ -176,6 +179,103 @@ class HomePageTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/admin/login/", response["Location"])
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_admin_sends_status_email_only_when_checkbox_is_selected(self):
+        admin_user = User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        order = ServiceOrder.objects.create(
+            customer_name="Jan Kowalski",
+            customer_email="jan@example.com",
+            customer_phone="123456789",
+        )
+        model_admin = ServiceOrderAdmin(ServiceOrder, admin.site)
+        request = RequestFactory().post("/admin/")
+        request.user = admin_user
+        form_class = model_admin.get_form(request, order)
+
+        form = form_class(
+            data={
+                "status": ServiceOrderStatus.RECEIVED,
+                "customer_name": order.customer_name,
+                "customer_email": order.customer_email,
+                "customer_phone": order.customer_phone,
+                "device_type": "",
+                "device_brand": "",
+                "device_model": "",
+                "device_issue_description": "",
+                "diagnosis": "",
+                "repair_notes": "",
+                "final_price": "",
+                "customer_accepted_repair": "",
+                "assigned_technician": "",
+                "estimated_completion_at_0": "",
+                "estimated_completion_at_1": "",
+            },
+            instance=order,
+        )
+        self.assertTrue(form.is_valid())
+        model_admin.save_model(request, form.instance, form, True)
+        self.assertEqual(len(mail.outbox), 0)
+
+        form_class = model_admin.get_form(request, order)
+        form = form_class(
+            data={
+                "status": ServiceOrderStatus.IN_PROGRESS,
+                "customer_name": order.customer_name,
+                "customer_email": order.customer_email,
+                "customer_phone": order.customer_phone,
+                "device_type": "",
+                "device_brand": "",
+                "device_model": "",
+                "device_issue_description": "",
+                "diagnosis": "",
+                "repair_notes": "",
+                "final_price": "",
+                "customer_accepted_repair": "",
+                "assigned_technician": "",
+                "estimated_completion_at_0": "",
+                "estimated_completion_at_1": "",
+                "notify_customer": "on",
+            },
+            instance=order,
+        )
+        self.assertTrue(form.is_valid())
+        model_admin.save_model(request, form.instance, form, True)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [order.customer_email])
+
+    def test_admin_order_page_uses_secure_attachment_link(self):
+        User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        order = ServiceOrder.objects.create(
+            customer_name="Jan Kowalski",
+            customer_email="jan@example.com",
+            customer_phone="123456789",
+        )
+        attachment = ServiceOrderAttachment.objects.create(
+            order=order,
+            visibility=ServiceOrderAttachment.Visibility.PUBLIC,
+            file=SimpleUploadedFile(
+                "diagnoza.pdf",
+                b"test-pdf-content",
+                content_type="application/pdf",
+            ),
+            original_name="diagnoza.pdf",
+        )
+        self.client.login(username="admin", password="testpass123")
+
+        response = self.client.get(reverse("admin:orders_serviceorder_change", args=[order.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("attachment_download", args=[attachment.id]))
+        self.assertNotContains(response, attachment.file.url)
 
 
 class TechnicianViewsTests(TestCase):
@@ -404,7 +504,7 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Nie uruchamia się po aktualizacji.")
         self.assertContains(response, "Czyszczenie laptopa")
         self.assertContains(response, "Pasta premium")
-        self.assertContains(response, "150.00 - 230.00 zł")
+        self.assertContains(response, "150,00 - 230,00 zł")
 
     def test_staff_can_claim_unassigned_order(self):
         technician = User.objects.create_user(
@@ -676,7 +776,7 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(track_response, "Diagnoza i rozliczenie")
         self.assertContains(track_response, "Uszkodzony dysk SSD.")
         self.assertContains(track_response, "Wymieniono dysk i zainstalowano system.")
-        self.assertContains(track_response, "350.00 zł")
+        self.assertContains(track_response, "350,00 zł")
         self.assertContains(track_response, "Oczekuje na decyzję klienta")
         self.assertContains(track_response, "Akceptuję naprawę")
         self.assertContains(track_response, "Aktualizacja diagnozy i rozliczenia")
@@ -1038,6 +1138,36 @@ class ServiceConfiguratorTests(TestCase):
         item = ServiceOrderItem.objects.get()
         self.assertEqual(item.calculated_price_min, 130)
         self.assertEqual(item.calculated_price_max, 200)
+
+    def test_price_calculation_shows_configured_duration(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+            base_duration_minutes=90,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Zakres",
+            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
+        )
+        option = ServiceOption.objects.create(
+            group=group,
+            name="Pełna diagnostyka",
+            duration_delta_minutes=30,
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                f"group_{group.id}": str(option.id),
+                "action": "price_only",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Szacowany czas usługi")
+        self.assertContains(response, "120 min")
 
     def test_create_order_ignores_options_from_other_service(self):
         service = Service.objects.create(

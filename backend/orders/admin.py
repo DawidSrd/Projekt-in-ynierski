@@ -1,5 +1,8 @@
+from django import forms
 from django.contrib import admin
 from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .choices import get_available_order_status_choices
 from .models import (
@@ -126,8 +129,22 @@ class ServiceOrderCommentInline(admin.TabularInline):
 class ServiceOrderAttachmentInline(admin.TabularInline):
     model = ServiceOrderAttachment
     extra = 0
-    fields = ("visibility", "file", "original_name", "uploaded_by", "created_at")
-    readonly_fields = ("original_name", "uploaded_by", "created_at")
+    fields = ("visibility", "download_link", "original_name", "uploaded_by", "created_at")
+    readonly_fields = ("download_link", "original_name", "uploaded_by", "created_at")
+    can_delete = False
+
+    @admin.display(description="Plik")
+    def download_link(self, obj):
+        if not obj.pk:
+            return "-"
+
+        return format_html(
+            '<a href="{}">Pobierz</a>',
+            reverse("attachment_download", args=[obj.pk]),
+        )
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class AuditLogInline(admin.TabularInline):
@@ -202,15 +219,38 @@ class ServiceOrderCommentAdmin(admin.ModelAdmin):
 
 @admin.register(ServiceOrderAttachment)
 class ServiceOrderAttachmentAdmin(admin.ModelAdmin):
-    list_display = ("order", "original_name", "visibility", "uploaded_by", "created_at")
+    list_display = ("order", "original_name", "download_link", "visibility", "uploaded_by", "created_at")
     list_filter = ("visibility", "created_at")
     search_fields = ("original_name", "order__order_number", "uploaded_by__username")
-    readonly_fields = ("original_name", "uploaded_by", "created_at")
+    fields = ("order", "visibility", "download_link", "original_name", "uploaded_by", "created_at")
+    readonly_fields = ("download_link", "original_name", "uploaded_by", "created_at")
     list_select_related = ("order", "uploaded_by")
+
+    @admin.display(description="Plik")
+    def download_link(self, obj):
+        return format_html(
+            '<a href="{}">Pobierz</a>',
+            reverse("attachment_download", args=[obj.pk]),
+        )
+
+    def has_add_permission(self, request):
+        return False
+
+
+class ServiceOrderAdminForm(forms.ModelForm):
+    notify_customer = forms.BooleanField(
+        required=False,
+        label="Wyślij klientowi wiadomość e-mail o zmianie statusu",
+    )
+
+    class Meta:
+        model = ServiceOrder
+        fields = "__all__"
 
 
 @admin.register(ServiceOrder)
 class ServiceOrderAdmin(admin.ModelAdmin):
+    form = ServiceOrderAdminForm
     list_display = (
         "order_number",
         "customer_name",
@@ -260,7 +300,14 @@ class ServiceOrderAdmin(admin.ModelAdmin):
         ),
         (
             "Obsługa serwisowa",
-            {"fields": ("assigned_technician", "estimated_completion_at", "overdue_display")},
+            {
+                "fields": (
+                    "assigned_technician",
+                    "estimated_completion_at",
+                    "notify_customer",
+                    "overdue_display",
+                )
+            },
         ),
         ("Metadane", {"fields": ("created_at", "updated_at")}),
     )
@@ -323,6 +370,8 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             )
             return
 
+        notify_customer = form.cleaned_data.get("notify_customer", False)
+
         # Log + mail: zmiana statusu
         if old_status != obj.status:
             AuditLog.objects.create(
@@ -335,15 +384,16 @@ class ServiceOrderAdmin(admin.ModelAdmin):
                 performed_by=request.user,
             )
 
-            send_mail(
-                subject=f"Zmiana statusu zlecenia {obj.order_number}",
-                message=(
-                    f"Status Twojego zlecenia {obj.order_number} został zmieniony.\n\n"
-                    f"Aktualny status: {obj.get_status_display()}\n"
-                ),
-                from_email=None,
-                recipient_list=[obj.customer_email],
-            )
+            if notify_customer:
+                send_mail(
+                    subject=f"Zmiana statusu zlecenia {obj.order_number}",
+                    message=(
+                        f"Status Twojego zlecenia {obj.order_number} został zmieniony.\n\n"
+                        f"Aktualny status: {obj.get_status_display()}\n"
+                    ),
+                    from_email=None,
+                    recipient_list=[obj.customer_email],
+                )
 
         # Log: zmiana estymacji
         if old_estimate != obj.estimated_completion_at:

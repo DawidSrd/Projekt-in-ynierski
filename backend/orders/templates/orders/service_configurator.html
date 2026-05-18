@@ -130,6 +130,10 @@
             <span class="metric__label">Cena po konfiguracji</span>
             <span class="metric__value">{{ result.total_min }} - {{ result.total_max }} zł</span>
           </div>
+          <div class="metric">
+            <span class="metric__label">Szacowany czas usługi</span>
+            <span class="metric__value">{{ result.total_duration_minutes }} min</span>
+          </div>
           {% endif %}
 
           <section class="section">
