@@ -332,6 +332,24 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Jan Kowalski")
         self.assertContains(response, "Anna Nowak")
 
+    def test_tech_dashboard_unassigned_scope_shows_quick_claim_action(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {"scope": "unassigned"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Przejmij")
+        self.assertContains(response, 'name="action" value="claim_order"')
+        self.assertContains(response, f'action="/tech/orders/{self.order.order_number}/"')
+
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(
             username="technik",
@@ -491,6 +509,67 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(ServiceOrderAttachment.objects.count(), 0)
         self.assertContains(response, "Dozwolone są tylko pliki JPG, PNG lub PDF.")
+
+    def test_public_attachment_download_requires_verified_order(self):
+        attachment = ServiceOrderAttachment.objects.create(
+            order=self.order,
+            visibility=ServiceOrderAttachment.Visibility.PUBLIC,
+            file=SimpleUploadedFile(
+                "diagnoza.pdf",
+                b"test-pdf-content",
+                content_type="application/pdf",
+            ),
+            original_name="diagnoza.pdf",
+        )
+
+        response = self.client.get(reverse("attachment_download", args=[attachment.id]))
+        self.assertEqual(response.status_code, 404)
+
+        track_response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+        self.assertContains(track_response, reverse("attachment_download", args=[attachment.id]))
+        self.assertNotContains(track_response, attachment.file.url)
+
+        download_response = self.client.get(reverse("attachment_download", args=[attachment.id]))
+        self.assertEqual(download_response.status_code, 200)
+
+    def test_internal_attachment_is_available_only_for_staff(self):
+        attachment = ServiceOrderAttachment.objects.create(
+            order=self.order,
+            visibility=ServiceOrderAttachment.Visibility.INTERNAL,
+            file=SimpleUploadedFile(
+                "notatka.pdf",
+                b"internal-content",
+                content_type="application/pdf",
+            ),
+            original_name="notatka.pdf",
+        )
+
+        self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        anonymous_response = self.client.get(reverse("attachment_download", args=[attachment.id]))
+        self.assertEqual(anonymous_response.status_code, 404)
+
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        staff_response = self.client.get(reverse("attachment_download", args=[attachment.id]))
+        self.assertEqual(staff_response.status_code, 200)
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_staff_can_update_order_status_and_estimate(self):

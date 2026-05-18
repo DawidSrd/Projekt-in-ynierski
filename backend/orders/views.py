@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.core.exceptions import ValidationError
+from django.http import FileResponse, Http404
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import Service, ServiceOptionGroup, ServiceOption
@@ -160,6 +161,36 @@ def get_verified_order(order_number: str, email: str, phone: str):
     return order
 
 
+def remember_verified_order(request, order):
+    verified_order_ids = request.session.get("verified_order_ids", [])
+    if order.id not in verified_order_ids:
+        verified_order_ids.append(order.id)
+        request.session["verified_order_ids"] = verified_order_ids
+
+
+def can_access_attachment(request, attachment):
+    if request.user.is_staff:
+        return True
+
+    if attachment.visibility != ServiceOrderAttachment.Visibility.PUBLIC:
+        return False
+
+    return attachment.order_id in request.session.get("verified_order_ids", [])
+
+
+def attachment_download(request, attachment_id: int):
+    attachment = get_object_or_404(ServiceOrderAttachment, pk=attachment_id)
+
+    if not can_access_attachment(request, attachment):
+        raise Http404
+
+    return FileResponse(
+        attachment.file.open("rb"),
+        as_attachment=False,
+        filename=attachment.original_name,
+    )
+
+
 def track_order(request):
     """
     Guest access: śledzenie zlecenia bez logowania.
@@ -190,6 +221,8 @@ def track_order(request):
         if not order:
             context["error"] = "Nie znaleziono zlecenia dla podanych danych."
             return render(request, "orders/track_order.html", context)
+
+        remember_verified_order(request, order)
 
         if action == "cancel_order":
             if order.can_cancel():
@@ -741,20 +774,31 @@ def tech_order_detail(request, order_number: str):
 
         if action == "claim_order":
             if order.assigned_technician is None:
-                order.assigned_technician = request.user
-                order.save()
-
-                AuditLog.objects.create(
-                    order=order,
-                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                    entity_id=order.id,
-                    action=AuditLog.Action.TECHNICIAN_ASSIGNED,
-                    old_value="",
-                    new_value=request.user.username,
-                    performed_by=request.user,
+                claimed = ServiceOrder.objects.filter(
+                    pk=order.pk,
+                    assigned_technician__isnull=True,
+                ).update(
+                    assigned_technician=request.user,
+                    updated_at=timezone.now(),
                 )
+                order.refresh_from_db()
 
-                message = "Zlecenie zostało przypisane do Ciebie."
+                if claimed:
+                    AuditLog.objects.create(
+                        order=order,
+                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
+                        entity_id=order.id,
+                        action=AuditLog.Action.TECHNICIAN_ASSIGNED,
+                        old_value="",
+                        new_value=request.user.username,
+                        performed_by=request.user,
+                    )
+
+                    message = "Zlecenie zostało przypisane do Ciebie."
+                elif order.assigned_technician == request.user:
+                    message = "To zlecenie jest już przypisane do Ciebie."
+                else:
+                    error = "Zlecenie jest już przypisane do innego technika."
             elif order.assigned_technician == request.user:
                 message = "To zlecenie jest już przypisane do Ciebie."
             else:

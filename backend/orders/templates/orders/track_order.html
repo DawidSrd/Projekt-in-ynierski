@@ -159,7 +159,7 @@
                 {% for attachment in result.attachments %}
                   <li>
                     <span class="muted">{{ attachment.created_at }}</span><br />
-                    <a href="{{ attachment.file.url }}">{{ attachment.original_name }}</a>
+                    <a href="{% url 'attachment_download' attachment.id %}">{{ attachment.original_name }}</a>
                   </li>
                 {% endfor %}
               </ul>

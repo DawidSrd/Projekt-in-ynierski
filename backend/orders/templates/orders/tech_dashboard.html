@@ -149,7 +149,16 @@
                   <td>{{ o.estimated_completion_at|default:"brak" }}</td>
                   <td>{{ o.created_at }}</td>
                   <td>
-                    <a class="button button--compact" href="/tech/orders/{{ o.order_number }}/">Szczegóły</a>
+                    <div class="orders-table__actions">
+                      {% if scope == "unassigned" and not o.assigned_technician %}
+                        <form method="post" action="/tech/orders/{{ o.order_number }}/" class="orders-table__action-form">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="claim_order" />
+                          <button class="button--compact button--secondary" type="submit">Przejmij</button>
+                        </form>
+                      {% endif %}
+                      <a class="button button--compact" href="/tech/orders/{{ o.order_number }}/">Szczegóły</a>
+                    </div>
                   </td>
                 </tr>
               {% endfor %}
