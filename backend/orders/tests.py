@@ -758,6 +758,28 @@ class GuestAccessCancellationTests(TestCase):
         self.assertContains(response, "Skontaktuj się telefonicznie z serwisem.")
 
 
+class GuestAccessTrackingTests(TestCase):
+    def setUp(self):
+        self.order = ServiceOrder.objects.create(
+            customer_name="Jan Kowalski",
+            customer_email="jan@example.com",
+            customer_phone="123456789",
+        )
+
+    def test_customer_can_track_order_with_formatted_phone_number(self):
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "phone": "123 456-789",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.order.order_number)
+        self.assertNotContains(response, "Nie znaleziono zlecenia dla podanych danych.")
+
+
 class GuestAccessRepairAcceptanceTests(TestCase):
     def setUp(self):
         self.order = ServiceOrder.objects.create(
@@ -833,6 +855,110 @@ class ServiceConfiguratorTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'value="SRV-ABC12345"')
+
+    def test_required_option_group_blocks_price_calculation(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Pasta termiczna",
+            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
+            is_required=True,
+        )
+        ServiceOption.objects.create(
+            group=group,
+            name="Pasta standardowa",
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {"action": "price_only"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Wybierz opcję w grupie")
+        self.assertContains(response, "Pasta termiczna")
+        self.assertNotContains(response, "Cena po konfiguracji")
+
+    def test_required_option_group_blocks_order_creation(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Pasta termiczna",
+            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
+            is_required=True,
+        )
+        ServiceOption.objects.create(
+            group=group,
+            name="Pasta standardowa",
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                "customer_name": "Jan Kowalski",
+                "customer_email": "jan@example.com",
+                "customer_phone": "123456789",
+                "customer_consent": "on",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+                "device_brand": "Lenovo",
+                "device_model": "ThinkPad T14",
+                "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
+                "action": "create_order",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ServiceOrder.objects.count(), 0)
+        self.assertContains(response, "Wybierz opcję w grupie")
+        self.assertContains(response, "Pasta termiczna")
+
+    def test_required_option_group_accepts_selected_option(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Pasta termiczna",
+            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
+            is_required=True,
+        )
+        option = ServiceOption.objects.create(
+            group=group,
+            name="Pasta premium",
+            price_delta_min=30,
+            price_delta_max=50,
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                f"group_{group.id}": str(option.id),
+                "customer_name": "Jan Kowalski",
+                "customer_email": "jan@example.com",
+                "customer_phone": "123456789",
+                "customer_consent": "on",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+                "device_brand": "Lenovo",
+                "device_model": "ThinkPad T14",
+                "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
+                "action": "create_order",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        item = ServiceOrderItem.objects.get()
+        self.assertEqual(item.calculated_price_min, 130)
+        self.assertEqual(item.calculated_price_max, 200)
 
     def test_create_order_ignores_options_from_other_service(self):
         service = Service.objects.create(

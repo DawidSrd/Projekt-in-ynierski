@@ -35,6 +35,10 @@ ALLOWED_ATTACHMENT_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
 MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024
 
 
+def normalize_phone_number(phone_number):
+    return re.sub(r"\D", "", phone_number or "")
+
+
 def get_customer_order_errors(customer_name, customer_email, customer_phone, customer_consent):
     errors = []
 
@@ -46,7 +50,7 @@ def get_customer_order_errors(customer_name, customer_email, customer_phone, cus
     except ValidationError:
         errors.append("Podaj poprawny adres e-mail.")
 
-    phone_digits = re.sub(r"\D", "", customer_phone)
+    phone_digits = normalize_phone_number(customer_phone)
     if not PHONE_PATTERN.match(customer_phone) or len(phone_digits) < 7 or len(phone_digits) > 15:
         errors.append("Podaj poprawny numer telefonu.")
 
@@ -146,7 +150,9 @@ def get_verified_order(order_number: str, email: str, phone: str):
         return None
 
     email_ok = email and (order.customer_email.lower() == email)
-    phone_ok = phone and (order.customer_phone == phone)
+    phone_ok = phone and (
+        normalize_phone_number(order.customer_phone) == normalize_phone_number(phone)
+    )
 
     if not (email_ok or phone_ok):
         return None
@@ -363,6 +369,7 @@ def service_configurator(request, service_id: int):
         group_options.append((g, options))
 
     result = None
+    selected_option_ids = set()
 
     customer_defaults = {
         "customer_name": "",
@@ -389,7 +396,7 @@ def service_configurator(request, service_id: int):
         }
 
         # Zbieramy zaznaczone opcje z formularza
-        selected_option_ids = []
+        posted_option_ids = []
 
         for g, _opts in group_options:
             field_name = f"group_{g.id}"
@@ -397,19 +404,35 @@ def service_configurator(request, service_id: int):
             if g.selection_type == ServiceOptionGroup.SelectionType.SINGLE:
                 chosen = request.POST.get(field_name)
                 if chosen:
-                    selected_option_ids.append(int(chosen))
+                    try:
+                        posted_option_ids.append(int(chosen))
+                    except ValueError:
+                        pass
             else:
                 chosen_list = request.POST.getlist(field_name)
-                selected_option_ids.extend([int(x) for x in chosen_list if x])
+                for chosen in chosen_list:
+                    if chosen:
+                        try:
+                            posted_option_ids.append(int(chosen))
+                        except ValueError:
+                            pass
 
-        selected_options = ServiceOption.objects.filter(
-            id__in=selected_option_ids,
-            group__service=service,
-            group__is_active=True,
-            is_active=True,
+        selected_options = list(
+            ServiceOption.objects.filter(
+                id__in=posted_option_ids,
+                group__service=service,
+                group__is_active=True,
+                is_active=True,
+            )
         )
+        selected_option_ids = {option.id for option in selected_options}
+        selected_group_ids = {option.group_id for option in selected_options}
+        required_option_errors = [
+            f'Wybierz opcję w grupie "{group.name}".'
+            for group, _options in group_options
+            if group.is_required and group.id not in selected_group_ids
+        ]
 
-        # Liczymy widełki ceny: baza + sumy delt
         total_min = service.base_price_min
         total_max = service.base_price_max
 
@@ -418,10 +441,14 @@ def service_configurator(request, service_id: int):
             total_max += opt.price_delta_max
 
         result = {
+            "has_price": not required_option_errors,
             "total_min": total_min,
             "total_max": total_max,
             "selected_options": selected_options,
         }
+        if required_option_errors:
+            result["error"] = " ".join(required_option_errors)
+
         action = request.POST.get("action")
 
         if action == "create_order":
@@ -447,9 +474,14 @@ def service_configurator(request, service_id: int):
             )
             attachment_error = get_attachment_error(uploaded_file) if uploaded_file else None
 
-            if customer_errors or device_errors or attachment_error:
+            if required_option_errors or customer_errors or device_errors or attachment_error:
                 result["error"] = " ".join(
-                    [*customer_errors, *device_errors, *([attachment_error] if attachment_error else [])]
+                    [
+                        *required_option_errors,
+                        *customer_errors,
+                        *device_errors,
+                        *([attachment_error] if attachment_error else []),
+                    ]
                 )
             else:
                 order = ServiceOrder.objects.create(
@@ -543,6 +575,7 @@ def service_configurator(request, service_id: int):
             "group_options": group_options,
             "result": result,
             "customer_defaults": customer_defaults,
+            "selected_option_ids": selected_option_ids,
         },
     )
 

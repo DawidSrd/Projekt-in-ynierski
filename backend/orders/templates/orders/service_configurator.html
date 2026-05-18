@@ -26,20 +26,25 @@
 
           {% for g, options in group_options %}
             <fieldset>
-              <legend>{{ g.name }}</legend>
+              <legend>
+                {{ g.name }}
+                {% if g.is_required %}
+                  <span class="required-mark">*</span>
+                {% endif %}
+              </legend>
 
               <div class="option-list">
                 {% if g.selection_type == "SINGLE" %}
                   {% for o in options %}
                     <label class="choice">
-                      <input type="radio" name="group_{{ g.id }}" value="{{ o.id }}">
+                      <input type="radio" name="group_{{ g.id }}" value="{{ o.id }}" {% if o.id in selected_option_ids %}checked{% endif %} {% if g.is_required %}required{% endif %}>
                       <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
                     </label>
                   {% endfor %}
                 {% else %}
                   {% for o in options %}
                     <label class="choice">
-                      <input type="checkbox" name="group_{{ g.id }}" value="{{ o.id }}">
+                      <input type="checkbox" name="group_{{ g.id }}" value="{{ o.id }}" {% if o.id in selected_option_ids %}checked{% endif %}>
                       <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
                     </label>
                   {% endfor %}
@@ -120,10 +125,12 @@
         <h2>Wycena</h2>
 
         {% if result %}
+          {% if result.has_price %}
           <div class="metric">
             <span class="metric__label">Cena po konfiguracji</span>
             <span class="metric__value">{{ result.total_min }} - {{ result.total_max }} zł</span>
           </div>
+          {% endif %}
 
           <section class="section">
             <h3>Wybrane opcje</h3>

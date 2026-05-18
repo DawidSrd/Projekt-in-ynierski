@@ -570,6 +570,10 @@ legend {
   font-weight: 700;
 }
 
+.required-mark {
+  color: var(--danger);
+}
+
 input,
 select,
 textarea {
