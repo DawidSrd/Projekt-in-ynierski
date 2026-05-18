@@ -25,6 +25,21 @@ cd backend
 ..\.venv\Scripts\python.exe manage.py runserver
 ```
 
+## Konfiguracja bazy danych
+
+Projekt może korzystać z PostgreSQL. Przed uruchomieniem skopiuj plik `.env.example` do `.env`
+i uzupełnij dane połączenia do lokalnej bazy:
+
+```env
+POSTGRES_DB=serwis_db
+POSTGRES_USER=serwis_user
+POSTGRES_PASSWORD=twoje_haslo
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+```
+
+Jeśli zmienna `POSTGRES_DB` nie jest ustawiona, projekt awaryjnie uruchomi się na lokalnej bazie SQLite.
+
 ## Dane przykładowe
 
 Projekt zawiera komendę tworzącą przykładowy katalog usług i opcje konfiguratora.
