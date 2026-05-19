@@ -1,10 +1,10 @@
 from django import forms
-from django.contrib import admin
-from django.core.mail import send_mail
+from django.contrib import admin, messages
 from django.urls import reverse
 from django.utils.html import format_html
 
 from .choices import get_available_order_status_choices
+from .emails import send_customer_email
 from .models import (
     Service,
     ServiceOptionGroup,
@@ -385,15 +385,20 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             )
 
             if notify_customer:
-                send_mail(
+                email_sent = send_customer_email(
                     subject=f"Zmiana statusu zlecenia {obj.order_number}",
                     message=(
                         f"Status Twojego zlecenia {obj.order_number} został zmieniony.\n\n"
                         f"Aktualny status: {obj.get_status_display()}\n"
                     ),
-                    from_email=None,
-                    recipient_list=[obj.customer_email],
+                    recipient=obj.customer_email,
                 )
+                if not email_sent:
+                    self.message_user(
+                        request,
+                        "Status został zapisany, ale nie udało się wysłać wiadomości e-mail do klienta.",
+                        level=messages.WARNING,
+                    )
 
         # Log: zmiana estymacji
         if old_estimate != obj.estimated_completion_at:

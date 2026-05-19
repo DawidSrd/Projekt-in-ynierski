@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -733,6 +735,32 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(mail.outbox[0].to, [self.order.customer_email])
         self.assertContains(response, "klient otrzymał wiadomość e-mail")
 
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_staff_status_update_is_saved_when_email_fails(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        with patch("orders.emails.send_mail", side_effect=RuntimeError("SMTP down")):
+            response = self.client.post(
+                reverse("tech_order_detail", args=[self.order.order_number]),
+                {
+                    "action": "update_order",
+                    "status": ServiceOrderStatus.RECEIVED,
+                    "estimated_completion_at": "",
+                    "notify_customer": "on",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertContains(response, "Nie udało się wysłać wiadomości e-mail do klienta.")
+
     def test_staff_can_update_diagnosis_and_final_price_visible_for_customer(self):
         User.objects.create_user(
             username="technik",
@@ -911,6 +939,25 @@ class GuestAccessCancellationTests(TestCase):
         )
         self.assertContains(response, "Zlecenie zostało anulowane.")
         self.assertContains(response, "Zlecenie anulowane")
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_customer_cancel_is_saved_when_email_fails(self):
+        with patch("orders.emails.send_mail", side_effect=RuntimeError("SMTP down")):
+            response = self.client.post(
+                reverse("track_order"),
+                {
+                    "action": "cancel_order",
+                    "order_number": self.order.order_number,
+                    "email": self.order.customer_email,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, ServiceOrderStatus.CANCELED)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertContains(response, "Zlecenie zostało anulowane.")
+        self.assertContains(response, "Nie udało się wysłać wiadomości e-mail do klienta.")
 
     def test_customer_cannot_cancel_order_after_service_started(self):
         self.order.status = ServiceOrderStatus.IN_PROGRESS
@@ -1138,6 +1185,38 @@ class ServiceConfiguratorTests(TestCase):
         item = ServiceOrderItem.objects.get()
         self.assertEqual(item.calculated_price_min, 130)
         self.assertEqual(item.calculated_price_max, 200)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_create_order_is_saved_when_confirmation_email_fails(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+
+        with patch("orders.emails.send_mail", side_effect=RuntimeError("SMTP down")):
+            response = self.client.post(
+                reverse("service_configurator", args=[service.id]),
+                {
+                    "customer_name": "Jan Kowalski",
+                    "customer_email": "jan@example.com",
+                    "customer_phone": "123456789",
+                    "customer_consent": "on",
+                    "device_type": ServiceOrder.DeviceType.LAPTOP,
+                    "device_brand": "Lenovo",
+                    "device_model": "ThinkPad T14",
+                    "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
+                    "action": "create_order",
+                },
+                follow=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ServiceOrder.objects.count(), 1)
+        self.assertEqual(ServiceOrderItem.objects.count(), 1)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertContains(response, "Zlecenie zostało zapisane")
+        self.assertContains(response, "nie udało się wysłać wiadomości e-mail")
 
     def test_price_calculation_shows_configured_duration(self):
         service = Service.objects.create(

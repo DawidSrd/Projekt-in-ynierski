@@ -22,7 +22,13 @@
           </div>
           <div>
             <span class="metric__label">Potwierdzenie</span>
-            <p>Na podany adres e-mail została wysłana wiadomość z podstawowymi informacjami o zgłoszeniu.</p>
+            {% if email_status == "failed" %}
+              <p>Zlecenie zostało zapisane, ale nie udało się wysłać wiadomości e-mail. Numer zlecenia jest wystarczający do śledzenia statusu.</p>
+            {% elif email_status == "sent" %}
+              <p>Na podany adres e-mail została wysłana wiadomość z podstawowymi informacjami o zgłoszeniu.</p>
+            {% else %}
+              <p>Numer zlecenia jest wystarczający do śledzenia statusu zgłoszenia.</p>
+            {% endif %}
           </div>
         </div>
 
