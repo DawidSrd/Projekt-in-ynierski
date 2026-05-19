@@ -54,6 +54,14 @@ def home(request):
     return render(request, "orders/home.html")
 
 
+def about(request):
+    staff_redirect = redirect_staff_from_client_area(request)
+    if staff_redirect:
+        return staff_redirect
+
+    return render(request, "orders/about.html")
+
+
 def get_staff_redirect_url(request, next_url=None):
     target = next_url or request.GET.get("next") or request.POST.get("next") or ""
 

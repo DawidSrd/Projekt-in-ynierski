@@ -32,6 +32,8 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Jak możemy pomóc?")
         self.assertContains(response, "Katalog usług")
         self.assertContains(response, "Sprawdź status zlecenia")
+        self.assertContains(response, "O nas")
+        self.assertContains(response, 'href="/about/"')
         self.assertContains(response, 'href="/services/"')
         self.assertContains(response, 'href="/track/"')
         self.assertContains(response, 'href="/staff/login/"')
@@ -57,6 +59,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, 'href="/tech/dashboard/"')
         self.assertContains(response, 'action="/staff/logout/"')
         self.assertNotContains(response, 'href="/"')
+        self.assertNotContains(response, 'href="/about/"')
         self.assertNotContains(response, 'href="/services/"')
         self.assertNotContains(response, 'href="/track/"')
         self.assertNotContains(response, ">Start<")
@@ -80,6 +83,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Admin")
         self.assertContains(response, 'href="/tech/dashboard/"')
         self.assertContains(response, 'href="/admin/"')
+        self.assertNotContains(response, 'href="/about/"')
         self.assertNotContains(response, 'href="/services/"')
         self.assertNotContains(response, 'href="/track/"')
 
@@ -98,6 +102,7 @@ class HomePageTests(TestCase):
 
         client_urls = [
             reverse("home"),
+            reverse("about"),
             reverse("service_catalog"),
             reverse("service_configurator", args=[service.id]),
             reverse("track_order"),
@@ -108,6 +113,16 @@ class HomePageTests(TestCase):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response["Location"], reverse("tech_dashboard"))
+
+    def test_about_page_has_service_information_placeholders(self):
+        response = self.client.get(reverse("about"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "O nas")
+        self.assertContains(response, "O serwisie")
+        self.assertContains(response, "Godziny otwarcia")
+        self.assertContains(response, "Adres serwisu")
+        self.assertContains(response, "Treść zostanie uzupełniona.")
 
     def test_admin_index_uses_custom_dashboard(self):
         User.objects.create_superuser(

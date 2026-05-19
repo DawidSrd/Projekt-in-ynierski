@@ -450,6 +450,18 @@ a:hover {
   color: var(--muted);
 }
 
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.info-card h2 {
+  margin: 6px 0 10px;
+  color: #223530;
+  font-size: 21px;
+}
+
 .meta-row {
   display: flex;
   flex-wrap: wrap;
@@ -1044,6 +1056,7 @@ fieldset {
   .dashboard-filter,
   .home-client,
   .confirmation-info,
+  .info-grid,
   .tracking-summary__grid,
   .tracking-summary__meta,
   .tracking-layout {
