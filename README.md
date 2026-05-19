@@ -40,6 +40,26 @@ POSTGRES_PORT=5432
 
 Jeśli zmienna `POSTGRES_DB` nie jest ustawiona, projekt awaryjnie uruchomi się na lokalnej bazie SQLite.
 
+## Konfiguracja wysyłki e-mail
+
+Domyślnie projekt korzysta z konsolowego backendu poczty. Oznacza to, że wiadomości są pokazywane
+w terminalu podczas pracy lokalnej, ale nie są wysyłane do klienta.
+
+Aby włączyć prawdziwą wysyłkę, uzupełnij w pliku `.env` dane serwera SMTP:
+
+```env
+EMAIL_HOST=smtp.twojadomena.pl
+EMAIL_PORT=587
+EMAIL_USE_TLS=true
+EMAIL_USE_SSL=false
+EMAIL_HOST_USER=adres_nadawcy@example.com
+EMAIL_HOST_PASSWORD=haslo_lub_haslo_aplikacji
+DEFAULT_FROM_EMAIL=adres_nadawcy@example.com
+```
+
+Prawdziwego hasła do poczty nie dodawaj do repozytorium. Plik `.env` zostaje tylko lokalnie na komputerze,
+a do gita trafia wyłącznie przykładowy plik `.env.example`.
+
 ## Dane przykładowe
 
 Projekt zawiera komendę tworzącą przykładowy katalog usług i opcje konfiguratora.
