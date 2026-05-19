@@ -144,6 +144,8 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 
+SITE_URL = (os.getenv("SITE_URL") or "http://127.0.0.1:8000").rstrip("/")
+
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "serwis@example.com")
 

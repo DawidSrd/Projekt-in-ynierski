@@ -16,7 +16,12 @@ from .models import (
 )
 from django.core.validators import validate_email
 from .models import AuditLog
-from .emails import send_customer_email
+from .emails import (
+    build_order_cancellation_email,
+    build_order_confirmation_email,
+    build_status_change_email,
+    send_customer_email,
+)
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
@@ -240,14 +245,8 @@ def track_order(request):
                     performed_by=None,
                 )
 
-                email_sent = send_customer_email(
-                    subject=f"Anulowanie zlecenia {order.order_number}",
-                    message=(
-                        f"Twoje zlecenie {order.order_number} zostało anulowane.\n\n"
-                        f"Aktualny status: {order.get_status_display()}\n"
-                    ),
-                    recipient=order.customer_email,
-                )
+                subject, message = build_order_cancellation_email(order)
+                email_sent = send_customer_email(subject, message, order.customer_email)
 
                 if email_sent:
                     context["message"] = "Zlecenie zostało anulowane."
@@ -578,19 +577,8 @@ def service_configurator(request, service_id: int):
                         price_delta_max_snapshot=opt.price_delta_max,
                     )
 
-                email_sent = send_customer_email(
-                    subject=f"Potwierdzenie przyjęcia zlecenia {order.order_number}",
-                    message=(
-                        f"Dziękujemy! Twoje zlecenie zostało przyjęte.\n\n"
-                        f"Numer zlecenia: {order.order_number}\n"
-                        f"Status: {order.get_status_display()}\n\n"
-                        f"Urządzenie: {order.get_device_type_display()} {order.device_brand} {order.device_model}\n"
-                        f"Opis problemu: {order.device_issue_description}\n\n"
-                        f"Możesz śledzić status tutaj: /track/\n"
-                        f"(podaj numer zlecenia oraz e-mail lub telefon)\n"
-                    ),
-                    recipient=order.customer_email,
-                )
+                subject, message = build_order_confirmation_email(order)
+                email_sent = send_customer_email(subject, message, order.customer_email)
                 request.session[f"order_created_email_status_{order.order_number}"] = (
                     "sent" if email_sent else "failed"
                 )
@@ -850,14 +838,8 @@ def tech_order_detail(request, order_number: str):
                         )
 
                         if notify_customer:
-                            email_sent = send_customer_email(
-                                subject=f"Zmiana statusu zlecenia {order.order_number}",
-                                message=(
-                                    f"Status Twojego zlecenia {order.order_number} został zmieniony.\n\n"
-                                    f"Aktualny status: {order.get_status_display()}\n"
-                                ),
-                                recipient=order.customer_email,
-                            )
+                            subject, message = build_status_change_email(order)
+                            email_sent = send_customer_email(subject, message, order.customer_email)
 
                     if old_estimate != order.estimated_completion_at:
                         AuditLog.objects.create(

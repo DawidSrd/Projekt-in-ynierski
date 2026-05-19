@@ -40,6 +40,18 @@ POSTGRES_PORT=5432
 
 Jeśli zmienna `POSTGRES_DB` nie jest ustawiona, projekt awaryjnie uruchomi się na lokalnej bazie SQLite.
 
+## Adres aplikacji
+
+Zmienna `SITE_URL` określa adres używany w linkach wysyłanych do klienta, na przykład w wiadomości
+z potwierdzeniem zgłoszenia i przy zmianie statusu.
+
+```env
+SITE_URL=http://127.0.0.1:8000
+```
+
+Przy lokalnej pracy może zostać adres `127.0.0.1`. Po wdrożeniu na domenę należy ustawić tutaj właściwy
+adres aplikacji.
+
 ## Konfiguracja wysyłki e-mail
 
 Domyślnie projekt korzysta z konsolowego backendu poczty. Oznacza to, że wiadomości są pokazywane

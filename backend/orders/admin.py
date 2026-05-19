@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .choices import get_available_order_status_choices
-from .emails import send_customer_email
+from .emails import build_status_change_email, send_customer_email
 from .models import (
     Service,
     ServiceOptionGroup,
@@ -385,14 +385,8 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             )
 
             if notify_customer:
-                email_sent = send_customer_email(
-                    subject=f"Zmiana statusu zlecenia {obj.order_number}",
-                    message=(
-                        f"Status Twojego zlecenia {obj.order_number} został zmieniony.\n\n"
-                        f"Aktualny status: {obj.get_status_display()}\n"
-                    ),
-                    recipient=obj.customer_email,
-                )
+                subject, message = build_status_change_email(obj)
+                email_sent = send_customer_email(subject, message, obj.customer_email)
                 if not email_sent:
                     self.message_user(
                         request,

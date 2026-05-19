@@ -709,7 +709,10 @@ class TechnicianViewsTests(TestCase):
             ).exists()
         )
 
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        SITE_URL="https://serwis.test",
+    )
     def test_staff_can_send_status_email_when_checkbox_is_selected(self):
         User.objects.create_user(
             username="technik",
@@ -733,6 +736,11 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [self.order.customer_email])
+        self.assertIn(
+            f"https://serwis.test/track/?order_number={self.order.order_number}",
+            mail.outbox[0].body,
+        )
+        self.assertIn("Urządzenie: Laptop Lenovo ThinkPad T14", mail.outbox[0].body)
         self.assertContains(response, "klient otrzymał wiadomość e-mail")
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -914,7 +922,10 @@ class GuestAccessCancellationTests(TestCase):
             customer_phone="123456789",
         )
 
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        SITE_URL="https://serwis.test",
+    )
     def test_customer_can_cancel_new_order(self):
         response = self.client.post(
             reverse("track_order"),
@@ -939,6 +950,11 @@ class GuestAccessCancellationTests(TestCase):
         )
         self.assertContains(response, "Zlecenie zostało anulowane.")
         self.assertContains(response, "Zlecenie anulowane")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(
+            f"https://serwis.test/track/?order_number={self.order.order_number}",
+            mail.outbox[0].body,
+        )
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_customer_cancel_is_saved_when_email_fails(self):
@@ -1146,6 +1162,10 @@ class ServiceConfiguratorTests(TestCase):
         self.assertContains(response, "Wybierz opcję w grupie")
         self.assertContains(response, "Pasta termiczna")
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        SITE_URL="https://serwis.test",
+    )
     def test_required_option_group_accepts_selected_option(self):
         service = Service.objects.create(
             name="Czyszczenie laptopa",
@@ -1185,6 +1205,10 @@ class ServiceConfiguratorTests(TestCase):
         item = ServiceOrderItem.objects.get()
         self.assertEqual(item.calculated_price_min, 130)
         self.assertEqual(item.calculated_price_max, 200)
+        order = ServiceOrder.objects.get()
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Potwierdzenie przyjęcia zlecenia", mail.outbox[0].subject)
+        self.assertIn(f"https://serwis.test/track/?order_number={order.order_number}", mail.outbox[0].body)
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_create_order_is_saved_when_confirmation_email_fails(self):
