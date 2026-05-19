@@ -41,6 +41,12 @@ ALLOWED_ATTACHMENT_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
 MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024
 
 
+def redirect_staff_from_client_area(request):
+    if request.user.is_staff:
+        return redirect("tech_dashboard")
+    return None
+
+
 def normalize_phone_number(phone_number):
     return re.sub(r"\D", "", phone_number or "")
 
@@ -96,6 +102,10 @@ def get_attachment_error(uploaded_file):
 
 
 def home(request):
+    staff_redirect = redirect_staff_from_client_area(request)
+    if staff_redirect:
+        return staff_redirect
+
     return render(request, "orders/home.html")
 
 
@@ -203,6 +213,10 @@ def track_order(request):
     GET  -> pokazuje formularz
     POST -> weryfikuje dane i pokazuje wynik
     """
+    staff_redirect = redirect_staff_from_client_area(request)
+    if staff_redirect:
+        return staff_redirect
+
     context = {
         "result": None,
         "error": None,
@@ -371,6 +385,10 @@ def service_catalog(request):
     Katalog usług dla klienta (read-only).
     Pokazuje tylko aktywne usługi.
     """
+    staff_redirect = redirect_staff_from_client_area(request)
+    if staff_redirect:
+        return staff_redirect
+
     services = Service.objects.filter(is_active=True).order_by("name")
 
     return render(
@@ -386,6 +404,10 @@ def service_configurator(request, service_id: int):
     - pokazuje grupy opcji i dostępne opcje
     - po POST liczy widełki ceny (min/max)
     """
+    staff_redirect = redirect_staff_from_client_area(request)
+    if staff_redirect:
+        return staff_redirect
+
     service = get_object_or_404(Service, pk=service_id, is_active=True)
 
     groups = ServiceOptionGroup.objects.filter(
@@ -612,6 +634,10 @@ def order_created(request, order_number: str):
     """
     Strona potwierdzenia utworzenia zlecenia (GET).
     """
+    staff_redirect = redirect_staff_from_client_area(request)
+    if staff_redirect:
+        return staff_redirect
+
     email_status = request.session.pop(f"order_created_email_status_{order_number}", "unknown")
     return render(
         request,

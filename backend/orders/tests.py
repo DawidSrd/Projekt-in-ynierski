@@ -50,12 +50,18 @@ class HomePageTests(TestCase):
         )
         self.client.login(username="technik", password="testpass123")
 
-        response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("tech_dashboard"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Panel technika")
         self.assertContains(response, 'href="/tech/dashboard/"')
         self.assertContains(response, 'action="/staff/logout/"')
+        self.assertNotContains(response, 'href="/"')
+        self.assertNotContains(response, 'href="/services/"')
+        self.assertNotContains(response, 'href="/track/"')
+        self.assertNotContains(response, ">Start<")
+        self.assertNotContains(response, ">Usługi<")
+        self.assertNotContains(response, ">Śledzenie<")
         self.assertNotContains(response, "Admin")
         self.assertNotContains(response, 'href="/admin/"')
 
@@ -67,13 +73,41 @@ class HomePageTests(TestCase):
         )
         self.client.login(username="admin", password="testpass123")
 
-        response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("tech_dashboard"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Panel technika")
         self.assertContains(response, "Admin")
         self.assertContains(response, 'href="/tech/dashboard/"')
         self.assertContains(response, 'href="/admin/"')
+        self.assertNotContains(response, 'href="/services/"')
+        self.assertNotContains(response, 'href="/track/"')
+
+    def test_staff_user_is_redirected_from_client_area(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+
+        client_urls = [
+            reverse("home"),
+            reverse("service_catalog"),
+            reverse("service_configurator", args=[service.id]),
+            reverse("track_order"),
+            reverse("order_created", args=["SRV-ABC12345"]),
+        ]
+
+        for url in client_urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response["Location"], reverse("tech_dashboard"))
 
     def test_admin_index_uses_custom_dashboard(self):
         User.objects.create_superuser(
