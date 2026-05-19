@@ -5,7 +5,7 @@
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'orders/admin.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'orders/admin.css' %}?v=4">
 {% endblock %}
 
 {% block branding %}
@@ -19,6 +19,7 @@
 
 {% block nav-global %}
 <nav class="service-admin-shortcuts" aria-label="Skróty administracyjne">
+  <a href="/tech/dashboard/">Panel technika</a>
   <a href="{% url 'admin:orders_service_changelist' %}">Usługi</a>
   <a href="{% url 'admin:orders_serviceorder_changelist' %}">Zlecenia</a>
   <a href="{% url 'admin:orders_auditlog_changelist' %}">Audit log</a>

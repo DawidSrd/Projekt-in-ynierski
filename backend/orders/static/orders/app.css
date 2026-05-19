@@ -996,6 +996,28 @@ fieldset {
   color: var(--muted);
 }
 
+.empty-state {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: #fafbf9;
+}
+
+.empty-state strong {
+  color: var(--text);
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.empty-state .button-row {
+  margin-top: 6px;
+}
+
 @media (max-width: 900px) {
   .app-header__inner {
     align-items: flex-start;

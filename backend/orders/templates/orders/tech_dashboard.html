@@ -1,12 +1,12 @@
 {% extends "orders/base.html" %}
 
-{% block title %}Dashboard technika | Serwis komputerowy{% endblock %}
+{% block title %}Panel technika | Serwis komputerowy{% endblock %}
 
 {% block content %}
   <div class="page-heading">
     <div>
-      <h1>Dashboard technika</h1>
-      <p>Przegląd zleceń wymagających obsługi serwisowej.</p>
+      <h1>Panel technika</h1>
+      <p>Bieżąca obsługa zleceń serwisowych.</p>
     </div>
   </div>
 
@@ -96,7 +96,7 @@
             </p>
           {% else %}
             <h2>{{ scope_label }}</h2>
-            <p>Aktywne zlecenia posortowane według pilności.</p>
+            <p>Zlecenia posortowane według terminu i etapu obsługi.</p>
           {% endif %}
         </div>
       </div>
@@ -166,7 +166,14 @@
           </table>
         </div>
       {% else %}
-        <p class="empty">Brak zleceń do wyświetlenia.</p>
+        <div class="empty-state">
+          <strong>Brak zleceń w tym widoku</strong>
+          <p>Zmień zakres, wyczyść filtry albo sprawdź zlecenia nieprzypisane.</p>
+          <div class="button-row">
+            <a class="button button--ghost" href="/tech/dashboard/?scope=unassigned">Nieprzypisane</a>
+            <a class="button button--ghost" href="/tech/dashboard/?scope=all">Wszystkie zlecenia</a>
+          </div>
+        </div>
       {% endif %}
     </div>
   </section>

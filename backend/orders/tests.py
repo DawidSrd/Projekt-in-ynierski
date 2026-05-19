@@ -135,6 +135,8 @@ class HomePageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Panel administratora")
         self.assertContains(response, "Administracja serwisem")
+        self.assertContains(response, "Panel technika")
+        self.assertContains(response, 'href="/tech/dashboard/"')
         self.assertContains(response, "Aktywne")
         self.assertContains(response, "Nieprzypisane")
         self.assertContains(response, "Czeka na klienta")
@@ -363,6 +365,7 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(response.context["dashboard_counts"]["in_progress"], 1)
         self.assertEqual(response.context["selected_status"], ServiceOrderStatus.READY)
         self.assertContains(response, "Gotowe")
+        self.assertContains(response, "Panel technika")
         self.assertContains(response, "Wyniki filtrowania")
         self.assertContains(response, "Status: Gotowe do odbioru.")
         self.assertContains(response, "Anna Nowak")
@@ -485,6 +488,24 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Przejmij")
         self.assertContains(response, 'name="action" value="claim_order"')
         self.assertContains(response, f'action="/tech/orders/{self.order.order_number}/"')
+
+    def test_tech_dashboard_empty_state_has_useful_shortcuts(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {"scope": "mine"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Brak zleceń w tym widoku")
+        self.assertContains(response, 'href="/tech/dashboard/?scope=unassigned"')
+        self.assertContains(response, 'href="/tech/dashboard/?scope=all"')
 
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(
