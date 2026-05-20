@@ -1,0 +1,53 @@
+<section class="panel order-summary">
+  <div class="panel__body">
+    <div class="order-summary__grid">
+      <div>
+        <span class="metric__label">Klient</span>
+        <h2>{{ order.customer_name }}</h2>
+        <div class="contact-list">
+          <a href="mailto:{{ order.customer_email }}">{{ order.customer_email }}</a>
+          <a href="tel:{{ order.customer_phone }}">{{ order.customer_phone }}</a>
+        </div>
+
+        <div class="device-summary">
+          <span class="metric__label">Urządzenie</span>
+          <strong>
+            {% if order.device_type %}{{ order.get_device_type_display }}{% else %}brak typu{% endif %}{% if order.device_brand %} / {{ order.device_brand }}{% endif %}{% if order.device_model %} {{ order.device_model }}{% endif %}
+          </strong>
+          {% if order.device_issue_description %}
+            <p>{{ order.device_issue_description }}</p>
+          {% else %}
+            <p class="empty">Brak opisu problemu.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="order-summary__meta">
+        <div>
+          <span class="metric__label">Status</span>
+          <span class="status-badge">{{ order.get_status_display }}</span>
+        </div>
+        <div>
+          <span class="metric__label">Estymacja</span>
+          <strong>{{ order.estimated_completion_at|default:"brak" }}</strong>
+        </div>
+        <div>
+          <span class="metric__label">Termin</span>
+          {% if order.is_overdue %}
+            <span class="status-badge status-badge--danger">Po terminie</span>
+          {% else %}
+            <span class="status-badge">W normie</span>
+          {% endif %}
+        </div>
+        <div>
+          <span class="metric__label">Prowadzący technik</span>
+          {% if order.assigned_technician %}
+            <strong>{{ order.assigned_technician.username }}</strong>
+          {% else %}
+            <strong>nieprzypisane</strong>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

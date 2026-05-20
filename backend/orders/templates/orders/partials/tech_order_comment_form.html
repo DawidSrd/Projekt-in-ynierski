@@ -1,0 +1,33 @@
+<section class="panel">
+  <div class="panel__body">
+    <div class="section-title">
+      <h2>Dodaj komentarz</h2>
+      <p>Komentarz publiczny będzie widoczny dla klienta w śledzeniu zlecenia.</p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_comment" />
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Widoczność</label>
+          <select name="visibility">
+            {% for code, label in comment_visibility_choices %}
+              <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field section">
+        <label>Treść</label>
+        <textarea name="content" rows="4"></textarea>
+      </div>
+
+      <div class="button-row">
+        <button type="submit">Dodaj komentarz</button>
+      </div>
+    </form>
+  </div>
+</section>

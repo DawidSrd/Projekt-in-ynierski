@@ -1,0 +1,91 @@
+<aside class="stack">
+  <section class="panel">
+    <div class="panel__body">
+      <h2>Załączniki publiczne</h2>
+      {% if attachments_public %}
+        <ul class="clean-list">
+          {% for attachment in attachments_public %}
+            <li>
+              <span class="muted">{{ attachment.created_at }}</span><br />
+              <a href="{% url 'attachment_download' attachment.id %}">{{ attachment.original_name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">Brak.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__body">
+      <h2>Załączniki wewnętrzne</h2>
+      {% if attachments_internal %}
+        <ul class="clean-list">
+          {% for attachment in attachments_internal %}
+            <li>
+              <span class="muted">{{ attachment.created_at }}</span><br />
+              <a href="{% url 'attachment_download' attachment.id %}">{{ attachment.original_name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">Brak.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__body">
+      <h2>Komentarze publiczne</h2>
+      {% if comments_public %}
+        <ul class="clean-list">
+          {% for c in comments_public %}
+            <li>
+              <span class="muted">{{ c.created_at }}</span><br />
+              {{ c.content }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">Brak.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__body">
+      <h2>Komentarze wewnętrzne</h2>
+      {% if comments_internal %}
+        <ul class="clean-list">
+          {% for c in comments_internal %}
+            <li>
+              <span class="muted">{{ c.created_at }}</span><br />
+              {{ c.content }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">Brak.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__body">
+      <h2>Historia zmian</h2>
+      {% if audit_entries %}
+        <ul class="clean-list">
+          {% for a in audit_entries %}
+            <li>
+              <span class="muted">{{ a.performed_at }}</span><br />
+              {{ a.get_action_display }} ({{ a.old_value|default:"" }} → {{ a.new_value|default:"" }})
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">Brak wpisów.</p>
+      {% endif %}
+    </div>
+  </section>
+</aside>

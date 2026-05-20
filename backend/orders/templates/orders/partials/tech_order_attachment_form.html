@@ -1,0 +1,33 @@
+<section class="panel">
+  <div class="panel__body">
+    <div class="section-title">
+      <h2>Dodaj załącznik</h2>
+      <p>Publiczny załącznik będzie widoczny dla klienta w śledzeniu zlecenia.</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_attachment" />
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Widoczność</label>
+          <select name="visibility">
+            {% for code, label in attachment_visibility_choices %}
+              <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Plik</label>
+          <input type="file" name="file" accept=".jpg,.jpeg,.png,.pdf" />
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button type="submit">Dodaj załącznik</button>
+      </div>
+    </form>
+  </div>
+</section>

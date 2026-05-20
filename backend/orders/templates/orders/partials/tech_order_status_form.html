@@ -1,0 +1,48 @@
+<section class="panel">
+  <div class="panel__body">
+    <div class="section-title">
+      <h2>Obsługa zlecenia</h2>
+      <p>Zmień status, ustaw estymację i zdecyduj, czy klient ma dostać e-mail.</p>
+    </div>
+
+    {% if not order.assigned_technician %}
+      <form method="post" class="claim-order-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="claim_order" />
+        <button class="button--secondary" type="submit">Przejmij zlecenie</button>
+      </form>
+    {% endif %}
+
+    <form method="post" data-confirm-mail-form>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_order" />
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Nowy status</label>
+          <select name="status">
+            {% for code, label in status_choices %}
+              <option value="{{ code }}" {% if code == order.status %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Estymacja zakończenia (YYYY-MM-DD HH:MM)</label>
+          <input type="text" name="estimated_completion_at" value="{{ est_default }}" />
+        </div>
+      </div>
+
+      <label class="choice choice--inline">
+        <input type="checkbox" name="notify_customer" data-confirm-mail-checkbox />
+        <span>Wyślij klientowi wiadomość e-mail o zmianie statusu</span>
+      </label>
+
+      <div class="button-row">
+        <button type="submit">Zapisz zmiany</button>
+      </div>
+    </form>
+  </div>
+</section>

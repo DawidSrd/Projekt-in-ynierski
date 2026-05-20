@@ -1,0 +1,34 @@
+<section class="panel">
+  <div class="panel__body">
+    <div class="section-title">
+      <h2>Zakres usługi i wycena</h2>
+      <p>Snapshot usługi z momentu utworzenia zlecenia.</p>
+    </div>
+
+    {% if order_items %}
+      <div class="service-snapshot-list">
+        {% for item in order_items %}
+          <article class="service-snapshot">
+            <div class="service-snapshot__header">
+              <h3>{{ item.service_name_snapshot }}</h3>
+              <span class="pill">{{ item.calculated_price_min }} - {{ item.calculated_price_max }} zł</span>
+            </div>
+            <p class="muted">Cena bazowa: {{ item.base_price_min_snapshot }} - {{ item.base_price_max_snapshot }} zł</p>
+
+            {% if item.selected_options.all %}
+              <ul class="sub-list">
+                {% for option in item.selected_options.all %}
+                  <li>{{ option.option_name_snapshot }} ({{ option.price_delta_min_snapshot }} - {{ option.price_delta_max_snapshot }} zł)</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty">Brak wybranych opcji.</p>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Brak pozycji zlecenia.</p>
+    {% endif %}
+  </div>
+</section>

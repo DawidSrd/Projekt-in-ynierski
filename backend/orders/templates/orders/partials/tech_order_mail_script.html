@@ -1,0 +1,14 @@
+<script>
+  const mailForm = document.querySelector("[data-confirm-mail-form]");
+  if (mailForm) {
+    mailForm.addEventListener("submit", function (event) {
+      const checkbox = mailForm.querySelector("[data-confirm-mail-checkbox]");
+      if (checkbox && checkbox.checked) {
+        const confirmed = window.confirm("Czy na pewno wysłać wiadomość e-mail do klienta?");
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }
+    });
+  }
+</script>
