@@ -1,51 +1,35 @@
-from decimal import Decimal, InvalidOperation
-
 from django.http import FileResponse, Http404
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from .models import Service, ServiceOptionGroup, ServiceOption
 from .models import (
+    Service,
     ServiceOrder,
     ServiceOrderAttachment,
     ServiceOrderComment,
-    ServiceOrderItem,
-    ServiceOrderItemOption,
 )
 from .models import AuditLog
-from .emails import (
-    build_order_cancellation_email,
-    build_order_confirmation_email,
-    build_status_change_email,
-    send_customer_email,
-)
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 from django.utils.http import url_has_allowed_host_and_scheme
 from .choices import (
     ServiceOrderStatus,
-    can_change_order_status,
     get_available_order_status_choices,
 )
-from .audit import (
-    format_service_result,
-    log_attachment_added,
-    log_comment_added,
-    log_diagnosis_updated,
-    log_estimate_set,
-    log_order_canceled,
-    log_order_created,
-    log_repair_accepted,
-    log_status_changed,
-    log_technician_assigned,
+from .services import (
+    accept_customer_repair,
+    add_order_attachment,
+    add_order_comment,
+    cancel_customer_order,
+    claim_order_for_technician,
+    create_configured_order,
+    get_configurator_selection,
+    get_customer_defaults,
+    get_service_group_options,
+    update_order_diagnosis,
+    update_order_status,
 )
-from .validators import (
-    get_attachment_error,
-    get_customer_order_errors,
-    get_device_order_errors,
-    normalize_phone_number,
-)
+from .validators import normalize_phone_number
 
 
 
@@ -211,40 +195,14 @@ def track_order(request):
         remember_verified_order(request, order)
 
         if action == "cancel_order":
-            if order.can_cancel():
-                old_status = order.status
-                order.status = ServiceOrderStatus.CANCELED
-                order.save()
-
-                log_order_canceled(order, old_status)
-
-                subject, message = build_order_cancellation_email(order)
-                email_sent = send_customer_email(subject, message, order.customer_email)
-
-                if email_sent:
-                    context["message"] = "Zlecenie zostało anulowane."
-                else:
-                    context["message"] = (
-                        "Zlecenie zostało anulowane. Nie udało się wysłać wiadomości e-mail do klienta."
-                    )
-            else:
-                context["error"] = (
-                    "Anulowanie online jest dostępne tylko dla nowych zleceń. "
-                    "Skontaktuj się telefonicznie z serwisem."
-                )
+            message, error = cancel_customer_order(order)
+            context["message"] = message
+            context["error"] = error
 
         elif action == "accept_repair":
-            if order.can_accept_repair():
-                order.customer_accepted_repair = True
-                order.save()
-
-                log_repair_accepted(order)
-
-                context["message"] = "Naprawa została zaakceptowana."
-            elif order.customer_accepted_repair:
-                context["message"] = "Naprawa została już zaakceptowana."
-            else:
-                context["error"] = "Akceptacja naprawy nie jest jeszcze dostępna."
+            message, error = accept_customer_repair(order)
+            context["message"] = message
+            context["error"] = error
 
         public_comments = ServiceOrderComment.objects.filter(
             order=order,
@@ -361,198 +319,41 @@ def service_configurator(request, service_id: int):
 
     service = get_object_or_404(Service, pk=service_id, is_active=True)
 
-    groups = ServiceOptionGroup.objects.filter(
-        service=service,
-        is_active=True,
-    ).order_by("sort_order", "id")
-
-    # Przygotujemy strukturę: grupa -> opcje
-    group_options = []
-    for g in groups:
-        options = ServiceOption.objects.filter(
-            group=g,
-            is_active=True,
-        ).order_by("sort_order", "id")
-        group_options.append((g, options))
+    group_options = get_service_group_options(service)
 
     result = None
     selected_option_ids = set()
 
-    customer_defaults = {
-        "customer_name": "",
-        "customer_email": "",
-        "customer_phone": "",
-        "customer_consent": False,
-        "device_type": "",
-        "device_brand": "",
-        "device_model": "",
-        "device_issue_description": "",
-    }
+    customer_defaults = get_customer_defaults()
 
     if request.method == "POST":
 
-        customer_defaults = {
-            "customer_name": request.POST.get("customer_name", ""),
-            "customer_email": request.POST.get("customer_email", ""),
-            "customer_phone": request.POST.get("customer_phone", ""),
-            "customer_consent": request.POST.get("customer_consent") == "on",
-            "device_type": request.POST.get("device_type", ""),
-            "device_brand": request.POST.get("device_brand", ""),
-            "device_model": request.POST.get("device_model", ""),
-            "device_issue_description": request.POST.get("device_issue_description", ""),
-        }
-
-        # Zbieramy zaznaczone opcje z formularza
-        posted_option_ids = []
-
-        for g, _opts in group_options:
-            field_name = f"group_{g.id}"
-
-            if g.selection_type == ServiceOptionGroup.SelectionType.SINGLE:
-                chosen = request.POST.get(field_name)
-                if chosen:
-                    try:
-                        posted_option_ids.append(int(chosen))
-                    except ValueError:
-                        pass
-            else:
-                chosen_list = request.POST.getlist(field_name)
-                for chosen in chosen_list:
-                    if chosen:
-                        try:
-                            posted_option_ids.append(int(chosen))
-                        except ValueError:
-                            pass
-
-        selected_options = list(
-            ServiceOption.objects.filter(
-                id__in=posted_option_ids,
-                group__service=service,
-                group__is_active=True,
-                is_active=True,
-            )
-        )
-        selected_option_ids = {option.id for option in selected_options}
-        selected_group_ids = {option.group_id for option in selected_options}
-        required_option_errors = [
-            f'Wybierz opcję w grupie "{group.name}".'
-            for group, _options in group_options
-            if group.is_required and group.id not in selected_group_ids
-        ]
-
-        total_min = service.base_price_min
-        total_max = service.base_price_max
-        total_duration_minutes = service.base_duration_minutes
-
-        for opt in selected_options:
-            total_min += opt.price_delta_min
-            total_max += opt.price_delta_max
-            total_duration_minutes += opt.duration_delta_minutes
-
-        result = {
-            "has_price": not required_option_errors,
-            "total_min": total_min,
-            "total_max": total_max,
-            "total_duration_minutes": max(total_duration_minutes, 0),
-            "selected_options": selected_options,
-        }
-        if required_option_errors:
-            result["error"] = " ".join(required_option_errors)
+        customer_defaults = get_customer_defaults(request.POST)
+        selection = get_configurator_selection(service, group_options, request.POST)
+        result = selection["result"]
+        selected_option_ids = selection["selected_option_ids"]
 
         action = request.POST.get("action")
 
         if action == "create_order":
-            customer_name = (request.POST.get("customer_name") or "").strip()
-            customer_email = (request.POST.get("customer_email") or "").strip().lower()
-            customer_phone = (request.POST.get("customer_phone") or "").strip()
-            customer_consent = request.POST.get("customer_consent") == "on"
-            device_type = (request.POST.get("device_type") or "").strip()
-            device_brand = (request.POST.get("device_brand") or "").strip()
-            device_model = (request.POST.get("device_model") or "").strip()
-            device_issue_description = (request.POST.get("device_issue_description") or "").strip()
-            uploaded_file = request.FILES.get("attachment")
-            customer_errors = get_customer_order_errors(
-                customer_name,
-                customer_email,
-                customer_phone,
-                customer_consent,
+            order, error, email_status = create_configured_order(
+                service,
+                selection["selected_options"],
+                selection["total_min"],
+                selection["total_max"],
+                request.POST,
+                request.FILES.get("attachment"),
+                selection["required_option_errors"],
             )
-            device_errors = get_device_order_errors(
-                device_type,
-                device_brand,
-                device_issue_description,
-            )
-            attachment_error = get_attachment_error(uploaded_file) if uploaded_file else None
 
-            if required_option_errors or customer_errors or device_errors or attachment_error:
-                result["error"] = " ".join(
-                    [
-                        *required_option_errors,
-                        *customer_errors,
-                        *device_errors,
-                        *([attachment_error] if attachment_error else []),
-                    ]
-                )
+            if error:
+                result["error"] = error
             else:
-                order = ServiceOrder.objects.create(
-                    customer_name=customer_name,
-                    customer_email=customer_email,
-                    customer_phone=customer_phone,
-                    device_type=device_type,
-                    device_brand=device_brand,
-                    device_model=device_model,
-                    device_issue_description=device_issue_description,
-                )
-
-                log_order_created(order)
-
-                if uploaded_file:
-                    attachment = ServiceOrderAttachment.objects.create(
-                        order=order,
-                        visibility=ServiceOrderAttachment.Visibility.PUBLIC,
-                        file=uploaded_file,
-                        original_name=uploaded_file.name,
-                        uploaded_by=None,
-                    )
-
-                    log_attachment_added(attachment)
-
-                order_item = ServiceOrderItem.objects.create(
-                    order=order,
-                    service=service,
-                    service_name_snapshot=service.name,
-                    base_price_min_snapshot=service.base_price_min,
-                    base_price_max_snapshot=service.base_price_max,
-                    calculated_price_min=total_min,
-                    calculated_price_max=total_max,
-                )
-
-                for opt in selected_options:
-                    ServiceOrderItemOption.objects.create(
-                        order_item=order_item,
-                        option=opt,
-                        option_name_snapshot=opt.name,
-                        price_delta_min_snapshot=opt.price_delta_min,
-                        price_delta_max_snapshot=opt.price_delta_max,
-                    )
-
-                subject, message = build_order_confirmation_email(order)
-                email_sent = send_customer_email(subject, message, order.customer_email)
                 request.session[f"order_created_email_status_{order.order_number}"] = (
-                    "sent" if email_sent else "failed"
+                    email_status
                 )
 
                 return redirect("order_created", order_number=order.order_number)
-            customer_defaults = {
-                "customer_name": request.POST.get("customer_name", "") if request.method == "POST" else "",
-                "customer_email": request.POST.get("customer_email", "") if request.method == "POST" else "",
-                "customer_phone": request.POST.get("customer_phone", "") if request.method == "POST" else "",
-                "customer_consent": request.POST.get("customer_consent") == "on",
-                "device_type": request.POST.get("device_type", ""),
-                "device_brand": request.POST.get("device_brand", ""),
-                "device_model": request.POST.get("device_model", ""),
-                "device_issue_description": request.POST.get("device_issue_description", ""),
-            }
 
     return render(
         request,
@@ -729,149 +530,46 @@ def tech_order_detail(request, order_number: str):
         action = request.POST.get("action") or "update_order"
 
         if action == "claim_order":
-            if order.assigned_technician is None:
-                claimed = ServiceOrder.objects.filter(
-                    pk=order.pk,
-                    assigned_technician__isnull=True,
-                ).update(
-                    assigned_technician=request.user,
-                    updated_at=timezone.now(),
-                )
-                order.refresh_from_db()
-
-                if claimed:
-                    log_technician_assigned(
-                        order,
-                        new_technician=request.user,
-                        performed_by=request.user,
-                    )
-
-                    message = "Zlecenie zostało przypisane do Ciebie."
-                elif order.assigned_technician == request.user:
-                    message = "To zlecenie jest już przypisane do Ciebie."
-                else:
-                    error = "Zlecenie jest już przypisane do innego technika."
-            elif order.assigned_technician == request.user:
-                message = "To zlecenie jest już przypisane do Ciebie."
-            else:
-                error = "Zlecenie jest już przypisane do innego technika."
+            message, error = claim_order_for_technician(order, request.user)
 
         elif action == "update_order":
             new_status = request.POST.get("status")
             estimate_raw = (request.POST.get("estimated_completion_at") or "").strip()
             notify_customer = request.POST.get("notify_customer") == "on"
-
-            old_status = order.status
-            old_estimate = order.estimated_completion_at
-            email_sent = None
-
-            if new_status not in dict(ServiceOrderStatus.choices):
-                error = "Wybrano nieprawidłowy status."
-            elif not can_change_order_status(order.status, new_status):
-                error = "Taka zmiana statusu nie jest dozwolona w aktualnym etapie obsługi."
-            else:
-                new_estimate = None
-                if estimate_raw:
-                    parsed = parse_datetime(estimate_raw.replace(" ", "T"))
-                    if parsed is None:
-                        error = "Nieprawidłowy format estymacji. Użyj YYYY-MM-DD HH:MM."
-                    else:
-                        new_estimate = parsed
-                        if timezone.is_naive(new_estimate):
-                            new_estimate = timezone.make_aware(new_estimate)
-
-                if error is None:
-                    order.status = new_status
-                    order.estimated_completion_at = new_estimate
-                    order.save()
-
-                    if old_status != order.status:
-                        log_status_changed(order, old_status, request.user)
-
-                        if notify_customer:
-                            subject, message = build_status_change_email(order)
-                            email_sent = send_customer_email(subject, message, order.customer_email)
-
-                    if old_estimate != order.estimated_completion_at:
-                        log_estimate_set(order, old_estimate, request.user)
-
-                    if notify_customer and old_status != order.status and email_sent:
-                        message = "Zlecenie zostało zaktualizowane, a klient otrzymał wiadomość e-mail."
-                    elif notify_customer and old_status != order.status and email_sent is False:
-                        message = (
-                            "Zlecenie zostało zaktualizowane. Nie udało się wysłać wiadomości e-mail do klienta."
-                        )
-                    else:
-                        message = "Zlecenie zostało zaktualizowane."
+            message, error = update_order_status(
+                order,
+                request.user,
+                new_status,
+                estimate_raw,
+                notify_customer,
+            )
 
         elif action == "add_comment":
             visibility = request.POST.get("visibility")
             content = (request.POST.get("content") or "").strip()
-
-            if visibility not in dict(ServiceOrderComment.Visibility.choices):
-                error = "Wybrano nieprawidłowy typ komentarza."
-            elif not content:
-                error = "Treść komentarza nie może być pusta."
-            else:
-                comment = ServiceOrderComment.objects.create(
-                    order=order,
-                    visibility=visibility,
-                    content=content,
-                )
-
-                log_comment_added(comment, request.user)
-
-                message = "Komentarz został dodany."
+            message, error = add_order_comment(order, request.user, visibility, content)
 
         elif action == "add_attachment":
             visibility = request.POST.get("visibility")
             uploaded_file = request.FILES.get("file")
-            attachment_error = get_attachment_error(uploaded_file)
-
-            if visibility not in dict(ServiceOrderAttachment.Visibility.choices):
-                error = "Wybrano nieprawidłowy typ załącznika."
-            elif attachment_error:
-                error = attachment_error
-            else:
-                attachment = ServiceOrderAttachment.objects.create(
-                    order=order,
-                    visibility=visibility,
-                    file=uploaded_file,
-                    original_name=uploaded_file.name,
-                    uploaded_by=request.user,
-                )
-
-                log_attachment_added(attachment, request.user)
-
-                message = "Załącznik został dodany."
+            message, error = add_order_attachment(
+                order,
+                request.user,
+                visibility,
+                uploaded_file,
+            )
 
         elif action == "update_diagnosis":
             diagnosis = (request.POST.get("diagnosis") or "").strip()
             repair_notes = (request.POST.get("repair_notes") or "").strip()
             final_price_raw = (request.POST.get("final_price") or "").strip().replace(",", ".")
-
-            final_price = None
-            if final_price_raw:
-                try:
-                    final_price = Decimal(final_price_raw)
-                except InvalidOperation:
-                    error = "Podaj poprawny koszt końcowy."
-                else:
-                    if final_price < 0:
-                        error = "Koszt końcowy nie może być ujemny."
-
-            if error is None:
-                old_value = format_service_result(order)
-
-                order.diagnosis = diagnosis
-                order.repair_notes = repair_notes
-                order.final_price = final_price
-                order.save()
-
-                if old_value != format_service_result(order):
-                    log_diagnosis_updated(order, old_value, request.user)
-
-                message = "Diagnoza i rozliczenie zostały zapisane."
+            message, error = update_order_diagnosis(
+                order,
+                request.user,
+                diagnosis,
+                repair_notes,
+                final_price_raw,
+            )
 
         else:
             error = "Nieznana akcja formularza."
