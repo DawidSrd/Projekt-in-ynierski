@@ -28,10 +28,11 @@ class HomePageTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Zgłoś naprawę lub sprawdź status zlecenia")
-        self.assertContains(response, "Jak możemy pomóc?")
-        self.assertContains(response, "Katalog usług")
-        self.assertContains(response, "Sprawdź status zlecenia")
+        self.assertContains(response, "Naprawa i obsługa sprzętu komputerowego")
+        self.assertContains(response, "Usługi serwisu")
+        self.assertContains(response, "Jak wygląda obsługa zlecenia")
+        self.assertContains(response, "Śledź zlecenie")
+        self.assertContains(response, "Zgłoś naprawę")
         self.assertContains(response, "O nas")
         self.assertContains(response, 'href="/about/"')
         self.assertContains(response, 'href="/services/"')
@@ -43,6 +44,29 @@ class HomePageTests(TestCase):
         self.assertNotContains(response, "Admin")
         self.assertNotContains(response, 'href="/tech/dashboard/"')
         self.assertNotContains(response, 'href="/admin/"')
+
+    def test_home_page_shows_active_services_preview(self):
+        Service.objects.create(
+            name="Diagnostyka sprzętu",
+            description="Sprawdzenie stanu komputera.",
+            base_price_min=80,
+            base_price_max=120,
+            is_active=True,
+        )
+        Service.objects.create(
+            name="Usługa ukryta",
+            base_price_min=50,
+            base_price_max=70,
+            is_active=False,
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Diagnostyka sprzętu")
+        self.assertContains(response, "Sprawdzenie stanu komputera.")
+        self.assertContains(response, "80,00 - 120,00 zł")
+        self.assertNotContains(response, "Usługa ukryta")
 
     def test_staff_user_sees_technician_navigation_only(self):
         User.objects.create_user(

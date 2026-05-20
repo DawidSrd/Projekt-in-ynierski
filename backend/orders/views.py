@@ -51,7 +51,9 @@ def home(request):
     if staff_redirect:
         return staff_redirect
 
-    return render(request, "orders/home.html")
+    services = Service.objects.filter(is_active=True).order_by("name")[:4]
+
+    return render(request, "orders/home.html", {"services": services})
 
 
 def about(request):

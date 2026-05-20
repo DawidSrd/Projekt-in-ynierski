@@ -1,38 +1,93 @@
 {% extends "orders/base.html" %}
 
-{% block title %}Start | Serwis komputerowy{% endblock %}
+{% block title %}Serwis komputerowy{% endblock %}
 
 {% block content %}
-  <section class="home-start">
-    <div class="home-start__copy">
+  <section class="home-hero">
+    <div class="home-hero__copy">
       <span class="home-eyebrow">Serwis komputerowy</span>
-      <h1>Zgłoś naprawę lub sprawdź status zlecenia</h1>
-      <p>Wybierz usługę z katalogu, skonfiguruj zakres naprawy i otrzymaj numer zlecenia do późniejszego śledzenia.</p>
+      <h1>Naprawa i obsługa sprzętu komputerowego</h1>
+      <p>Wybierz usługę, opisz problem i śledź status zlecenia online bez zakładania konta.</p>
+      <div class="button-row">
+        <a class="button" href="/services/">Zgłoś naprawę</a>
+        <a class="button button--ghost" href="/track/">Śledź zlecenie</a>
+      </div>
+    </div>
+
+    <div class="home-hero__panel" aria-label="Informacje o obsłudze zleceń">
+      <span class="metric__label">Obsługa online</span>
+      <strong>Numer zlecenia po wysłaniu formularza</strong>
+      <p>Klient może wrócić na stronę i sprawdzić aktualny status naprawy.</p>
     </div>
   </section>
 
-  <section class="home-client" aria-label="Strefa klienta">
-    <div class="home-client__intro">
-      <h2>Jak możemy pomóc?</h2>
-      <p>Wybierz jedną z opcji poniżej.</p>
+  <section class="home-section" aria-label="Usługi serwisu">
+    <div class="section-title section-title--row">
+      <div>
+        <h2>Usługi serwisu</h2>
+        <p>Wybrane pozycje z katalogu usług dostępnych dla klienta.</p>
+      </div>
+      <a class="button button--ghost" href="/services/">Zobacz wszystkie usługi</a>
     </div>
 
-    <div class="home-actions">
-      <a class="home-action home-action--primary" href="/services/">
-        <span>
-          <span class="home-action__title">Zgłoś nowe zlecenie</span>
-          <span class="home-action__text">Przejdź do katalogu usług i wybierz zakres naprawy.</span>
-        </span>
-        <span class="pill">Katalog usług</span>
-      </a>
+    {% if services %}
+      <div class="home-service-grid">
+        {% for service in services %}
+          <a class="home-service" href="/services/{{ service.id }}/">
+            <span class="home-service__name">{{ service.name }}</span>
+            {% if service.description %}
+              <span class="home-service__description">{{ service.description }}</span>
+            {% else %}
+              <span class="home-service__description">Opis usługi zostanie uzupełniony.</span>
+            {% endif %}
+            <span class="pill">{{ service.base_price_min }} - {{ service.base_price_max }} zł</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <strong>Oferta zostanie uzupełniona</strong>
+        <p>Usługi pojawią się tutaj po dodaniu ich w panelu administratora.</p>
+      </div>
+    {% endif %}
+  </section>
 
-      <a class="home-action" href="/track/">
-        <span>
-          <span class="home-action__title">Sprawdź status zlecenia</span>
-          <span class="home-action__text">Podaj numer zlecenia oraz e-mail albo telefon.</span>
-        </span>
-        <span class="pill">Śledzenie</span>
-      </a>
+  <section class="home-section" aria-label="Przebieg obsługi zlecenia">
+    <div class="section-title">
+      <h2>Jak wygląda obsługa zlecenia</h2>
+      <p>Krótki przebieg zgłoszenia od wyboru usługi do zakończenia naprawy.</p>
     </div>
+
+    <div class="process-grid">
+      <article class="process-step">
+        <span>1</span>
+        <h3>Wybór usługi</h3>
+        <p>Klient wybiera usługę i uzupełnia podstawowe informacje o sprzęcie.</p>
+      </article>
+      <article class="process-step">
+        <span>2</span>
+        <h3>Przyjęcie zgłoszenia</h3>
+        <p>System zapisuje zlecenie i nadaje mu numer do późniejszego śledzenia.</p>
+      </article>
+      <article class="process-step">
+        <span>3</span>
+        <h3>Obsługa w serwisie</h3>
+        <p>Technik aktualizuje status, diagnozę, koszt końcowy i informacje dla klienta.</p>
+      </article>
+      <article class="process-step">
+        <span>4</span>
+        <h3>Zakończenie</h3>
+        <p>Klient widzi wynik obsługi i może sprawdzić historię zgłoszenia.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-section home-contact" aria-label="Informacje o serwisie">
+    <div>
+      <span class="home-eyebrow">Informacje</span>
+      <h2>Adres, kontakt i godziny otwarcia</h2>
+      <p>Dane serwisu zostaną uzupełnione przed finalnym oddaniem projektu.</p>
+    </div>
+    <a class="button button--ghost" href="/about/">Przejdź do informacji o serwisie</a>
   </section>
 {% endblock %}
