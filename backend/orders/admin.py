@@ -4,6 +4,15 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .choices import get_available_order_status_choices
+from .audit import (
+    format_service_result,
+    log_comment_added,
+    log_diagnosis_updated,
+    log_estimate_set,
+    log_order_created,
+    log_status_changed,
+    log_technician_assigned,
+)
 from .emails import build_status_change_email, send_customer_email
 from .models import (
     Service,
@@ -207,14 +216,7 @@ class ServiceOrderCommentAdmin(admin.ModelAdmin):
 
         # Logujemy tylko nowe komentarze (nie edycję)
         if not change:
-            AuditLog.objects.create(
-                order=obj.order,
-                entity_type=AuditLog.EntityType.SERVICE_ORDER_COMMENT,
-                entity_id=obj.id,
-                action=AuditLog.Action.COMMENT_ADDED,
-                new_value=f"visibility={obj.visibility}",
-                performed_by=request.user,
-            )
+            log_comment_added(obj, request.user)
 
 
 @admin.register(ServiceOrderAttachment)
@@ -351,38 +353,20 @@ class ServiceOrderAdmin(admin.ModelAdmin):
             old_status = old_obj.status
             old_estimate = old_obj.estimated_completion_at
             old_assigned_technician = old_obj.assigned_technician
-            old_service_result = (
-                f"diagnosis={old_obj.diagnosis}; repair_notes={old_obj.repair_notes}; "
-                f"final_price={old_obj.final_price}; accepted={old_obj.customer_accepted_repair}"
-            )
+            old_service_result = format_service_result(old_obj)
 
         super().save_model(request, obj, form, change)
 
         # Log: utworzenie zlecenia (admin)
         if not change:
-            AuditLog.objects.create(
-                order=obj,
-                entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                entity_id=obj.id,
-                action=AuditLog.Action.ORDER_CREATED,
-                new_value=f"status={obj.status}",
-                performed_by=request.user,
-            )
+            log_order_created(obj, request.user)
             return
 
         notify_customer = form.cleaned_data.get("notify_customer", False)
 
         # Log + mail: zmiana statusu
         if old_status != obj.status:
-            AuditLog.objects.create(
-                order=obj,
-                entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                entity_id=obj.id,
-                action=AuditLog.Action.STATUS_CHANGED,
-                old_value=old_status,
-                new_value=obj.status,
-                performed_by=request.user,
-            )
+            log_status_changed(obj, old_status, request.user)
 
             if notify_customer:
                 subject, message = build_status_change_email(obj)
@@ -396,41 +380,18 @@ class ServiceOrderAdmin(admin.ModelAdmin):
 
         # Log: zmiana estymacji
         if old_estimate != obj.estimated_completion_at:
-            AuditLog.objects.create(
-                order=obj,
-                entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                entity_id=obj.id,
-                action=AuditLog.Action.ESTIMATE_SET,
-                old_value=str(old_estimate),
-                new_value=str(obj.estimated_completion_at),
-                performed_by=request.user,
-            )
+            log_estimate_set(obj, old_estimate, request.user)
 
         if old_assigned_technician != obj.assigned_technician:
-            AuditLog.objects.create(
-                order=obj,
-                entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                entity_id=obj.id,
-                action=AuditLog.Action.TECHNICIAN_ASSIGNED,
-                old_value=old_assigned_technician.username if old_assigned_technician else "",
-                new_value=obj.assigned_technician.username if obj.assigned_technician else "",
+            log_technician_assigned(
+                obj,
+                old_technician=old_assigned_technician,
+                new_technician=obj.assigned_technician,
                 performed_by=request.user,
             )
 
-        new_service_result = (
-            f"diagnosis={obj.diagnosis}; repair_notes={obj.repair_notes}; "
-            f"final_price={obj.final_price}; accepted={obj.customer_accepted_repair}"
-        )
-        if old_service_result != new_service_result:
-            AuditLog.objects.create(
-                order=obj,
-                entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                entity_id=obj.id,
-                action=AuditLog.Action.DIAGNOSIS_UPDATED,
-                old_value=old_service_result,
-                new_value=new_service_result,
-                performed_by=request.user,
-            )
+        if old_service_result != format_service_result(obj):
+            log_diagnosis_updated(obj, old_service_result, request.user)
 
 
 

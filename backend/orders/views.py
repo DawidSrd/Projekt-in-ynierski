@@ -28,6 +28,18 @@ from .choices import (
     can_change_order_status,
     get_available_order_status_choices,
 )
+from .audit import (
+    format_service_result,
+    log_attachment_added,
+    log_comment_added,
+    log_diagnosis_updated,
+    log_estimate_set,
+    log_order_canceled,
+    log_order_created,
+    log_repair_accepted,
+    log_status_changed,
+    log_technician_assigned,
+)
 from .validators import (
     get_attachment_error,
     get_customer_order_errors,
@@ -204,15 +216,7 @@ def track_order(request):
                 order.status = ServiceOrderStatus.CANCELED
                 order.save()
 
-                AuditLog.objects.create(
-                    order=order,
-                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                    entity_id=order.id,
-                    action=AuditLog.Action.ORDER_CANCELED,
-                    old_value=old_status,
-                    new_value=order.status,
-                    performed_by=None,
-                )
+                log_order_canceled(order, old_status)
 
                 subject, message = build_order_cancellation_email(order)
                 email_sent = send_customer_email(subject, message, order.customer_email)
@@ -234,15 +238,7 @@ def track_order(request):
                 order.customer_accepted_repair = True
                 order.save()
 
-                AuditLog.objects.create(
-                    order=order,
-                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                    entity_id=order.id,
-                    action=AuditLog.Action.REPAIR_ACCEPTED,
-                    old_value="False",
-                    new_value="True",
-                    performed_by=None,
-                )
+                log_repair_accepted(order)
 
                 context["message"] = "Naprawa została zaakceptowana."
             elif order.customer_accepted_repair:
@@ -508,14 +504,7 @@ def service_configurator(request, service_id: int):
                     device_issue_description=device_issue_description,
                 )
 
-                AuditLog.objects.create(
-                    order=order,
-                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                    entity_id=order.id,
-                    action=AuditLog.Action.ORDER_CREATED,
-                    new_value=f"status={order.status}",
-                    performed_by=None,
-                )
+                log_order_created(order)
 
                 if uploaded_file:
                     attachment = ServiceOrderAttachment.objects.create(
@@ -526,14 +515,7 @@ def service_configurator(request, service_id: int):
                         uploaded_by=None,
                     )
 
-                    AuditLog.objects.create(
-                        order=order,
-                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                        entity_id=order.id,
-                        action=AuditLog.Action.ATTACHMENT_ADDED,
-                        new_value=f"visibility={attachment.visibility}; file={attachment.original_name}",
-                        performed_by=None,
-                    )
+                    log_attachment_added(attachment)
 
                 order_item = ServiceOrderItem.objects.create(
                     order=order,
@@ -758,13 +740,9 @@ def tech_order_detail(request, order_number: str):
                 order.refresh_from_db()
 
                 if claimed:
-                    AuditLog.objects.create(
-                        order=order,
-                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                        entity_id=order.id,
-                        action=AuditLog.Action.TECHNICIAN_ASSIGNED,
-                        old_value="",
-                        new_value=request.user.username,
+                    log_technician_assigned(
+                        order,
+                        new_technician=request.user,
                         performed_by=request.user,
                     )
 
@@ -808,30 +786,14 @@ def tech_order_detail(request, order_number: str):
                     order.save()
 
                     if old_status != order.status:
-                        AuditLog.objects.create(
-                            order=order,
-                            entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                            entity_id=order.id,
-                            action=AuditLog.Action.STATUS_CHANGED,
-                            old_value=old_status,
-                            new_value=order.status,
-                            performed_by=request.user,
-                        )
+                        log_status_changed(order, old_status, request.user)
 
                         if notify_customer:
                             subject, message = build_status_change_email(order)
                             email_sent = send_customer_email(subject, message, order.customer_email)
 
                     if old_estimate != order.estimated_completion_at:
-                        AuditLog.objects.create(
-                            order=order,
-                            entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                            entity_id=order.id,
-                            action=AuditLog.Action.ESTIMATE_SET,
-                            old_value=str(old_estimate),
-                            new_value=str(order.estimated_completion_at),
-                            performed_by=request.user,
-                        )
+                        log_estimate_set(order, old_estimate, request.user)
 
                     if notify_customer and old_status != order.status and email_sent:
                         message = "Zlecenie zostało zaktualizowane, a klient otrzymał wiadomość e-mail."
@@ -857,14 +819,7 @@ def tech_order_detail(request, order_number: str):
                     content=content,
                 )
 
-                AuditLog.objects.create(
-                    order=order,
-                    entity_type=AuditLog.EntityType.SERVICE_ORDER_COMMENT,
-                    entity_id=comment.id,
-                    action=AuditLog.Action.COMMENT_ADDED,
-                    new_value=f"visibility={comment.visibility}",
-                    performed_by=request.user,
-                )
+                log_comment_added(comment, request.user)
 
                 message = "Komentarz został dodany."
 
@@ -886,14 +841,7 @@ def tech_order_detail(request, order_number: str):
                     uploaded_by=request.user,
                 )
 
-                AuditLog.objects.create(
-                    order=order,
-                    entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                    entity_id=order.id,
-                    action=AuditLog.Action.ATTACHMENT_ADDED,
-                    new_value=f"visibility={attachment.visibility}; file={attachment.original_name}",
-                    performed_by=request.user,
-                )
+                log_attachment_added(attachment, request.user)
 
                 message = "Załącznik został dodany."
 
@@ -913,31 +861,15 @@ def tech_order_detail(request, order_number: str):
                         error = "Koszt końcowy nie może być ujemny."
 
             if error is None:
-                old_value = (
-                    f"diagnosis={order.diagnosis}; repair_notes={order.repair_notes}; "
-                    f"final_price={order.final_price}; accepted={order.customer_accepted_repair}"
-                )
+                old_value = format_service_result(order)
 
                 order.diagnosis = diagnosis
                 order.repair_notes = repair_notes
                 order.final_price = final_price
                 order.save()
 
-                new_value = (
-                    f"diagnosis={order.diagnosis}; repair_notes={order.repair_notes}; "
-                    f"final_price={order.final_price}; accepted={order.customer_accepted_repair}"
-                )
-
-                if old_value != new_value:
-                    AuditLog.objects.create(
-                        order=order,
-                        entity_type=AuditLog.EntityType.SERVICE_ORDER,
-                        entity_id=order.id,
-                        action=AuditLog.Action.DIAGNOSIS_UPDATED,
-                        old_value=old_value,
-                        new_value=new_value,
-                        performed_by=request.user,
-                    )
+                if old_value != format_service_result(order):
+                    log_diagnosis_updated(order, old_value, request.user)
 
                 message = "Diagnoza i rozliczenie zostały zapisane."
 
