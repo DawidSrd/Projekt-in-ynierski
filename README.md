@@ -25,6 +25,46 @@ cd backend
 ..\.venv\Scripts\python.exe manage.py runserver
 ```
 
+## Uruchamianie w Dockerze
+
+Docker jest opcjonalnym sposobem uruchomienia projektu. Przydaje się na nowym komputerze, ponieważ uruchamia aplikację Django i bazę PostgreSQL w kontenerach.
+
+Uruchomienie:
+
+```powershell
+docker compose up --build
+```
+
+Po uruchomieniu aplikacja będzie dostępna pod adresem:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Konfiguracja Docker Compose uruchamia dwie usługi:
+- `web` - aplikacja Django
+- `db` - baza PostgreSQL
+
+Baza PostgreSQL działa w kontenerze na porcie `5432`, a na komputerze jest wystawiona jako `5433`, żeby nie kolidować z lokalną instalacją PostgreSQL.
+
+Po pierwszym uruchomieniu można dodać przykładowe usługi:
+
+```powershell
+docker compose exec web python manage.py seed_services
+```
+
+Konto administratora można utworzyć poleceniem:
+
+```powershell
+docker compose exec web python manage.py createsuperuser
+```
+
+Zatrzymanie kontenerów:
+
+```powershell
+docker compose down
+```
+
 ## Konfiguracja bazy danych
 
 Projekt może korzystać z PostgreSQL. Przed uruchomieniem skopiuj plik `.env.example` do `.env`

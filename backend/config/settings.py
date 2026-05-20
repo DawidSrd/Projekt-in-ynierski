@@ -31,12 +31,19 @@ def env_bool(name, default=False):
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-3d3iu63ru^3v(7x0m&e*3(i0%=^5s$d8l16cf7nr1bcg(v-)j7'
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-3d3iu63ru^3v(7x0m&e*3(i0%=^5s$d8l16cf7nr1bcg(v-)j7",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DEBUG", True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
 
 
 # Application definition
