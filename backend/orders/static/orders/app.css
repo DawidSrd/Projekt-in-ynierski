@@ -1,18 +1,18 @@
 :root {
   color-scheme: light;
-  --bg: #f6f7f2;
+  --bg: #f5f7fa;
   --surface: #ffffff;
-  --surface-soft: #eef3ef;
-  --text: #1d2926;
-  --muted: #65716d;
-  --line: #d8e0db;
-  --primary: #24584f;
-  --primary-dark: #173d37;
-  --accent: #c9823a;
-  --accent-dark: #a85f2f;
-  --danger: #a83d3d;
-  --success: #2f765d;
-  --shadow: 0 10px 28px rgba(31, 42, 39, 0.08);
+  --surface-soft: #eef2f6;
+  --text: #172033;
+  --muted: #64748b;
+  --line: #d8dee6;
+  --primary: #1f2933;
+  --primary-dark: #111827;
+  --accent: #f59e0b;
+  --accent-dark: #b45309;
+  --danger: #b42318;
+  --success: #15803d;
+  --shadow: 0 12px 30px rgba(31, 41, 51, 0.09);
 }
 
 * {
@@ -42,10 +42,10 @@ a:hover {
 }
 
 .app-header {
-  background: var(--primary-dark);
+  background: #1f2933;
   border-bottom: 4px solid var(--accent);
   color: #ffffff;
-  box-shadow: 0 8px 22px rgba(23, 61, 55, 0.14);
+  box-shadow: 0 8px 22px rgba(31, 41, 51, 0.20);
 }
 
 .app-header__inner {
@@ -73,7 +73,7 @@ a:hover {
 }
 
 .brand__label {
-  color: #dbe7e2;
+  color: #d8dee6;
   font-size: 13px;
 }
 
@@ -89,9 +89,9 @@ a:hover {
   align-items: center;
   min-height: 38px;
   padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.36);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
@@ -106,11 +106,12 @@ a:hover {
 .main-nav__cta {
   background: var(--accent) !important;
   border-color: var(--accent) !important;
+  color: #111827 !important;
 }
 
 .main-nav__cta:hover {
-  background: #ffffff !important;
-  color: var(--primary-dark) !important;
+  background: #fbbf24 !important;
+  color: #111827 !important;
 }
 
 .app-main {
@@ -151,7 +152,7 @@ a:hover {
 
 .page-heading h1 {
   margin: 0;
-  color: #1e302b;
+  color: #1b2430;
   font-size: 30px;
   line-height: 1.15;
 }
@@ -169,7 +170,7 @@ a:hover {
 .section h2,
 .section h3 {
   margin: 0 0 14px;
-  color: #223530;
+  color: #223044;
 }
 
 .panel {
@@ -206,7 +207,7 @@ a:hover {
 
 .home-hero h1 {
   margin: 0;
-  color: #1e302b;
+  color: #1b2430;
   font-size: 44px;
   line-height: 1.08;
 }
@@ -229,7 +230,7 @@ a:hover {
 }
 
 .home-hero__panel strong {
-  color: #223530;
+  color: #223044;
   font-size: 22px;
   line-height: 1.2;
 }
@@ -275,12 +276,12 @@ a:hover {
 
 .home-service:hover {
   border-color: var(--primary);
-  background: #fafcf9;
+  background: #fafbfc;
   color: var(--text);
 }
 
 .home-service__name {
-  color: #223530;
+  color: #223044;
   font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
@@ -323,7 +324,7 @@ a:hover {
 
 .home-contact h2 {
   margin: 0 0 8px;
-  color: #223530;
+  color: #223044;
 }
 
 .home-contact p {
@@ -343,7 +344,7 @@ a:hover {
 
 .staff-login__panel h1 {
   margin: 0 0 10px;
-  color: #1e302b;
+  color: #1b2430;
   font-size: 28px;
 }
 
@@ -360,7 +361,7 @@ a:hover {
 
 .confirmation h1 {
   margin: 0 0 10px;
-  color: #1e302b;
+  color: #1b2430;
   font-size: 32px;
 }
 
@@ -369,9 +370,9 @@ a:hover {
   gap: 4px;
   margin: 24px 0;
   padding: 18px;
-  border: 1px solid #aac7bd;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f7fbf8;
+  background: #fafbfc;
 }
 
 .confirmation-number span {
@@ -381,7 +382,7 @@ a:hover {
 }
 
 .confirmation-number strong {
-  color: #1e302b;
+  color: #1b2430;
   font-size: 32px;
   letter-spacing: 0;
 }
@@ -396,7 +397,7 @@ a:hover {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fafbf9;
+  background: #fafbfc;
 }
 
 .confirmation-info p {
@@ -413,7 +414,7 @@ a:hover {
 
 .tracking-summary h2 {
   margin: 4px 0 0;
-  color: #1e302b;
+  color: #1b2430;
   font-size: 32px;
 }
 
@@ -441,7 +442,7 @@ a:hover {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fafbf9;
+  background: #fafbfc;
 }
 
 .tracking-layout {
@@ -524,7 +525,7 @@ a:hover {
 
 .info-card h2 {
   margin: 6px 0 10px;
-  color: #223530;
+  color: #223044;
   font-size: 21px;
 }
 
@@ -542,7 +543,7 @@ a:hover {
   padding: 6px 10px;
   border-radius: 8px;
   background: var(--surface-soft);
-  color: #33443f;
+  color: #223044;
   font-size: 14px;
   font-weight: 700;
 }
@@ -590,7 +591,7 @@ button:hover {
 }
 
 .button--danger:hover {
-  background: #842d2d;
+  background: #8a1f17;
 }
 
 .button--ghost {
@@ -644,7 +645,7 @@ button:hover {
 
 label,
 legend {
-  color: #263b36;
+  color: #223044;
   font-weight: 700;
 }
 
@@ -690,7 +691,7 @@ fieldset {
   padding: 11px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fafbf9;
+  background: #fafbfc;
 }
 
 .choice input {
@@ -717,12 +718,12 @@ fieldset {
 }
 
 .message--error {
-  border-color: #e2b5b5;
+  border-color: #f0b8b2;
   color: var(--danger);
 }
 
 .message--success {
-  border-color: #a8d3c4;
+  border-color: #9fd8b4;
   color: var(--success);
 }
 
@@ -741,20 +742,20 @@ fieldset {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fafbf9;
+  background: #fafbfc;
   color: var(--text);
   text-decoration: none;
 }
 
 .metric--link:hover {
   border-color: var(--primary);
-  background: #f0f6f2;
+  background: #f3f4f6;
   color: var(--text);
 }
 
 .metric--danger {
-  border-color: #e2b5b5;
-  background: #fff8f8;
+  border-color: #f0b8b2;
+  background: #fff7f6;
 }
 
 .metric__label {
@@ -858,7 +859,7 @@ fieldset {
 
 .table-heading h2 {
   margin: 0;
-  color: #223530;
+  color: #223044;
   font-size: 22px;
 }
 
@@ -886,13 +887,13 @@ fieldset {
 }
 
 .orders-table th {
-  color: #2d403a;
+  color: #354156;
   font-size: 13px;
   font-weight: 700;
 }
 
 .orders-table tbody tr:hover {
-  background: #fafcf9;
+  background: #fafbfc;
 }
 
 .orders-table tbody tr:last-child td {
@@ -900,7 +901,7 @@ fieldset {
 }
 
 .orders-table__row--danger {
-  background: #fff8f8;
+  background: #fff7f6;
 }
 
 .orders-table__number {
@@ -937,13 +938,13 @@ fieldset {
   padding: 5px 9px;
   border-radius: 8px;
   background: var(--surface-soft);
-  color: #33443f;
+  color: #223044;
   font-size: 13px;
   font-weight: 700;
 }
 
 .status-badge--danger {
-  background: #f8e7e7;
+  background: #fde8e4;
   color: var(--danger);
 }
 
@@ -962,7 +963,7 @@ fieldset {
 
 .order-summary h2 {
   margin: 4px 0 10px;
-  color: #1e302b;
+  color: #1b2430;
   font-size: 26px;
 }
 
@@ -996,7 +997,7 @@ fieldset {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fafbf9;
+  background: #fafbfc;
 }
 
 .contact-list {
@@ -1023,7 +1024,7 @@ fieldset {
 
 .section-title h2 {
   margin: 0;
-  color: #223530;
+  color: #223044;
 }
 
 .section-title p {
@@ -1044,7 +1045,7 @@ fieldset {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fafbf9;
+  background: #fafbfc;
 }
 
 .service-snapshot__header {
@@ -1056,7 +1057,7 @@ fieldset {
 
 .service-snapshot h3 {
   margin: 0;
-  color: #223530;
+  color: #223044;
   font-size: 18px;
 }
 
@@ -1080,7 +1081,7 @@ fieldset {
   padding: 18px;
   border: 1px dashed var(--line);
   border-radius: 8px;
-  background: #fafbf9;
+  background: #fafbfc;
 }
 
 .empty-state strong {
