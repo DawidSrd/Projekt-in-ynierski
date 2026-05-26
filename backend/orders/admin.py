@@ -43,17 +43,18 @@ class ServiceOptionGroupInline(admin.TabularInline):
 class ServiceAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "pricing_mode",
         "price_range_display",
-        "base_duration_minutes",
+        "duration_display",
         "is_active",
         "option_groups_count",
     )
-    list_filter = ("is_active",)
+    list_filter = ("pricing_mode", "is_active")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
     inlines = [ServiceOptionGroupInline]
     fieldsets = (
-        ("Dane usługi", {"fields": ("name", "description", "is_active")}),
+        ("Dane usługi", {"fields": ("name", "description", "pricing_mode", "is_active")}),
         (
             "Wycena i czas realizacji",
             {"fields": ("base_price_min", "base_price_max", "base_duration_minutes")},
@@ -63,7 +64,15 @@ class ServiceAdmin(admin.ModelAdmin):
 
     @admin.display(description="Przedział cenowy")
     def price_range_display(self, obj):
+        if obj.requires_manual_pricing:
+            return "Wycena po diagnozie"
         return f"{obj.base_price_min} - {obj.base_price_max} zł"
+
+    @admin.display(description="Czas bazowy")
+    def duration_display(self, obj):
+        if obj.requires_manual_pricing:
+            return "Po diagnozie"
+        return f"{obj.base_duration_minutes} min"
 
     @admin.display(description="Grupy opcji")
     def option_groups_count(self, obj):
@@ -169,6 +178,7 @@ class ServiceOrderItemInline(admin.TabularInline):
     extra = 0
     fields = (
         "service_name_snapshot",
+        "pricing_mode_snapshot",
         "base_price_min_snapshot",
         "base_price_max_snapshot",
         "calculated_price_min",
@@ -424,6 +434,7 @@ class ServiceOrderItemAdmin(admin.ModelAdmin):
         "order",
         "service",
         "service_name_snapshot",
+        "pricing_mode_snapshot",
         "base_price_min_snapshot",
         "base_price_max_snapshot",
         "calculated_price_min",
@@ -435,6 +446,8 @@ class ServiceOrderItemAdmin(admin.ModelAdmin):
 
     @admin.display(description="Wycena końcowa")
     def calculated_price_display(self, obj):
+        if obj.requires_manual_pricing:
+            return "Wycena po diagnozie"
         return f"{obj.calculated_price_min} - {obj.calculated_price_max} zł"
 
     def has_add_permission(self, request):

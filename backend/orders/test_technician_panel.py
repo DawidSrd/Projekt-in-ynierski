@@ -269,6 +269,39 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Pasta premium")
         self.assertContains(response, "150,00 - 230,00 zł")
 
+    def test_tech_order_detail_hides_price_for_manual_pricing_snapshot(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        service = Service.objects.create(
+            name="Nietypowa sprawa",
+            pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+            base_price_min=0,
+            base_price_max=0,
+            base_duration_minutes=0,
+        )
+        ServiceOrderItem.objects.create(
+            order=self.order,
+            service=service,
+            service_name_snapshot=service.name,
+            pricing_mode_snapshot=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+            base_price_min_snapshot=0,
+            base_price_max_snapshot=0,
+            calculated_price_min=0,
+            calculated_price_max=0,
+        )
+
+        response = self.client.get(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Wycena po diagnozie")
+        self.assertNotContains(response, "0,00 - 0,00")
+
     def test_staff_can_claim_unassigned_order(self):
         technician = User.objects.create_user(
             username="technik",

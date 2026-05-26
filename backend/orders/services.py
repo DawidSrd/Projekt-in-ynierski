@@ -116,7 +116,7 @@ def get_configurator_selection(service, group_options, data):
         total_duration_minutes += option.duration_delta_minutes
 
     result = {
-        "has_price": not required_option_errors,
+        "has_price": not required_option_errors and not service.requires_manual_pricing,
         "total_min": total_min,
         "total_max": total_max,
         "total_duration_minutes": max(total_duration_minutes, 0),
@@ -193,6 +193,7 @@ def create_configured_order(service, selected_options, total_min, total_max, dat
         order=order,
         service=service,
         service_name_snapshot=service.name,
+        pricing_mode_snapshot=service.pricing_mode,
         base_price_min_snapshot=service.base_price_min,
         base_price_max_snapshot=service.base_price_max,
         calculated_price_min=total_min,

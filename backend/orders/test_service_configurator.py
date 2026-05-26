@@ -211,6 +211,70 @@ class ServiceConfiguratorTests(TestCase):
         self.assertContains(response, "Szacowany czas usługi")
         self.assertContains(response, "120 min")
 
+    def test_manual_pricing_service_does_not_show_zero_price_as_offer(self):
+        service = Service.objects.create(
+            name="Nietypowa sprawa",
+            pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+            base_price_min=0,
+            base_price_max=0,
+            base_duration_minutes=0,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Rodzaj problemu",
+            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
+        )
+        option = ServiceOption.objects.create(
+            group=group,
+            name="Nie wiem - prosze o diagnoze",
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                f"group_{group.id}": str(option.id),
+                "action": "price_only",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Wycena po diagnozie")
+        self.assertContains(response, "Cena i czas realizacji")
+        self.assertNotContains(response, "Cena po konfiguracji")
+        self.assertNotContains(response, "0,00 - 0,00")
+
+    def test_manual_pricing_mode_is_saved_in_order_snapshot(self):
+        service = Service.objects.create(
+            name="Nietypowa sprawa",
+            pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+            base_price_min=0,
+            base_price_max=0,
+            base_duration_minutes=0,
+        )
+
+        response = self.client.post(
+            reverse("service_configurator", args=[service.id]),
+            {
+                "customer_name": "Jan Kowalski",
+                "customer_email": "jan@example.com",
+                "customer_phone": "123456789",
+                "customer_consent": "on",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+                "device_brand": "Lenovo",
+                "device_model": "ThinkPad T14",
+                "device_issue_description": "Problem nie pasuje do katalogu.",
+                "action": "create_order",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        item = ServiceOrderItem.objects.get()
+        self.assertEqual(
+            item.pricing_mode_snapshot,
+            Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+        )
+        self.assertTrue(item.requires_manual_pricing)
+
     def test_create_order_ignores_options_from_other_service(self):
         service = Service.objects.create(
             name="Czyszczenie laptopa",

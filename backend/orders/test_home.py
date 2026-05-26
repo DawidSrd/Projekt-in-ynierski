@@ -29,7 +29,9 @@ class HomePageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Naprawa i obsługa sprzętu komputerowego")
         self.assertContains(response, "Usługi serwisu")
-        self.assertContains(response, "Jak wygląda obsługa zlecenia")
+        self.assertContains(response, "Jak przebiega naprawa")
+        self.assertContains(response, "Zgłoś problem")
+        self.assertContains(response, "Odbierz sprzęt")
         self.assertContains(response, "Śledź zlecenie")
         self.assertContains(response, "Zgłoś naprawę")
         self.assertContains(response, "O nas")
@@ -37,6 +39,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, 'href="/services/"')
         self.assertContains(response, 'href="/track/"')
         self.assertContains(response, 'href="/staff/login/"')
+        self.assertNotContains(response, ">Usługi<")
         self.assertNotContains(response, "Utworzenie zlecenia")
         self.assertNotContains(response, "Śledzenie statusu")
         self.assertNotContains(response, "Panel technika")
@@ -137,15 +140,17 @@ class HomePageTests(TestCase):
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response["Location"], reverse("tech_dashboard"))
 
-    def test_about_page_has_service_information_placeholders(self):
+    def test_about_page_has_service_information(self):
         response = self.client.get(reverse("about"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "O nas")
         self.assertContains(response, "O serwisie")
+        self.assertContains(response, "Jak skorzystać z usługi")
         self.assertContains(response, "Godziny otwarcia")
         self.assertContains(response, "Adres serwisu")
-        self.assertContains(response, "Treść zostanie uzupełniona.")
+        self.assertContains(response, "Zajmujemy się diagnostyką i naprawą")
+        self.assertContains(response, "ul. Serwisowa 12")
 
     def test_admin_index_uses_custom_dashboard(self):
         User.objects.create_superuser(

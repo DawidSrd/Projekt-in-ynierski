@@ -189,3 +189,19 @@ class GuestAccessRepairAcceptanceTests(TestCase):
             ).exists()
         )
         self.assertContains(response, "Akceptacja naprawy nie jest jeszcze dostępna.")
+
+    def test_zero_final_price_is_visible_for_customer(self):
+        self.order.final_price = 0
+        self.order.save()
+
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Koszt końcowy")
+        self.assertContains(response, "0,00")

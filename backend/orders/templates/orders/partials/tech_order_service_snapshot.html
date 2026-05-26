@@ -11,14 +11,24 @@
           <article class="service-snapshot">
             <div class="service-snapshot__header">
               <h3>{{ item.service_name_snapshot }}</h3>
-              <span class="pill">{{ item.calculated_price_min }} - {{ item.calculated_price_max }} zł</span>
+              {% if item.requires_manual_pricing %}
+                <span class="pill">Wycena po diagnozie</span>
+              {% else %}
+                <span class="pill">{{ item.calculated_price_min }} - {{ item.calculated_price_max }} zł</span>
+              {% endif %}
             </div>
-            <p class="muted">Cena bazowa: {{ item.base_price_min_snapshot }} - {{ item.base_price_max_snapshot }} zł</p>
+            {% if not item.requires_manual_pricing %}
+              <p class="muted">Cena bazowa: {{ item.base_price_min_snapshot }} - {{ item.base_price_max_snapshot }} zł</p>
+            {% endif %}
 
             {% if item.selected_options.all %}
               <ul class="sub-list">
                 {% for option in item.selected_options.all %}
-                  <li>{{ option.option_name_snapshot }} ({{ option.price_delta_min_snapshot }} - {{ option.price_delta_max_snapshot }} zł)</li>
+                  {% if item.requires_manual_pricing or option.price_delta_min_snapshot == 0 and option.price_delta_max_snapshot == 0 %}
+                    <li>{{ option.option_name_snapshot }}</li>
+                  {% else %}
+                    <li>{{ option.option_name_snapshot }} ({{ option.price_delta_min_snapshot }} - {{ option.price_delta_max_snapshot }} zł)</li>
+                  {% endif %}
                 {% endfor %}
               </ul>
             {% else %}

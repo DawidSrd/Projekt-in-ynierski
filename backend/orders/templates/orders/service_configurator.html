@@ -16,10 +16,16 @@
   <div class="detail-layout">
     <section class="panel">
       <div class="panel__body">
-        <div class="meta-row">
-          <span class="pill">Cena bazowa: {{ service.base_price_min }} - {{ service.base_price_max }} zł</span>
-          <span class="pill">Czas bazowy: {{ service.base_duration_minutes }} min</span>
-        </div>
+        {% if service.requires_manual_pricing %}
+          <div class="meta-row">
+            <span class="pill">Wycena po diagnozie</span>
+          </div>
+        {% else %}
+          <div class="meta-row">
+            <span class="pill">Cena bazowa: {{ service.base_price_min }} - {{ service.base_price_max }} zł</span>
+            <span class="pill">Czas bazowy: {{ service.base_duration_minutes }} min</span>
+          </div>
+        {% endif %}
 
         <form method="post" enctype="multipart/form-data" class="section">
           {% csrf_token %}
@@ -38,14 +44,22 @@
                   {% for o in options %}
                     <label class="choice">
                       <input type="radio" name="group_{{ g.id }}" value="{{ o.id }}" {% if o.id in selected_option_ids %}checked{% endif %} {% if g.is_required %}required{% endif %}>
-                      <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
+                      {% if o.price_delta_min == 0 and o.price_delta_max == 0 %}
+                        <span>{{ o.name }}</span>
+                      {% else %}
+                        <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
+                      {% endif %}
                     </label>
                   {% endfor %}
                 {% else %}
                   {% for o in options %}
                     <label class="choice">
                       <input type="checkbox" name="group_{{ g.id }}" value="{{ o.id }}" {% if o.id in selected_option_ids %}checked{% endif %}>
-                      <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
+                      {% if o.price_delta_min == 0 and o.price_delta_max == 0 %}
+                        <span>{{ o.name }}</span>
+                      {% else %}
+                        <span>{{ o.name }} ({{ o.price_delta_min }} - {{ o.price_delta_max }} zł)</span>
+                      {% endif %}
                     </label>
                   {% endfor %}
                 {% endif %}
@@ -125,15 +139,17 @@
         <h2>Wycena</h2>
 
         {% if result %}
-          {% if result.has_price %}
-          <div class="metric">
-            <span class="metric__label">Cena po konfiguracji</span>
-            <span class="metric__value">{{ result.total_min }} - {{ result.total_max }} zł</span>
-          </div>
-          <div class="metric">
-            <span class="metric__label">Szacowany czas usługi</span>
-            <span class="metric__value">{{ result.total_duration_minutes }} min</span>
-          </div>
+          {% if service.requires_manual_pricing %}
+            <p class="empty">Cena i czas realizacji zostaną ustalone po zapoznaniu się z opisem problemu.</p>
+          {% elif result.has_price %}
+            <div class="metric">
+              <span class="metric__label">Cena po konfiguracji</span>
+              <span class="metric__value">{{ result.total_min }} - {{ result.total_max }} zł</span>
+            </div>
+            <div class="metric">
+              <span class="metric__label">Szacowany czas usługi</span>
+              <span class="metric__value">{{ result.total_duration_minutes }} min</span>
+            </div>
           {% endif %}
 
           <section class="section">

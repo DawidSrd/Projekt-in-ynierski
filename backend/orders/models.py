@@ -14,8 +14,20 @@ class Service(models.Model):
     Trzymamy widełki cenowe (min/max), bo wymaganie mówi o cenie "od-do"
     lub bazowej + dodatkach (wtedy min=max).
     """
+
+    class PricingMode(models.TextChoices):
+        CONFIGURABLE = "CONFIGURABLE", "Wycena z konfiguratora"
+        MANUAL_AFTER_DIAGNOSIS = "MANUAL_AFTER_DIAGNOSIS", "Wycena po diagnozie"
+
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+
+    pricing_mode = models.CharField(
+        max_length=30,
+        choices=PricingMode.choices,
+        default=PricingMode.CONFIGURABLE,
+        db_index=True,
+    )
 
     base_price_min = models.DecimalField(max_digits=10, decimal_places=2)
     base_price_max = models.DecimalField(max_digits=10, decimal_places=2)
@@ -29,6 +41,10 @@ class Service(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def requires_manual_pricing(self) -> bool:
+        return self.pricing_mode == self.PricingMode.MANUAL_AFTER_DIAGNOSIS
 
 
 class ServiceOptionGroup(models.Model):
@@ -275,6 +291,11 @@ class ServiceOrderItem(models.Model):
     service_name_snapshot = models.CharField(max_length=200)
 
     # Snapshot ceny bazowej usługi
+    pricing_mode_snapshot = models.CharField(
+        max_length=30,
+        choices=Service.PricingMode.choices,
+        default=Service.PricingMode.CONFIGURABLE,
+    )
     base_price_min_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
     base_price_max_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -286,6 +307,10 @@ class ServiceOrderItem(models.Model):
 
     def __str__(self) -> str:
         return f"Item for {self.order.order_number} / {self.service_name_snapshot}"
+
+    @property
+    def requires_manual_pricing(self) -> bool:
+        return self.pricing_mode_snapshot == Service.PricingMode.MANUAL_AFTER_DIAGNOSIS
 
 
 class ServiceOrderItemOption(models.Model):

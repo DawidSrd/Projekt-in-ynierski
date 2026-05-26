@@ -1,5 +1,5 @@
 from django.http import FileResponse, Http404
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import (
     Service,
@@ -47,7 +47,10 @@ def home(request):
     if staff_redirect:
         return staff_redirect
 
-    services = Service.objects.filter(is_active=True).order_by("name")[:4]
+    services = Service.objects.filter(
+        is_active=True,
+        pricing_mode=Service.PricingMode.CONFIGURABLE,
+    ).order_by("id")[:4]
 
     return render(request, "orders/home.html", {"services": services})
 
@@ -268,6 +271,7 @@ def track_order(request):
             "diagnosis": order.diagnosis,
             "repair_notes": order.repair_notes,
             "final_price": order.final_price,
+            "has_final_price": order.final_price is not None,
             "customer_accepted_repair": order.customer_accepted_repair,
             "can_accept_repair": order.can_accept_repair(),
             "has_service_result": bool(
@@ -298,7 +302,20 @@ def service_catalog(request):
     if staff_redirect:
         return staff_redirect
 
-    services = Service.objects.filter(is_active=True).order_by("name")
+    services = (
+        Service.objects.filter(is_active=True)
+        .annotate(
+            catalog_order=Case(
+                When(
+                    pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+                    then=Value(0),
+                ),
+                default=Value(1),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("catalog_order", "id")
+    )
 
     return render(
         request,

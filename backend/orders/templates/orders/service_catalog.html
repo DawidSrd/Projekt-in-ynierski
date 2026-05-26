@@ -22,12 +22,18 @@
               <p>{{ s.description }}</p>
             {% endif %}
 
-            <div class="meta-row">
-              <span class="pill">{{ s.base_price_min }} - {{ s.base_price_max }} zł</span>
-              <span class="pill">{{ s.base_duration_minutes }} min</span>
-            </div>
+            {% if s.requires_manual_pricing %}
+              <div class="meta-row">
+                <span class="pill">Wycena po diagnozie</span>
+              </div>
+            {% else %}
+              <div class="meta-row">
+                <span class="pill">{{ s.base_price_min }} - {{ s.base_price_max }} zł</span>
+                <span class="pill">{{ s.base_duration_minutes }} min</span>
+              </div>
+            {% endif %}
 
-            <a class="button" href="/services/{{ s.id }}/">Konfiguruj</a>
+            <a class="button" href="/services/{{ s.id }}/">Wybierz usługę</a>
           </div>
         </article>
       {% endfor %}
