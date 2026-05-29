@@ -41,7 +41,7 @@ class TechnicianViewsTests(TestCase):
         self.assertIn("/staff/login/", response["Location"])
 
     def test_tech_dashboard_shows_counts_ready_orders_and_status_filter(self):
-        User.objects.create_user(
+        technician = User.objects.create_user(
             username="technik",
             password="testpass123",
             is_staff=True,
@@ -273,7 +273,7 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "150,00 - 230,00 zł")
 
     def test_tech_order_detail_hides_price_for_manual_pricing_snapshot(self):
-        User.objects.create_user(
+        technician = User.objects.create_user(
             username="technik",
             password="testpass123",
             is_staff=True,
@@ -670,7 +670,7 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Taka zmiana statusu nie jest dozwolona")
 
     def test_staff_can_add_public_comment_visible_in_tracking(self):
-        User.objects.create_user(
+        technician = User.objects.create_user(
             username="technik",
             password="testpass123",
             is_staff=True,
@@ -690,6 +690,8 @@ class TechnicianViewsTests(TestCase):
         comment = ServiceOrderComment.objects.get(order=self.order)
         self.assertEqual(comment.visibility, ServiceOrderComment.Visibility.PUBLIC)
         self.assertEqual(comment.content, "Sprzęt czeka na odbiór.")
+        self.assertEqual(comment.created_by, technician)
+        self.assertContains(response, "technik")
         self.assertTrue(
             AuditLog.objects.filter(
                 order=self.order,
@@ -709,6 +711,7 @@ class TechnicianViewsTests(TestCase):
         )
 
         self.assertContains(track_response, "Sprzęt czeka na odbiór.")
+        self.assertContains(track_response, "technik")
         self.assertContains(track_response, "Wiadomości z serwisu")
         self.assertContains(track_response, "Historia zlecenia")
         self.assertContains(track_response, "Laptop / Lenovo ThinkPad T14")

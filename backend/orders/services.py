@@ -333,6 +333,7 @@ def add_order_comment(order, user, visibility, content):
 
     comment = ServiceOrderComment.objects.create(
         order=order,
+        created_by=user,
         visibility=visibility,
         content=content,
     )

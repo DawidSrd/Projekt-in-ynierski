@@ -140,8 +140,8 @@ class ServiceOptionAdmin(admin.ModelAdmin):
 class ServiceOrderCommentInline(admin.TabularInline):
     model = ServiceOrderComment
     extra = 1
-    fields = ("visibility", "content", "created_at")
-    readonly_fields = ("created_at",)
+    fields = ("visibility", "content", "created_by", "created_at")
+    readonly_fields = ("created_by", "created_at")
 
 
 class ServiceOrderAttachmentInline(admin.TabularInline):
@@ -211,17 +211,20 @@ class OverdueFilter(admin.SimpleListFilter):
 
 @admin.register(ServiceOrderComment)
 class ServiceOrderCommentAdmin(admin.ModelAdmin):
-    list_display = ("order", "visibility", "content_preview", "created_at")
-    list_filter = ("visibility",)
-    search_fields = ("content", "order__order_number")
-    readonly_fields = ("created_at",)
-    list_select_related = ("order",)
+    list_display = ("order", "visibility", "created_by", "content_preview", "created_at")
+    list_filter = ("visibility", "created_by")
+    search_fields = ("content", "order__order_number", "created_by__username")
+    readonly_fields = ("created_by", "created_at")
+    list_select_related = ("order", "created_by")
 
     @admin.display(description="Treść")
     def content_preview(self, obj):
         return obj.content[:80]
 
     def save_model(self, request, obj, form, change):
+        if not change and obj.created_by_id is None:
+            obj.created_by = request.user
+
         super().save_model(request, obj, form, change)
 
         # Logujemy tylko nowe komentarze (nie edycję)

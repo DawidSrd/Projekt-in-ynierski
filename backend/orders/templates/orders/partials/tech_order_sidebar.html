@@ -42,7 +42,10 @@
         <ul class="clean-list">
           {% for c in comments_public %}
             <li>
-              <span class="muted">{{ c.created_at }}</span><br />
+              <span class="muted">
+                {{ c.created_at }}
+                {% if c.created_by %} / {{ c.created_by.username }}{% endif %}
+              </span><br />
               {{ c.content }}
             </li>
           {% endfor %}
@@ -60,7 +63,10 @@
         <ul class="clean-list">
           {% for c in comments_internal %}
             <li>
-              <span class="muted">{{ c.created_at }}</span><br />
+              <span class="muted">
+                {{ c.created_at }}
+                {% if c.created_by %} / {{ c.created_by.username }}{% endif %}
+              </span><br />
               {{ c.content }}
             </li>
           {% endfor %}

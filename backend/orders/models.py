@@ -228,6 +228,13 @@ class ServiceOrderComment(models.Model):
         on_delete=models.CASCADE,
         related_name="comments",
     )
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="service_order_comments",
+    )
 
     visibility = models.CharField(
         max_length=20,
