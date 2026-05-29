@@ -28,15 +28,17 @@
           <span class="status-badge">{{ order.get_status_display }}</span>
         </div>
         <div>
-          <span class="metric__label">Estymacja</span>
-          <strong>{{ order.estimated_completion_at|default:"brak" }}</strong>
+          <span class="metric__label">Planowany termin realizacji</span>
+          <strong>{{ order.estimated_completion_at|default:"nie ustalono" }}</strong>
         </div>
         <div>
-          <span class="metric__label">Termin</span>
+          <span class="metric__label">Status terminu</span>
           {% if order.is_overdue %}
-            <span class="status-badge status-badge--danger">Po terminie</span>
+            <span class="status-badge status-badge--danger">Przekroczony termin realizacji</span>
+          {% elif order.estimated_completion_at %}
+            <span class="status-badge">W terminie</span>
           {% else %}
-            <span class="status-badge">W normie</span>
+            <span class="status-badge">Nie ustalono</span>
           {% endif %}
         </div>
         <div>

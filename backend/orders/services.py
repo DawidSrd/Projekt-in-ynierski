@@ -292,7 +292,7 @@ def update_order_status(order, user, new_status, estimate_raw, notify_customer):
     if estimate_raw:
         parsed = parse_datetime(estimate_raw.replace(" ", "T"))
         if parsed is None:
-            return None, "Nieprawidłowy format estymacji. Użyj YYYY-MM-DD HH:MM."
+            return None, "Nieprawidłowy format planowanego terminu."
 
         new_estimate = parsed
         if timezone.is_naive(new_estimate):

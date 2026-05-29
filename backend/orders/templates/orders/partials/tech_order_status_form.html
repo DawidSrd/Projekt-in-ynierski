@@ -2,7 +2,7 @@
   <div class="panel__body">
     <div class="section-title">
       <h2>Obsługa zlecenia</h2>
-      <p>Zmień status, ustaw estymację i zdecyduj, czy klient ma dostać e-mail.</p>
+      <p>Zmień status, ustaw planowany termin realizacji i zdecyduj, czy klient ma dostać e-mail.</p>
     </div>
 
     {% if not order.assigned_technician %}
@@ -30,8 +30,8 @@
         </div>
 
         <div class="field">
-          <label>Estymacja zakończenia (YYYY-MM-DD HH:MM)</label>
-          <input type="text" name="estimated_completion_at" value="{{ est_default }}" />
+          <label>Planowany termin realizacji</label>
+          <input type="datetime-local" name="estimated_completion_at" value="{{ est_default }}" />
         </div>
       </div>
 

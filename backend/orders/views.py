@@ -243,7 +243,7 @@ def track_order(request):
                 old_txt = "brak" if not a.old_value or a.old_value == "None" else a.old_value
                 new_txt = "brak" if not a.new_value or a.new_value == "None" else a.new_value
                 audit_timeline.append(
-                    (a.performed_at, f"Zmiana estymacji: {old_txt} → {new_txt}")
+                    (a.performed_at, f"Zmiana planowanego terminu: {old_txt} → {new_txt}")
                 )
             elif a.action == AuditLog.Action.ORDER_CANCELED:
                 audit_timeline.append((a.performed_at, "Zlecenie anulowane"))
@@ -407,7 +407,7 @@ def order_created(request, order_number: str):
 @staff_member_required(login_url="staff_login")
 def tech_dashboard(request):
     """
-    Dashboard technika: podział zleceń na Nowe / W toku / Przeterminowane.
+    Dashboard technika: podział zleceń na Nowe / W toku / przekroczone terminy.
     """
     selected_status = request.GET.get("status") or ""
     if selected_status not in dict(ServiceOrderStatus.choices):
@@ -630,7 +630,7 @@ def tech_order_detail(request, order_number: str):
             "attachment_visibility_choices": ServiceOrderAttachment.Visibility.choices,
             "comment_visibility_choices": ServiceOrderComment.Visibility.choices,
             "est_default": (
-                timezone.localtime(order.estimated_completion_at).strftime("%Y-%m-%d %H:%M")
+                timezone.localtime(order.estimated_completion_at).strftime("%Y-%m-%dT%H:%M")
                 if order.estimated_completion_at
                 else ""
             ),

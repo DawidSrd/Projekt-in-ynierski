@@ -10,7 +10,7 @@ Projekt inżynierski: system do obsługi zleceń serwisowych z panelem klienta, 
 - Śledzenie zlecenia bez zakładania konta klienta
 - Powiadomienia e-mail
 
-## Uruchamianie lokalne
+## Uruchamianie projektu
 
 Najprostszy sposób na Windows:
 
@@ -18,34 +18,28 @@ Najprostszy sposób na Windows:
 2. Otwórz w przeglądarce `http://127.0.0.1:8000/`.
 3. Aby zatrzymać serwer, naciśnij `CTRL+C` w oknie konsoli.
 
+Plik `uruchom_projekt.bat` uruchamia aplikację przez Docker Compose, czyli z bazą PostgreSQL.
+Przed uruchomieniem musi działać Docker Desktop.
+
 Ręczne uruchomienie z PowerShella:
-
-```powershell
-cd backend
-..\.venv\Scripts\python.exe manage.py runserver
-```
-
-## Uruchamianie w Dockerze
-
-Docker jest opcjonalnym sposobem uruchomienia projektu. Przydaje się na nowym komputerze, ponieważ uruchamia aplikację Django i bazę PostgreSQL w kontenerach.
-
-Uruchomienie:
 
 ```powershell
 docker compose up --build
 ```
+
+## Docker i PostgreSQL
+
+Docker Compose uruchamia dwie usługi:
+- `web` - aplikacja Django
+- `db` - baza PostgreSQL
+
+Baza PostgreSQL działa w kontenerze na porcie `5432`, a na komputerze jest wystawiona jako `5433`, żeby nie kolidować z lokalną instalacją PostgreSQL.
 
 Po uruchomieniu aplikacja będzie dostępna pod adresem:
 
 ```text
 http://127.0.0.1:8000/
 ```
-
-Konfiguracja Docker Compose uruchamia dwie usługi:
-- `web` - aplikacja Django
-- `db` - baza PostgreSQL
-
-Baza PostgreSQL działa w kontenerze na porcie `5432`, a na komputerze jest wystawiona jako `5433`, żeby nie kolidować z lokalną instalacją PostgreSQL.
 
 Po pierwszym uruchomieniu można dodać przykładowe usługi:
 
@@ -67,18 +61,19 @@ docker compose down
 
 ## Konfiguracja bazy danych
 
-Projekt może korzystać z PostgreSQL. Przed uruchomieniem skopiuj plik `.env.example` do `.env`
-i uzupełnij dane połączenia do lokalnej bazy:
+Główną bazą projektu jest PostgreSQL uruchamiany przez Docker Compose. Zlecenia utworzone w aplikacji uruchomionej przez `docker compose up` albo `uruchom_projekt.bat` zapisują się w bazie PostgreSQL.
+
+Plik `.env.example` pokazuje konfigurację dla ręcznego uruchamiania Django z PowerShella przy jednocześnie działającej bazie PostgreSQL z Dockera:
 
 ```env
 POSTGRES_DB=serwis_db
 POSTGRES_USER=serwis_user
-POSTGRES_PASSWORD=twoje_haslo
+POSTGRES_PASSWORD=serwis_password
 POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+POSTGRES_PORT=5433
 ```
 
-Jeśli zmienna `POSTGRES_DB` nie jest ustawiona, projekt awaryjnie uruchomi się na lokalnej bazie SQLite.
+Jeśli zmienna `POSTGRES_DB` nie jest ustawiona, projekt awaryjnie uruchomi się na lokalnej bazie SQLite. Ten tryb jest traktowany tylko jako techniczna alternatywa, a nie główny sposób pracy nad projektem.
 
 ## Adres aplikacji
 
@@ -118,6 +113,5 @@ Projekt zawiera komendę tworzącą przykładowy katalog usług i opcje konfigur
 Komenda jest idempotentna, więc można uruchamiać ją wiele razy bez dublowania danych.
 
 ```powershell
-cd backend
-..\.venv\Scripts\python.exe manage.py seed_services
+docker compose exec web python manage.py seed_services
 ```

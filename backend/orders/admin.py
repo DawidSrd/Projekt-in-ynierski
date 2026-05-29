@@ -193,7 +193,7 @@ class ServiceOrderItemInline(admin.TabularInline):
 
 
 class OverdueFilter(admin.SimpleListFilter):
-    title = "Przeterminowane"
+    title = "Przekroczony termin realizacji"
     parameter_name = "overdue"
 
     def lookups(self, request, model_admin):
@@ -324,7 +324,7 @@ class ServiceOrderAdmin(admin.ModelAdmin):
         ("Metadane", {"fields": ("created_at", "updated_at")}),
     )
 
-    @admin.display(boolean=True, description="Przeterminowane")
+    @admin.display(boolean=True, description="Przekroczony termin realizacji")
     def overdue_display(self, obj):
         return obj.is_overdue()
 
@@ -388,7 +388,7 @@ class ServiceOrderAdmin(admin.ModelAdmin):
                         level=messages.WARNING,
                     )
 
-        # Log: zmiana estymacji
+        # Log: zmiana planowanego terminu
         if old_estimate != obj.estimated_completion_at:
             log_estimate_set(obj, old_estimate, request.user)
 

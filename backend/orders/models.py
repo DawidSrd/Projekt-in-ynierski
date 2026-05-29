@@ -170,8 +170,12 @@ class ServiceOrder(models.Model):
         db_index=True,
     )
 
-    # Estymacja zakończenia ustawiana ręcznie przez technika (opcjonalna)
-    estimated_completion_at = models.DateTimeField(null=True, blank=True)
+    # Planowany termin realizacji ustawiany ręcznie przez technika (opcjonalny)
+    estimated_completion_at = models.DateTimeField(
+        "Planowany termin realizacji",
+        null=True,
+        blank=True,
+    )
 
     # Metadane audytowe
     created_at = models.DateTimeField(auto_now_add=True)
@@ -193,7 +197,7 @@ class ServiceOrder(models.Model):
 
     def is_overdue(self) -> bool:
         """
-        Zwraca True, jeśli zlecenie ma ustawioną estymację i termin już minął,
+        Zwraca True, jeśli zlecenie ma ustawiony planowany termin i termin już minął,
         a zlecenie nie jest zakończone lub anulowane.
         """
         if not self.estimated_completion_at:
@@ -351,7 +355,7 @@ class AuditLog(models.Model):
     class Action(models.TextChoices):
         STATUS_CHANGED = "STATUS_CHANGED", "Zmiana statusu"
         COMMENT_ADDED = "COMMENT_ADDED", "Dodanie komentarza"
-        ESTIMATE_SET = "ESTIMATE_SET", "Ustawienie estymacji"
+        ESTIMATE_SET = "ESTIMATE_SET", "Ustawienie planowanego terminu"
         ORDER_CANCELED = "ORDER_CANCELED", "Anulowanie zlecenia"
         ORDER_CREATED = "ORDER_CREATED", "Utworzenie zlecenia"
         DIAGNOSIS_UPDATED = "DIAGNOSIS_UPDATED", "Aktualizacja diagnozy"

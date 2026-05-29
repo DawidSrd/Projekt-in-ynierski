@@ -78,6 +78,9 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Szczegóły")
         self.assertContains(response, 'class="orders-table"')
         self.assertContains(response, "Urządzenie")
+        self.assertContains(response, "Planowany termin")
+        self.assertContains(response, "Przekroczone terminy")
+        self.assertNotContains(response, "Estymacja")
 
     def test_tech_dashboard_can_filter_by_search_and_device_type(self):
         User.objects.create_user(
@@ -481,7 +484,7 @@ class TechnicianViewsTests(TestCase):
             {
                 "action": "update_order",
                 "status": ServiceOrderStatus.RECEIVED,
-                "estimated_completion_at": "2026-05-03 16:30",
+                "estimated_completion_at": "2026-05-03T16:30",
             },
         )
 
@@ -502,6 +505,10 @@ class TechnicianViewsTests(TestCase):
                 action=AuditLog.Action.ESTIMATE_SET,
             ).exists()
         )
+        self.assertContains(response, "Planowany termin realizacji")
+        self.assertContains(response, 'type="datetime-local"')
+        self.assertContains(response, 'value="2026-05-03T16:30"')
+        self.assertNotContains(response, "Estymacja")
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",

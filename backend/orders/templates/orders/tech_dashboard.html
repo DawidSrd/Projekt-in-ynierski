@@ -30,7 +30,7 @@
       <span class="metric__value">{{ dashboard_counts.ready }}</span>
     </a>
     <div class="metric metric--danger">
-      <span class="metric__label">Po terminie</span>
+      <span class="metric__label">Przekroczone terminy</span>
       <span class="metric__value">{{ dashboard_counts.overdue }}</span>
     </div>
     <div class="metric">
@@ -96,7 +96,7 @@
             </p>
           {% else %}
             <h2>{{ scope_label }}</h2>
-            <p>Zlecenia posortowane według terminu i etapu obsługi.</p>
+            <p>Zlecenia posortowane według planowanego terminu i etapu obsługi.</p>
           {% endif %}
         </div>
       </div>
@@ -111,7 +111,7 @@
                 <th>Urządzenie</th>
                 <th>Technik</th>
                 <th>Status</th>
-                <th>Estymacja</th>
+                <th>Planowany termin</th>
                 <th>Utworzono</th>
                 <th>Akcja</th>
               </tr>
@@ -143,10 +143,10 @@
                   <td>
                     <span class="status-badge">{{ o.get_status_display }}</span>
                     {% if o.is_overdue %}
-                      <span class="status-badge status-badge--danger">Po terminie</span>
+                      <span class="status-badge status-badge--danger">Przekroczony termin realizacji</span>
                     {% endif %}
                   </td>
-                  <td>{{ o.estimated_completion_at|default:"brak" }}</td>
+                  <td>{{ o.estimated_completion_at|default:"nie ustalono" }}</td>
                   <td>{{ o.created_at }}</td>
                   <td>
                     <div class="orders-table__actions">
