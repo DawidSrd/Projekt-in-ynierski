@@ -12,5 +12,6 @@ urlpatterns = [
     path("services/<int:service_id>/", views.service_configurator, name="service_configurator"),
     path("order-created/<str:order_number>/", views.order_created, name="order_created"),
     path("tech/dashboard/", views.tech_dashboard, name="tech_dashboard"),
+    path("tech/orders/new/", views.tech_order_create, name="tech_order_create"),
     path("tech/orders/<str:order_number>/", views.tech_order_detail, name="tech_order_detail"),
 ]

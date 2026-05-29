@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 
+from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -23,6 +24,7 @@ from .emails import (
     send_customer_email,
 )
 from .models import (
+    Service,
     ServiceOption,
     ServiceOptionGroup,
     ServiceOrder,
@@ -168,50 +170,127 @@ def create_configured_order(service, selected_options, total_min, total_max, dat
             ]
         ), None
 
-    order = ServiceOrder.objects.create(
-        customer_name=customer_name,
-        customer_email=customer_email,
-        customer_phone=customer_phone,
-        device_type=device_type,
-        device_brand=device_brand,
-        device_model=device_model,
-        device_issue_description=device_issue_description,
-    )
-    log_order_created(order)
+    with transaction.atomic():
+        order = ServiceOrder.objects.create(
+            customer_name=customer_name,
+            customer_email=customer_email,
+            customer_phone=customer_phone,
+            device_type=device_type,
+            device_brand=device_brand,
+            device_model=device_model,
+            device_issue_description=device_issue_description,
+        )
+        log_order_created(order)
 
-    if uploaded_file:
-        attachment = ServiceOrderAttachment.objects.create(
+        if uploaded_file:
+            attachment = ServiceOrderAttachment.objects.create(
+                order=order,
+                visibility=ServiceOrderAttachment.Visibility.PUBLIC,
+                file=uploaded_file,
+                original_name=uploaded_file.name,
+                uploaded_by=None,
+            )
+            log_attachment_added(attachment)
+
+        order_item = ServiceOrderItem.objects.create(
             order=order,
-            visibility=ServiceOrderAttachment.Visibility.PUBLIC,
-            file=uploaded_file,
-            original_name=uploaded_file.name,
-            uploaded_by=None,
+            service=service,
+            service_name_snapshot=service.name,
+            pricing_mode_snapshot=service.pricing_mode,
+            base_price_min_snapshot=service.base_price_min,
+            base_price_max_snapshot=service.base_price_max,
+            calculated_price_min=total_min,
+            calculated_price_max=total_max,
         )
-        log_attachment_added(attachment)
 
-    order_item = ServiceOrderItem.objects.create(
-        order=order,
-        service=service,
-        service_name_snapshot=service.name,
-        pricing_mode_snapshot=service.pricing_mode,
-        base_price_min_snapshot=service.base_price_min,
-        base_price_max_snapshot=service.base_price_max,
-        calculated_price_min=total_min,
-        calculated_price_max=total_max,
-    )
-
-    for option in selected_options:
-        ServiceOrderItemOption.objects.create(
-            order_item=order_item,
-            option=option,
-            option_name_snapshot=option.name,
-            price_delta_min_snapshot=option.price_delta_min,
-            price_delta_max_snapshot=option.price_delta_max,
-        )
+        for option in selected_options:
+            ServiceOrderItemOption.objects.create(
+                order_item=order_item,
+                option=option,
+                option_name_snapshot=option.name,
+                price_delta_min_snapshot=option.price_delta_min,
+                price_delta_max_snapshot=option.price_delta_max,
+            )
 
     subject, message = build_order_confirmation_email(order)
     email_sent = send_customer_email(subject, message, order.customer_email)
     return order, None, "sent" if email_sent else "failed"
+
+
+def create_staff_order(data, user):
+    service_id = data.get("service_id")
+    customer_name = (data.get("customer_name") or "").strip()
+    customer_email = (data.get("customer_email") or "").strip().lower()
+    customer_phone = (data.get("customer_phone") or "").strip()
+    customer_consent = data.get("customer_consent") == "on"
+    device_type = (data.get("device_type") or "").strip()
+    device_brand = (data.get("device_brand") or "").strip()
+    device_model = (data.get("device_model") or "").strip()
+    device_issue_description = (data.get("device_issue_description") or "").strip()
+    notify_customer = data.get("notify_customer") == "on"
+
+    customer_errors = get_customer_order_errors(
+        customer_name,
+        customer_email,
+        customer_phone,
+        customer_consent,
+    )
+    device_errors = get_device_order_errors(
+        device_type,
+        device_brand,
+        device_issue_description,
+    )
+
+    try:
+        service = Service.objects.get(pk=service_id, is_active=True)
+    except (Service.DoesNotExist, ValueError, TypeError):
+        service = None
+
+    service_errors = []
+    if service is None:
+        service_errors.append("Wybierz usługę z katalogu.")
+
+    if customer_errors or device_errors or service_errors:
+        return None, " ".join([*service_errors, *customer_errors, *device_errors]), None
+
+    calculated_min = service.base_price_min
+    calculated_max = service.base_price_max
+    if service.requires_manual_pricing:
+        calculated_min = 0
+        calculated_max = 0
+
+    with transaction.atomic():
+        order = ServiceOrder.objects.create(
+            customer_name=customer_name,
+            customer_email=customer_email,
+            customer_phone=customer_phone,
+            device_type=device_type,
+            device_brand=device_brand,
+            device_model=device_model,
+            device_issue_description=device_issue_description,
+            status=ServiceOrderStatus.RECEIVED,
+            assigned_technician=user,
+        )
+        log_order_created(order, user)
+        log_technician_assigned(order, new_technician=user, performed_by=user)
+
+        ServiceOrderItem.objects.create(
+            order=order,
+            service=service,
+            service_name_snapshot=service.name,
+            pricing_mode_snapshot=service.pricing_mode,
+            base_price_min_snapshot=service.base_price_min,
+            base_price_max_snapshot=service.base_price_max,
+            calculated_price_min=calculated_min,
+            calculated_price_max=calculated_max,
+        )
+
+    if notify_customer:
+        subject, message = build_order_confirmation_email(order)
+        email_sent = send_customer_email(subject, message, order.customer_email)
+        return order, None, "sent" if email_sent else "failed"
+
+    return order, None, "skipped"
 
 
 def cancel_customer_order(order):

@@ -149,6 +149,51 @@ class ServiceConfiguratorTests(TestCase):
         self.assertIn("Potwierdzenie przyjęcia zlecenia", mail.outbox[0].subject)
         self.assertIn(f"https://serwis.test/track/?order_number={order.order_number}", mail.outbox[0].body)
 
+    def test_create_order_rolls_back_when_snapshot_option_save_fails(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=100,
+            base_price_max=150,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Pasta termiczna",
+            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
+            is_required=True,
+        )
+        option = ServiceOption.objects.create(
+            group=group,
+            name="Pasta premium",
+            price_delta_min=30,
+            price_delta_max=50,
+        )
+
+        with patch(
+            "orders.services.ServiceOrderItemOption.objects.create",
+            side_effect=RuntimeError("snapshot failed"),
+        ):
+            with self.assertRaises(RuntimeError):
+                self.client.post(
+                    reverse("service_configurator", args=[service.id]),
+                    {
+                        f"group_{group.id}": str(option.id),
+                        "customer_name": "Jan Kowalski",
+                        "customer_email": "jan@example.com",
+                        "customer_phone": "123456789",
+                        "customer_consent": "on",
+                        "device_type": ServiceOrder.DeviceType.LAPTOP,
+                        "device_brand": "Lenovo",
+                        "device_model": "ThinkPad T14",
+                        "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
+                        "action": "create_order",
+                    },
+                )
+
+        self.assertEqual(ServiceOrder.objects.count(), 0)
+        self.assertEqual(ServiceOrderItem.objects.count(), 0)
+        self.assertEqual(ServiceOrderItemOption.objects.count(), 0)
+        self.assertEqual(AuditLog.objects.count(), 0)
+
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_create_order_is_saved_when_confirmation_email_fails(self):
         service = Service.objects.create(

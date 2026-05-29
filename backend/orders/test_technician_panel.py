@@ -40,6 +40,12 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/staff/login/", response["Location"])
 
+    def test_tech_order_create_requires_staff_login(self):
+        response = self.client.get(reverse("tech_order_create"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/staff/login/", response["Location"])
+
     def test_tech_dashboard_shows_counts_ready_orders_and_status_filter(self):
         technician = User.objects.create_user(
             username="technik",
@@ -72,6 +78,7 @@ class TechnicianViewsTests(TestCase):
         self.assertEqual(response.context["selected_status"], ServiceOrderStatus.READY)
         self.assertContains(response, "Gotowe")
         self.assertContains(response, "Panel technika")
+        self.assertContains(response, "Nowe zgłoszenie")
         self.assertContains(response, "Wyniki filtrowania")
         self.assertContains(response, "Status: Gotowe do odbioru.")
         self.assertContains(response, "Anna Nowak")
@@ -215,6 +222,60 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Brak zleceń w tym widoku")
         self.assertContains(response, 'href="/tech/dashboard/?scope=unassigned"')
         self.assertContains(response, 'href="/tech/dashboard/?scope=all"')
+
+    def test_staff_can_create_received_order_from_backoffice(self):
+        technician = User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        service = Service.objects.create(
+            name="Diagnostyka w punkcie",
+            base_price_min=80,
+            base_price_max=150,
+        )
+
+        response = self.client.post(
+            reverse("tech_order_create"),
+            {
+                "service_id": str(service.id),
+                "customer_name": "Adam Serwisowy",
+                "customer_email": "adam@example.com",
+                "customer_phone": "501222333",
+                "customer_consent": "on",
+                "device_type": ServiceOrder.DeviceType.DESKTOP,
+                "device_brand": "Dell",
+                "device_model": "OptiPlex",
+                "device_issue_description": "Komputer nie uruchamia się w punkcie serwisowym.",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order = ServiceOrder.objects.get(customer_email="adam@example.com")
+        self.assertEqual(order.status, ServiceOrderStatus.RECEIVED)
+        self.assertEqual(order.assigned_technician, technician)
+        self.assertEqual(order.items.count(), 1)
+        self.assertEqual(order.items.get().service, service)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=order,
+                action=AuditLog.Action.ORDER_CREATED,
+                performed_by=technician,
+            ).exists()
+        )
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=order,
+                action=AuditLog.Action.TECHNICIAN_ASSIGNED,
+                performed_by=technician,
+                new_value="technik",
+            ).exists()
+        )
+        self.assertContains(response, "Zlecenie zostało utworzone.")
+        self.assertContains(response, order.order_number)
+        self.assertContains(response, "Przyjęte")
 
     def test_tech_order_detail_shows_service_snapshot_and_price(self):
         User.objects.create_user(

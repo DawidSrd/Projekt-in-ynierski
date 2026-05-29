@@ -23,6 +23,7 @@ from .services import (
     cancel_customer_order,
     claim_order_for_technician,
     create_configured_order,
+    create_staff_order,
     get_configurator_selection,
     get_customer_defaults,
     get_service_group_options,
@@ -535,6 +536,38 @@ def tech_dashboard(request):
 
 
 @staff_member_required(login_url="staff_login")
+def tech_order_create(request):
+    """
+    Tworzenie zlecenia przez pracownika podczas przyjęcia sprzętu w serwisie.
+    """
+    services = Service.objects.filter(is_active=True).order_by("id")
+    error = None
+    email_status = None
+    form_defaults = get_customer_defaults(request.POST if request.method == "POST" else None)
+    selected_service_id = (request.POST.get("service_id") or "") if request.method == "POST" else ""
+    notify_customer = request.method != "POST" or request.POST.get("notify_customer") == "on"
+
+    if request.method == "POST":
+        order, error, email_status = create_staff_order(request.POST, request.user)
+        if order and not error:
+            return redirect(f"/tech/orders/{order.order_number}/?created=1&email_status={email_status}")
+
+    return render(
+        request,
+        "orders/tech_order_create.html",
+        {
+            "device_type_choices": ServiceOrder.DeviceType.choices,
+            "email_status": email_status,
+            "error": error,
+            "form_defaults": form_defaults,
+            "notify_customer": notify_customer,
+            "selected_service_id": selected_service_id,
+            "services": services,
+        },
+    )
+
+
+@staff_member_required(login_url="staff_login")
 def tech_order_detail(request, order_number: str):
     """
     Widok szczegółów zlecenia dla technika.
@@ -542,6 +575,15 @@ def tech_order_detail(request, order_number: str):
     order = get_object_or_404(ServiceOrder, order_number=order_number)
     message = None
     error = None
+
+    if request.GET.get("created") == "1":
+        email_status = request.GET.get("email_status")
+        if email_status == "sent":
+            message = "Zlecenie zostało utworzone i wysłano potwierdzenie e-mail do klienta."
+        elif email_status == "failed":
+            message = "Zlecenie zostało utworzone, ale nie udało się wysłać potwierdzenia e-mail."
+        else:
+            message = "Zlecenie zostało utworzone."
 
     if request.method == "POST":
         action = request.POST.get("action") or "update_order"
