@@ -16,6 +16,7 @@ from .choices import (
     ServiceOrderStatus,
     get_available_order_status_choices,
 )
+from .customer_tracking import build_customer_tracking_result
 from .services import (
     accept_customer_repair,
     add_order_attachment,
@@ -208,85 +209,7 @@ def track_order(request):
             context["message"] = message
             context["error"] = error
 
-        public_comments = ServiceOrderComment.objects.filter(
-            order=order,
-            visibility=ServiceOrderComment.Visibility.PUBLIC,
-        ).order_by("created_at")
-
-        public_attachments = ServiceOrderAttachment.objects.filter(
-            order=order,
-            visibility=ServiceOrderAttachment.Visibility.PUBLIC,
-        ).order_by("created_at")
-
-        order_items = order.items.prefetch_related("selected_options").order_by("created_at")
-
-        audit_entries = AuditLog.objects.filter(
-            order=order,
-            action__in=[
-                AuditLog.Action.ORDER_CREATED,
-                AuditLog.Action.STATUS_CHANGED,
-                AuditLog.Action.ESTIMATE_SET,
-                AuditLog.Action.ORDER_CANCELED,
-                AuditLog.Action.DIAGNOSIS_UPDATED,
-                AuditLog.Action.REPAIR_ACCEPTED,
-            ],
-        ).order_by("performed_at")
-
-        audit_timeline = []
-        for a in audit_entries:
-            if a.action == AuditLog.Action.ORDER_CREATED:
-                audit_timeline.append((a.performed_at, "Zlecenie przyjęte"))
-            elif a.action == AuditLog.Action.STATUS_CHANGED:
-                old_label = STATUS_LABELS.get(a.old_value, a.old_value)
-                new_label = STATUS_LABELS.get(a.new_value, a.new_value)
-                audit_timeline.append((a.performed_at, f"Zmiana statusu: {old_label} → {new_label}"))
-            elif a.action == AuditLog.Action.ESTIMATE_SET:
-                old_txt = "brak" if not a.old_value or a.old_value == "None" else a.old_value
-                new_txt = "brak" if not a.new_value or a.new_value == "None" else a.new_value
-                audit_timeline.append(
-                    (a.performed_at, f"Zmiana planowanego terminu: {old_txt} → {new_txt}")
-                )
-            elif a.action == AuditLog.Action.ORDER_CANCELED:
-                audit_timeline.append((a.performed_at, "Zlecenie anulowane"))
-            elif a.action == AuditLog.Action.DIAGNOSIS_UPDATED:
-                audit_timeline.append((a.performed_at, "Aktualizacja diagnozy i rozliczenia"))
-            elif a.action == AuditLog.Action.REPAIR_ACCEPTED:
-                audit_timeline.append((a.performed_at, "Klient zaakceptował naprawę"))
-
-
-
-
-
-        context["result"] = {
-            "order_number": order.order_number,
-            "status": order.get_status_display(),
-            "estimated_completion_at": order.estimated_completion_at,
-            "device_type": order.get_device_type_display() if order.device_type else "",
-            "device_brand": order.device_brand,
-            "device_model": order.device_model,
-            "device_issue_description": order.device_issue_description,
-            "diagnosis": order.diagnosis,
-            "repair_notes": order.repair_notes,
-            "final_price": order.final_price,
-            "has_final_price": order.final_price is not None,
-            "customer_accepted_repair": order.customer_accepted_repair,
-            "can_accept_repair": order.can_accept_repair(),
-            "has_service_result": bool(
-                order.diagnosis
-                or order.repair_notes
-                or order.final_price is not None
-                or order.customer_accepted_repair
-            ),
-            "comments": public_comments,
-            "attachments": public_attachments,
-            "order_items": order_items,
-            "audit_timeline": audit_timeline,
-            "can_cancel": order.can_cancel(),
-            "email": email,
-            "phone": phone,
-        }
-
-
+        context["result"] = build_customer_tracking_result(order, email, phone)
 
     return render(request, "orders/track_order.html", context)
 
