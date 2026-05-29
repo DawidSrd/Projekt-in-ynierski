@@ -218,6 +218,8 @@ def track_order(request):
             visibility=ServiceOrderAttachment.Visibility.PUBLIC,
         ).order_by("created_at")
 
+        order_items = order.items.prefetch_related("selected_options").order_by("created_at")
+
         audit_entries = AuditLog.objects.filter(
             order=order,
             action__in=[
@@ -227,8 +229,6 @@ def track_order(request):
                 AuditLog.Action.ORDER_CANCELED,
                 AuditLog.Action.DIAGNOSIS_UPDATED,
                 AuditLog.Action.REPAIR_ACCEPTED,
-                AuditLog.Action.TECHNICIAN_ASSIGNED,
-                AuditLog.Action.ATTACHMENT_ADDED,
             ],
         ).order_by("performed_at")
 
@@ -252,10 +252,6 @@ def track_order(request):
                 audit_timeline.append((a.performed_at, "Aktualizacja diagnozy i rozliczenia"))
             elif a.action == AuditLog.Action.REPAIR_ACCEPTED:
                 audit_timeline.append((a.performed_at, "Klient zaakceptował naprawę"))
-            elif a.action == AuditLog.Action.TECHNICIAN_ASSIGNED:
-                audit_timeline.append((a.performed_at, f"Przypisano technika: {a.new_value}"))
-            elif a.action == AuditLog.Action.ATTACHMENT_ADDED:
-                audit_timeline.append((a.performed_at, "Dodano załącznik"))
 
 
 
@@ -283,6 +279,7 @@ def track_order(request):
             ),
             "comments": public_comments,
             "attachments": public_attachments,
+            "order_items": order_items,
             "audit_timeline": audit_timeline,
             "can_cancel": order.can_cancel(),
             "email": email,

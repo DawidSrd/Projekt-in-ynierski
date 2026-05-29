@@ -442,7 +442,6 @@ class TechnicianViewsTests(TestCase):
 
         self.assertContains(track_response, "Załączniki z serwisu")
         self.assertContains(track_response, "diagnoza.pdf")
-        self.assertContains(track_response, "Dodano załącznik")
 
     def test_staff_cannot_add_unsupported_attachment(self):
         User.objects.create_user(

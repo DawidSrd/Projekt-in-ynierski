@@ -129,6 +129,108 @@ class GuestAccessTrackingTests(TestCase):
         self.assertContains(response, self.order.order_number)
         self.assertNotContains(response, "Nie znaleziono zlecenia dla podanych danych.")
 
+    def test_customer_tracking_shows_service_scope(self):
+        service = Service.objects.create(
+            name="Czyszczenie laptopa",
+            base_price_min=120,
+            base_price_max=180,
+        )
+        group = ServiceOptionGroup.objects.create(
+            service=service,
+            name="Pasta termoprzewodząca",
+        )
+        option = ServiceOption.objects.create(
+            group=group,
+            name="Pasta premium",
+            price_delta_min=30,
+            price_delta_max=50,
+        )
+        item = ServiceOrderItem.objects.create(
+            order=self.order,
+            service=service,
+            service_name_snapshot=service.name,
+            pricing_mode_snapshot=service.pricing_mode,
+            base_price_min_snapshot=service.base_price_min,
+            base_price_max_snapshot=service.base_price_max,
+            calculated_price_min=150,
+            calculated_price_max=230,
+        )
+        ServiceOrderItemOption.objects.create(
+            order_item=item,
+            option=option,
+            option_name_snapshot=option.name,
+            price_delta_min_snapshot=option.price_delta_min,
+            price_delta_max_snapshot=option.price_delta_max,
+        )
+
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Zakres usługi")
+        self.assertContains(response, "Czyszczenie laptopa")
+        self.assertContains(response, "Pasta premium")
+        self.assertContains(response, "150,00 - 230,00 zł")
+
+    def test_customer_tracking_hides_internal_comments_attachments_and_workflow_events(self):
+        technician = User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        ServiceOrderComment.objects.create(
+            order=self.order,
+            visibility=ServiceOrderComment.Visibility.INTERNAL,
+            content="Tylko dla serwisu: klient zdenerwowany.",
+            created_by=technician,
+        )
+        ServiceOrderAttachment.objects.create(
+            order=self.order,
+            visibility=ServiceOrderAttachment.Visibility.INTERNAL,
+            file=SimpleUploadedFile(
+                "notatka.pdf",
+                b"internal-content",
+                content_type="application/pdf",
+            ),
+            original_name="notatka.pdf",
+            uploaded_by=technician,
+        )
+        AuditLog.objects.create(
+            order=self.order,
+            entity_type=AuditLog.EntityType.SERVICE_ORDER,
+            entity_id=self.order.id,
+            action=AuditLog.Action.TECHNICIAN_ASSIGNED,
+            new_value="technik",
+            performed_by=technician,
+        )
+        AuditLog.objects.create(
+            order=self.order,
+            entity_type=AuditLog.EntityType.SERVICE_ORDER,
+            entity_id=self.order.id,
+            action=AuditLog.Action.ATTACHMENT_ADDED,
+            new_value="visibility=INTERNAL; file=notatka.pdf",
+            performed_by=technician,
+        )
+
+        response = self.client.post(
+            reverse("track_order"),
+            {
+                "order_number": self.order.order_number,
+                "email": self.order.customer_email,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Tylko dla serwisu")
+        self.assertNotContains(response, "notatka.pdf")
+        self.assertNotContains(response, "Przypisano technika")
+        self.assertNotContains(response, "Dodano załącznik")
+
 
 class GuestAccessRepairAcceptanceTests(TestCase):
     def setUp(self):
