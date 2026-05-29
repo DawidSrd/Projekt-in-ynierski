@@ -343,6 +343,7 @@ def tech_dashboard(request):
         scope = "mine"
 
     search_query = (request.GET.get("q") or "").strip()
+    selected_overdue = request.GET.get("overdue") == "1"
 
     if scope == "mine":
         scoped_orders = ServiceOrder.objects.filter(assigned_technician=request.user)
@@ -397,6 +398,13 @@ def tech_dashboard(request):
     if selected_device_type:
         dashboard_queryset = dashboard_queryset.filter(device_type=selected_device_type)
 
+    if selected_overdue:
+        dashboard_queryset = dashboard_queryset.filter(
+            estimated_completion_at__lt=timezone.now()
+        ).exclude(
+            status__in=[ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]
+        )
+
     if search_query:
         dashboard_queryset = dashboard_queryset.filter(
             Q(order_number__icontains=search_query)
@@ -443,9 +451,10 @@ def tech_dashboard(request):
                 "unassigned": "Nieprzypisane",
             }[scope],
             "has_dashboard_filters": bool(
-                selected_status or selected_device_type or search_query
+                selected_status or selected_device_type or search_query or selected_overdue
             ),
             "search_query": search_query,
+            "selected_overdue": selected_overdue,
             "selected_device_type": selected_device_type,
             "selected_device_type_label": selected_device_type_label,
             "selected_status": selected_status,

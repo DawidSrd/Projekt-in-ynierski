@@ -30,10 +30,10 @@
       <span class="metric__label">Gotowe</span>
       <span class="metric__value">{{ dashboard_counts.ready }}</span>
     </a>
-    <div class="metric metric--danger">
+    <a class="metric metric--link metric--danger" href="/tech/dashboard/?scope={{ scope }}&overdue=1">
       <span class="metric__label">Przekroczone terminy</span>
       <span class="metric__value">{{ dashboard_counts.overdue }}</span>
-    </div>
+    </a>
     <div class="metric">
       <span class="metric__label">Aktywne</span>
       <span class="metric__value">{{ dashboard_counts.active }}</span>
@@ -48,6 +48,9 @@
     <div class="panel__body">
       <form method="get" class="dashboard-filter">
         <input type="hidden" name="scope" value="{{ scope }}" />
+        {% if selected_overdue %}
+          <input type="hidden" name="overdue" value="1" />
+        {% endif %}
 
         <div class="field">
           <label>Szukaj</label>
@@ -92,6 +95,7 @@
               Liczba zleceń: {{ dashboard_orders|length }}.
               Zakres: {{ scope_label }}.
               {% if selected_status_label %}Status: {{ selected_status_label }}.{% endif %}
+              {% if selected_overdue %}Termin: przekroczony.{% endif %}
               {% if selected_device_type_label %}Typ urządzenia: {{ selected_device_type_label }}.{% endif %}
               {% if search_query %}Szukana fraza: "{{ search_query }}".{% endif %}
             </p>

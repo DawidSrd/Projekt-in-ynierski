@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -7,6 +8,7 @@ from django.contrib import admin
 from django.test import TestCase, override_settings
 from django.test.client import RequestFactory
 from django.urls import reverse
+from django.utils import timezone
 
 from .admin import ServiceOrderAdmin
 from .choices import ServiceOrderStatus
@@ -123,6 +125,56 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "ThinkPad T14")
         self.assertNotContains(response, "Anna Nowak")
         self.assertNotContains(response, "OptiPlex")
+
+    def test_tech_dashboard_can_filter_overdue_orders(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        self.order.status = ServiceOrderStatus.IN_PROGRESS
+        self.order.estimated_completion_at = timezone.now() - timedelta(days=1)
+        self.order.save()
+        ServiceOrder.objects.create(
+            customer_name="Anna Nowak",
+            customer_email="anna@example.com",
+            customer_phone="111222333",
+            status=ServiceOrderStatus.IN_PROGRESS,
+            device_type=ServiceOrder.DeviceType.LAPTOP,
+            device_brand="Lenovo",
+            device_model="IdeaPad",
+            estimated_completion_at=timezone.now() + timedelta(days=1),
+        )
+        ServiceOrder.objects.create(
+            customer_name="Piotr Zielinski",
+            customer_email="piotr@example.com",
+            customer_phone="444555666",
+            status=ServiceOrderStatus.COMPLETED,
+            device_type=ServiceOrder.DeviceType.LAPTOP,
+            device_brand="Lenovo",
+            device_model="ThinkPad X1",
+            estimated_completion_at=timezone.now() - timedelta(days=2),
+        )
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {
+                "scope": "all",
+                "overdue": "1",
+                "q": "ThinkPad",
+                "device_type": ServiceOrder.DeviceType.LAPTOP,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["selected_overdue"])
+        self.assertEqual(response.context["dashboard_counts"]["overdue"], 1)
+        self.assertContains(response, "Termin: przekroczony.")
+        self.assertContains(response, "Jan Kowalski")
+        self.assertContains(response, "ThinkPad T14")
+        self.assertNotContains(response, "Anna Nowak")
+        self.assertNotContains(response, "Piotr Zielinski")
 
     def test_tech_dashboard_can_show_only_current_technician_orders(self):
         technician = User.objects.create_user(
