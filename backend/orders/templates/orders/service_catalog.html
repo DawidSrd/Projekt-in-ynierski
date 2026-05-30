@@ -6,68 +6,65 @@
   <div class="page-heading page-heading--catalog">
     <div>
       <h1>Katalog usług</h1>
-      <p>Wybierz usługę najlepiej pasującą do problemu i przejdź do konfiguratora zgłoszenia.</p>
+      <p>Lista usług dostępnych przy zgłoszeniu naprawy. Po wybraniu usługi przejdziesz do formularza zgłoszenia.</p>
     </div>
     <a class="button button--ghost" href="/track/">Sprawdź zlecenie</a>
   </div>
 
-  <div class="notice-box">
-    <strong>Ceny i terminy są orientacyjne</strong>
-    <p>Podane ceny i czasy realizacji są orientacyjne. Ostateczna wycena oraz termin zależą od diagnozy sprzętu, dostępności części i zakresu prac.</p>
-  </div>
+  <p class="catalog-note"><strong>Ceny i terminy są orientacyjne.</strong> Ostateczna wycena oraz termin zależą od diagnozy sprzętu, dostępności części i zakresu prac.</p>
 
   {% if services %}
     <section class="catalog-category">
-      <div class="section-title">
+      <div class="catalog-category__intro">
         <h2>Diagnostyka i naprawa</h2>
         <p>Dobry wybór, gdy nie wiadomo jeszcze, co dokładnie powoduje problem.</p>
       </div>
-      <div class="catalog-grid">
+      <div class="catalog-list">
         {% for s in services %}
           {% if s.name == "Diagnostyka komputera lub laptopa" or s.name == "Diagnostyka komputera" %}
-            {% include "orders/partials/service_catalog_card.html" %}
+            {% include "orders/partials/service_catalog_row.html" %}
           {% endif %}
         {% endfor %}
       </div>
     </section>
 
     <section class="catalog-category">
-      <div class="section-title">
+      <div class="catalog-category__intro">
         <h2>System i oprogramowanie</h2>
         <p>Usługi dla problemów z Windowsem, wolnym działaniem komputera i podejrzeniem infekcji.</p>
       </div>
-      <div class="catalog-grid">
+      <div class="catalog-list">
         {% for s in services %}
           {% if s.name == "Instalacja systemu Windows" or s.name == "Instalacja lub reinstalacja systemu operacyjnego" or s.name == "Naprawa systemu i usuwanie wirusów" or s.name == "Usuwanie wirusów i optymalizacja systemu" %}
-            {% include "orders/partials/service_catalog_card.html" %}
+            {% include "orders/partials/service_catalog_row.html" %}
           {% endif %}
         {% endfor %}
       </div>
     </section>
 
     <section class="catalog-category">
-      <div class="section-title">
+      <div class="catalog-category__intro">
         <h2>Modernizacja i dane</h2>
         <p>Wymiana dysku, rozbudowa pamięci i przenoszenie lub odzyskiwanie danych.</p>
       </div>
-      <div class="catalog-grid">
+      <div class="catalog-list">
         {% for s in services %}
           {% if s.name == "Wymiana dysku HDD/SSD" or s.name == "Rozbudowa pamięci RAM" or s.name == "Klonowanie dysku i przeniesienie danych" or s.name == "Odzyskiwanie danych" or s.name == "Odzyskiwanie danych z dysku" %}
-            {% include "orders/partials/service_catalog_card.html" %}
+            {% include "orders/partials/service_catalog_row.html" %}
           {% endif %}
         {% endfor %}
       </div>
     </section>
 
     <section class="catalog-category">
-      <div class="section-title">
+      <div class="catalog-category__intro">
         <h2>Naprawy laptopów</h2>
         <p>Najczęstsze prace serwisowe przy laptopach i komputerach używanych na co dzień.</p>
       </div>
-      <div class="catalog-grid">
+      <div class="catalog-list">
         {% for s in services %}
           {% if s.name == "Czyszczenie i konserwacja laptopa/PC" or s.name == "Czyszczenie i konserwacja układu chłodzenia" or s.name == "Wymiana matrycy w laptopie" or s.name == "Wymiana klawiatury lub baterii" or s.name == "Wymiana klawiatury lub baterii w laptopie" %}
-            {% include "orders/partials/service_catalog_card.html" %}
+            {% include "orders/partials/service_catalog_row.html" %}
           {% endif %}
         {% endfor %}
       </div>
@@ -76,8 +73,8 @@
     <section class="catalog-help" aria-label="Pomoc w wyborze usługi">
       <div>
         <span class="service-label">Inne</span>
-        <h2>Nie wiesz, którą usługę wybrać?</h2>
-        <p>Jeżeli nie masz pewności, która usługa pasuje do problemu, wybierz indywidualną diagnozę i opisz objawy. Serwis określi dalszy zakres prac po sprawdzeniu sprzętu.</p>
+        <h2>Nie pasuje żadna konkretna usługa?</h2>
+        <p>Wybierz indywidualną diagnozę i opisz objawy własnymi słowami. Po sprawdzeniu sprzętu ustalimy dalszy zakres prac.</p>
       </div>
       {% for s in services %}
         {% if s.name == "Inne / indywidualna diagnoza" %}

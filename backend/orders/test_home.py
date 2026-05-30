@@ -1,10 +1,7 @@
-from unittest.mock import patch
-
 from django.contrib.auth.models import User
-from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib import admin
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
 
@@ -27,20 +24,18 @@ class HomePageTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Naprawa i obsługa sprzętu komputerowego")
-        self.assertContains(response, "Diagnostyka, czyszczenie")
-        self.assertContains(response, "Status online")
-        self.assertContains(response, "Bez zakładania konta")
-        self.assertContains(response, "Historia zmian")
+        self.assertContains(response, "Naprawa laptopów i komputerów")
+        self.assertContains(response, "Utwórz zgłoszenie przed wizytą")
+        self.assertContains(response, "Przyjęcie sprzętu")
+        self.assertContains(response, "na miejscu przy odbiorze")
         self.assertContains(response, "Najczęstsze usługi")
         self.assertContains(response, "Najczęstsze problemy")
-        self.assertContains(response, "Nie wiesz, którą usługę wybrać?")
-        self.assertContains(response, "Jak przebiega naprawa")
-        self.assertContains(response, "Zgłoś problem")
-        self.assertContains(response, "Odbierz sprzęt")
-        self.assertContains(response, "Dlaczego warto?")
-        self.assertContains(response, "Wycena przed naprawą")
-        self.assertContains(response, "FAQ")
+        self.assertContains(response, "Nie pasuje żadna konkretna usługa?")
+        self.assertContains(response, "Jak wygląda obsługa")
+        self.assertContains(response, "Zgłaszasz problem")
+        self.assertContains(response, "Odbierasz sprzęt")
+        self.assertContains(response, "Co zobaczysz w zleceniu?")
+        self.assertContains(response, "Planowany termin")
         self.assertContains(response, "Śledź zlecenie")
         self.assertContains(response, "Zgłoś naprawę")
         self.assertContains(response, "O nas")
@@ -55,6 +50,8 @@ class HomePageTests(TestCase):
         self.assertNotContains(response, "Utworzenie zlecenia")
         self.assertNotContains(response, "Aktualne zgłoszenie")
         self.assertNotContains(response, "Diagnostyka laptopa")
+        self.assertNotContains(response, "Dlaczego warto?")
+        self.assertNotContains(response, "FAQ")
         self.assertNotContains(response, "Panel technika")
         self.assertNotContains(response, "Admin")
         self.assertNotContains(response, 'href="/tech/dashboard/"')
@@ -116,7 +113,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Ceny i terminy są orientacyjne")
         self.assertContains(response, "Orientacyjnie: 1 dzień roboczy")
         self.assertNotContains(response, "90 min")
-        self.assertContains(response, "Nie wiesz, którą usługę wybrać?")
+        self.assertContains(response, "Nie pasuje żadna konkretna usługa?")
         self.assertContains(response, "Wybierz indywidualną diagnozę")
 
     def test_track_page_explains_guest_access_result(self):
@@ -203,13 +200,16 @@ class HomePageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "O nas")
-        self.assertContains(response, "O serwisie")
+        self.assertContains(response, "Czym się zajmujemy")
+        self.assertContains(response, "Zakres prac")
         self.assertContains(response, "Jak skorzystać z usługi")
         self.assertContains(response, "Godziny otwarcia")
-        self.assertContains(response, "Adres serwisu")
+        self.assertContains(response, "Kontakt")
         self.assertContains(response, "Zajmujemy się diagnozą i naprawą")
-        self.assertContains(response, "Status zlecenia online")
+        self.assertContains(response, "sprawdzić aktualny status naprawy")
         self.assertContains(response, "500 100 200")
+        self.assertNotContains(response, "Historia obsługi")
+        self.assertNotContains(response, "Wycena przed rozpoczęciem prac")
 
     def test_admin_index_uses_custom_dashboard(self):
         User.objects.create_superuser(
@@ -320,8 +320,7 @@ class HomePageTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/admin/login/", response["Location"])
 
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-    def test_admin_sends_status_email_only_when_checkbox_is_selected(self):
+    def test_admin_status_change_logs_audit_entry_without_email_option(self):
         admin_user = User.objects.create_superuser(
             username="admin",
             password="testpass123",
@@ -336,6 +335,7 @@ class HomePageTests(TestCase):
         request = RequestFactory().post("/admin/")
         request.user = admin_user
         form_class = model_admin.get_form(request, order)
+        self.assertNotIn("notify_customer", form_class.base_fields)
 
         form = form_class(
             data={
@@ -359,34 +359,15 @@ class HomePageTests(TestCase):
         )
         self.assertTrue(form.is_valid())
         model_admin.save_model(request, form.instance, form, True)
-        self.assertEqual(len(mail.outbox), 0)
-
-        form_class = model_admin.get_form(request, order)
-        form = form_class(
-            data={
-                "status": ServiceOrderStatus.IN_PROGRESS,
-                "customer_name": order.customer_name,
-                "customer_email": order.customer_email,
-                "customer_phone": order.customer_phone,
-                "device_type": "",
-                "device_brand": "",
-                "device_model": "",
-                "device_issue_description": "",
-                "diagnosis": "",
-                "repair_notes": "",
-                "final_price": "",
-                "customer_accepted_repair": "",
-                "assigned_technician": "",
-                "estimated_completion_at_0": "",
-                "estimated_completion_at_1": "",
-                "notify_customer": "on",
-            },
-            instance=order,
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=order,
+                action=AuditLog.Action.STATUS_CHANGED,
+                old_value=ServiceOrderStatus.NEW,
+                new_value=ServiceOrderStatus.RECEIVED,
+                performed_by=admin_user,
+            ).exists()
         )
-        self.assertTrue(form.is_valid())
-        model_admin.save_model(request, form.instance, form, True)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, [order.customer_email])
 
     def test_admin_order_page_uses_secure_attachment_link(self):
         User.objects.create_superuser(

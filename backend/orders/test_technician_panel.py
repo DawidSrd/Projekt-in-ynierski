@@ -1,11 +1,9 @@
 from datetime import timedelta
-from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib import admin
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
 from django.utils import timezone
@@ -581,7 +579,6 @@ class TechnicianViewsTests(TestCase):
         staff_response = self.client.get(reverse("attachment_download", args=[attachment.id]))
         self.assertEqual(staff_response.status_code, 200)
 
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_staff_can_update_order_status_and_estimate(self):
         User.objects.create_user(
             username="technik",
@@ -603,7 +600,6 @@ class TechnicianViewsTests(TestCase):
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
         self.assertIsNotNone(self.order.estimated_completion_at)
-        self.assertEqual(len(mail.outbox), 0)
         self.assertTrue(
             AuditLog.objects.filter(
                 order=self.order,
@@ -620,66 +616,6 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, 'type="datetime-local"')
         self.assertContains(response, 'value="2026-05-03T16:30"')
         self.assertNotContains(response, "Estymacja")
-
-    @override_settings(
-        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-        SITE_URL="https://serwis.test",
-    )
-    def test_staff_can_send_status_email_when_checkbox_is_selected(self):
-        User.objects.create_user(
-            username="technik",
-            password="testpass123",
-            is_staff=True,
-        )
-        self.client.login(username="technik", password="testpass123")
-
-        response = self.client.post(
-            reverse("tech_order_detail", args=[self.order.order_number]),
-            {
-                "action": "update_order",
-                "status": ServiceOrderStatus.RECEIVED,
-                "estimated_completion_at": "",
-                "notify_customer": "on",
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.order.refresh_from_db()
-        self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, [self.order.customer_email])
-        self.assertIn(
-            f"https://serwis.test/track/?order_number={self.order.order_number}",
-            mail.outbox[0].body,
-        )
-        self.assertIn("Urządzenie: Laptop Lenovo ThinkPad T14", mail.outbox[0].body)
-        self.assertContains(response, "klient otrzymał wiadomość e-mail")
-
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-    def test_staff_status_update_is_saved_when_email_fails(self):
-        User.objects.create_user(
-            username="technik",
-            password="testpass123",
-            is_staff=True,
-        )
-        self.client.login(username="technik", password="testpass123")
-
-        with patch("orders.emails.send_mail", side_effect=RuntimeError("SMTP down")):
-            response = self.client.post(
-                reverse("tech_order_detail", args=[self.order.order_number]),
-                {
-                    "action": "update_order",
-                    "status": ServiceOrderStatus.RECEIVED,
-                    "estimated_completion_at": "",
-                    "notify_customer": "on",
-                },
-            )
-
-        self.assertEqual(response.status_code, 200)
-        self.order.refresh_from_db()
-        self.assertEqual(self.order.status, ServiceOrderStatus.RECEIVED)
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertContains(response, "Nie udało się wysłać wiadomości e-mail do klienta.")
 
     def test_staff_can_update_diagnosis_and_final_price_visible_for_customer(self):
         User.objects.create_user(

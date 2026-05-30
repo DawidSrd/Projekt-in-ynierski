@@ -10,116 +10,102 @@
     </div>
   </div>
 
-  <section class="track-intro" aria-label="Instrukcja śledzenia zlecenia">
-    <div class="notice-box">
-      <strong>Jak sprawdzić zlecenie?</strong>
+  <section class="track-start" aria-label="Instrukcja śledzenia zlecenia">
+    <div class="track-start__intro">
+      <h2>Jak sprawdzić zlecenie?</h2>
       <p>Numer zlecenia znajdziesz w potwierdzeniu zgłoszenia. Do weryfikacji podaj e-mail albo telefon użyty przy zgłoszeniu.</p>
     </div>
-    <aside class="panel track-intro__details">
-      <div class="panel__body">
-        <h2>Co zobaczysz po sprawdzeniu?</h2>
-        <ul class="clean-check-list">
-          <li>aktualny status zlecenia</li>
-          <li>planowany termin zakończenia, jeżeli został ustawiony</li>
-          <li>komentarze publiczne od serwisu</li>
-          <li>historię najważniejszych zmian</li>
-        </ul>
-      </div>
-    </aside>
+    <div class="track-start__details">
+      <h2>Co zobaczysz po sprawdzeniu?</h2>
+      <ul class="plain-list">
+        <li>aktualny status zlecenia</li>
+        <li>planowany termin zakończenia, jeżeli został ustawiony</li>
+        <li>komentarze publiczne od serwisu</li>
+        <li>historię najważniejszych zmian</li>
+      </ul>
+    </div>
   </section>
 
-  <section class="panel track-form-panel">
-    <div class="panel__body">
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="track_order" />
+  <section class="track-form-section" aria-label="Formularz śledzenia zlecenia">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="track_order" />
 
-        <div class="form-grid">
-          <div class="field">
-            <label>Numer zlecenia</label>
-            <input type="text" name="order_number" placeholder="SRV-XXXXXXXX" value="{{ order_number_default }}" required />
-          </div>
-
-          <div class="field">
-            <label>E-mail</label>
-            <input type="email" name="email" placeholder="klient@example.com" />
-          </div>
-
-          <div class="field">
-            <label>Numer telefonu</label>
-            <input type="text" name="phone" placeholder="+48..." />
-          </div>
+      <div class="track-form-grid">
+        <div class="field">
+          <label>Numer zlecenia</label>
+          <input type="text" name="order_number" placeholder="SRV-XXXXXXXX" value="{{ order_number_default }}" required />
         </div>
 
-        <div class="button-row">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" name="email" placeholder="klient@example.com" />
+        </div>
+
+        <div class="field">
+          <label>Numer telefonu</label>
+          <input type="text" name="phone" placeholder="+48..." />
+        </div>
+
+        <div class="track-form-grid__action">
           <button type="submit">Sprawdź status</button>
         </div>
-      </form>
+      </div>
+    </form>
 
-      {% if error %}
-        <p class="message message--error">{{ error }}</p>
-      {% endif %}
+    {% if error %}
+      <p class="message message--error">{{ error }}</p>
+    {% endif %}
 
-      {% if message %}
-        <p class="message message--success">{{ message }}</p>
-      {% endif %}
-    </div>
+    {% if message %}
+      <p class="message message--success">{{ message }}</p>
+    {% endif %}
   </section>
 
   {% if result %}
-    <section class="panel section tracking-summary">
-      <div class="panel__body">
-        <div class="tracking-summary__grid">
-          <div>
-            <span class="metric__label">Numer zlecenia</span>
-            <h2>{{ result.order_number }}</h2>
-            <div class="tracking-summary__device">
-              <span class="metric__label">Urządzenie</span>
-              <strong>
-                {% if result.device_type %}{{ result.device_type }}{% else %}brak typu{% endif %}{% if result.device_brand %} / {{ result.device_brand }}{% endif %}{% if result.device_model %} {{ result.device_model }}{% endif %}
-              </strong>
-              {% if result.device_issue_description %}
-                <p>{{ result.device_issue_description }}</p>
-              {% endif %}
-            </div>
-          </div>
+    <section class="tracking-summary section" aria-label="Podsumowanie zlecenia">
+      <div class="tracking-summary__top">
+        <div>
+          <span class="metric__label">Numer zlecenia</span>
+          <h2>{{ result.order_number }}</h2>
+        </div>
+        <div class="tracking-summary__status">
+          <span class="metric__label">Status</span>
+          <span class="status-badge">{{ result.status }}</span>
+        </div>
+      </div>
 
-          <div class="tracking-summary__meta">
-            <div>
-              <span class="metric__label">Status</span>
-              <span class="status-badge">{{ result.status }}</span>
-            </div>
-            <div>
-              <span class="metric__label">Planowany termin realizacji</span>
-              <strong>{{ result.estimated_completion_at|default:"nie ustalono" }}</strong>
-            </div>
-          </div>
+      <div class="tracking-summary__details">
+        <div>
+          <span class="metric__label">Urządzenie</span>
+          <strong>
+            {% if result.device_type %}{{ result.device_type }}{% else %}brak typu{% endif %}{% if result.device_brand %} / {{ result.device_brand }}{% endif %}{% if result.device_model %} {{ result.device_model }}{% endif %}
+          </strong>
+          {% if result.device_issue_description %}
+            <p>{{ result.device_issue_description }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <span class="metric__label">Planowany termin realizacji</span>
+          <strong>{{ result.estimated_completion_at|default:"nie ustalono" }}</strong>
         </div>
       </div>
     </section>
 
     <div class="tracking-layout section">
-      <div class="stack">
+      <div class="tracking-main">
         {% if result.order_items %}
-          <section class="panel">
-            <div class="panel__body">
-              <div class="section-title">
-                <h2>Zakres usługi</h2>
-                <p>Usługa i konfiguracja zapisane przy utworzeniu zgłoszenia.</p>
-              </div>
+          <section class="tracking-block">
+            <div class="section-title">
+              <h2>Zakres usługi</h2>
+              <p>Usługa i konfiguracja zapisane przy utworzeniu zgłoszenia.</p>
+            </div>
 
-              <div class="service-snapshot-list">
-                {% for item in result.order_items %}
-                  <article class="service-snapshot">
-                    <div class="service-snapshot__header">
-                      <h3>{{ item.service_name_snapshot }}</h3>
-                      {% if item.requires_manual_pricing %}
-                        <span class="pill">Wycena po diagnozie</span>
-                      {% else %}
-                        <span class="pill">{{ item.calculated_price_min }} - {{ item.calculated_price_max }} zł</span>
-                      {% endif %}
-                    </div>
-
+            <div class="line-list">
+              {% for item in result.order_items %}
+                <article class="tracking-service-row">
+                  <div>
+                    <h3>{{ item.service_name_snapshot }}</h3>
                     {% if item.selected_options.all %}
                       <ul class="sub-list">
                         {% for option in item.selected_options.all %}
@@ -131,171 +117,166 @@
                         {% endfor %}
                       </ul>
                     {% endif %}
-                  </article>
-                {% endfor %}
-              </div>
+                  </div>
+                  <div class="tracking-service-row__price">
+                    {% if item.requires_manual_pricing %}
+                      Wycena po diagnozie
+                    {% else %}
+                      {{ item.calculated_price_min }} - {{ item.calculated_price_max }} zł
+                    {% endif %}
+                  </div>
+                </article>
+              {% endfor %}
             </div>
           </section>
         {% endif %}
 
         {% if result.has_service_result %}
-          <section class="panel">
-            <div class="panel__body">
-              <div class="section-title">
-                <h2>Diagnoza i rozliczenie</h2>
-                <p>Informacje uzupełnione przez serwis po sprawdzeniu sprzętu.</p>
-              </div>
-
-              <div class="result-grid result-grid--compact">
-                {% if result.diagnosis %}
-                  <div class="metric">
-                    <span class="metric__label">Diagnoza</span>
-                    <span class="metric__value metric__value--text">{{ result.diagnosis }}</span>
-                  </div>
-                {% endif %}
-
-                {% if result.repair_notes %}
-                  <div class="metric">
-                    <span class="metric__label">Wykonane czynności</span>
-                    <span class="metric__value metric__value--text">{{ result.repair_notes }}</span>
-                  </div>
-                {% endif %}
-
-                {% if result.has_final_price %}
-                  <div class="metric">
-                    <span class="metric__label">Koszt końcowy</span>
-                    <span class="metric__value">{{ result.final_price }} zł</span>
-                  </div>
-                {% endif %}
-
-                <div class="metric">
-                  <span class="metric__label">Akceptacja naprawy</span>
-                  {% if result.customer_accepted_repair %}
-                    <span class="metric__value metric__value--text">Zaakceptowana przez klienta</span>
-                  {% else %}
-                    <span class="metric__value metric__value--text">Oczekuje na decyzję</span>
-                  {% endif %}
-                </div>
-              </div>
+          <section class="tracking-block">
+            <div class="section-title">
+              <h2>Diagnoza i rozliczenie</h2>
+              <p>Informacje uzupełnione przez serwis po sprawdzeniu sprzętu.</p>
             </div>
+
+            <dl class="line-list tracking-definition-list">
+              {% if result.diagnosis %}
+                <div>
+                  <dt>Diagnoza</dt>
+                  <dd>{{ result.diagnosis }}</dd>
+                </div>
+              {% endif %}
+
+              {% if result.repair_notes %}
+                <div>
+                  <dt>Wykonane czynności</dt>
+                  <dd>{{ result.repair_notes }}</dd>
+                </div>
+              {% endif %}
+
+              {% if result.has_final_price %}
+                <div>
+                  <dt>Koszt końcowy</dt>
+                  <dd>{{ result.final_price }} zł</dd>
+                </div>
+              {% endif %}
+
+              <div>
+                <dt>Akceptacja naprawy</dt>
+                {% if result.customer_accepted_repair %}
+                  <dd>Zaakceptowana przez klienta</dd>
+                {% else %}
+                  <dd>Oczekuje na decyzję</dd>
+                {% endif %}
+              </div>
+            </dl>
           </section>
         {% endif %}
 
-        <section class="panel">
-          <div class="panel__body">
-            <div class="section-title">
-              <h2>Wiadomości z serwisu</h2>
-              <p>Publiczne komentarze dodane przez pracownika serwisu.</p>
-            </div>
-
-            {% if result.comments %}
-              <ul class="clean-list">
-                {% for c in result.comments %}
-                  <li>
-                    <span class="muted">
-                      {{ c.created_at }}
-                      {% if c.created_by %} / {{ c.created_by.username }}{% endif %}
-                    </span><br />
-                    {{ c.content }}
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="empty">Brak wiadomości z serwisu.</p>
-            {% endif %}
+        <section class="tracking-block">
+          <div class="section-title">
+            <h2>Wiadomości z serwisu</h2>
+            <p>Publiczne komentarze dodane przez pracownika serwisu.</p>
           </div>
+
+          {% if result.comments %}
+            <ul class="line-list tracking-line-list">
+              {% for c in result.comments %}
+                <li>
+                  <span class="muted">
+                    {{ c.created_at }}
+                    {% if c.created_by %} / {{ c.created_by.username }}{% endif %}
+                  </span>
+                  <p>{{ c.content }}</p>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Brak wiadomości z serwisu.</p>
+          {% endif %}
         </section>
 
-        <section class="panel">
-          <div class="panel__body">
-            <div class="section-title">
-              <h2>Załączniki z serwisu</h2>
-              <p>Pliki udostępnione przez pracownika serwisu.</p>
-            </div>
-
-            {% if result.attachments %}
-              <ul class="clean-list">
-                {% for attachment in result.attachments %}
-                  <li>
-                    <span class="muted">{{ attachment.created_at }}</span><br />
-                    <a href="{% url 'attachment_download' attachment.id %}">{{ attachment.original_name }}</a>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="empty">Brak załączników z serwisu.</p>
-            {% endif %}
+        <section class="tracking-block">
+          <div class="section-title">
+            <h2>Załączniki z serwisu</h2>
+            <p>Pliki udostępnione przez pracownika serwisu.</p>
           </div>
+
+          {% if result.attachments %}
+            <ul class="line-list tracking-line-list">
+              {% for attachment in result.attachments %}
+                <li>
+                  <span class="muted">{{ attachment.created_at }}</span>
+                  <p><a href="{% url 'attachment_download' attachment.id %}">{{ attachment.original_name }}</a></p>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Brak załączników z serwisu.</p>
+          {% endif %}
         </section>
 
-        <section class="panel">
-          <div class="panel__body">
-            <div class="section-title">
-              <h2>Historia zlecenia</h2>
-              <p>Najważniejsze zdarzenia związane ze zgłoszeniem.</p>
-            </div>
-
-            {% if result.audit_timeline %}
-              <ul class="timeline-list">
-                {% for dt, text in result.audit_timeline %}
-                  <li>
-                    <span class="timeline-list__date">{{ dt }}</span>
-                    <span class="timeline-list__text">{{ text }}</span>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="empty">Brak historii statusów.</p>
-            {% endif %}
+        <section class="tracking-block">
+          <div class="section-title">
+            <h2>Historia zlecenia</h2>
+            <p>Najważniejsze zdarzenia związane ze zgłoszeniem.</p>
           </div>
+
+          {% if result.audit_timeline %}
+            <ul class="timeline-list">
+              {% for dt, text in result.audit_timeline %}
+                <li>
+                  <span class="timeline-list__date">{{ dt }}</span>
+                  <span class="timeline-list__text">{{ text }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Brak historii statusów.</p>
+          {% endif %}
         </section>
       </div>
 
-      <aside class="stack">
+      <aside class="tracking-actions">
         {% if result.has_service_result %}
-          <section class="panel">
-            <div class="panel__body">
-              <h2>Akceptacja naprawy</h2>
-              {% if result.can_accept_repair %}
-                <p class="muted">Potwierdź wykonanie naprawy zgodnie z przedstawioną diagnozą i kosztem końcowym.</p>
-                <form method="post">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="accept_repair" />
-                  <input type="hidden" name="order_number" value="{{ result.order_number }}" />
-                  <input type="hidden" name="email" value="{{ result.email }}" />
-                  <input type="hidden" name="phone" value="{{ result.phone }}" />
-                  <div class="button-row">
-                    <button type="submit">Akceptuję naprawę</button>
-                  </div>
-                </form>
-              {% elif result.customer_accepted_repair %}
-                <p class="message message--success">Naprawa została zaakceptowana.</p>
-              {% else %}
-                <p class="empty">Akceptacja będzie dostępna po podaniu diagnozy i kosztu końcowego.</p>
-              {% endif %}
-            </div>
-          </section>
-        {% endif %}
-
-        <section class="panel">
-          <div class="panel__body">
-            <h2>Anulowanie zlecenia</h2>
-            {% if result.can_cancel %}
-              <p class="muted">Zlecenie można anulować online tylko przed rozpoczęciem obsługi.</p>
+          <section class="tracking-action">
+            <h2>Akceptacja naprawy</h2>
+            {% if result.can_accept_repair %}
+              <p class="muted">Potwierdź wykonanie naprawy zgodnie z przedstawioną diagnozą i kosztem końcowym.</p>
               <form method="post">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="cancel_order" />
+                <input type="hidden" name="action" value="accept_repair" />
                 <input type="hidden" name="order_number" value="{{ result.order_number }}" />
                 <input type="hidden" name="email" value="{{ result.email }}" />
                 <input type="hidden" name="phone" value="{{ result.phone }}" />
                 <div class="button-row">
-                  <button class="button--danger" type="submit">Anuluj zlecenie</button>
+                  <button type="submit">Akceptuję naprawę</button>
                 </div>
               </form>
+            {% elif result.customer_accepted_repair %}
+              <p class="message message--success">Naprawa została zaakceptowana.</p>
             {% else %}
-              <p class="empty">Anulowanie online jest dostępne tylko dla nowych zleceń. W celu anulowania skontaktuj się telefonicznie z serwisem.</p>
+              <p class="empty">Akceptacja będzie dostępna po podaniu diagnozy i kosztu końcowego.</p>
             {% endif %}
-          </div>
+          </section>
+        {% endif %}
+
+        <section class="tracking-action">
+          <h2>Anulowanie zlecenia</h2>
+          {% if result.can_cancel %}
+            <p class="muted">Zlecenie można anulować online tylko przed rozpoczęciem obsługi.</p>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="cancel_order" />
+              <input type="hidden" name="order_number" value="{{ result.order_number }}" />
+              <input type="hidden" name="email" value="{{ result.email }}" />
+              <input type="hidden" name="phone" value="{{ result.phone }}" />
+              <div class="button-row">
+                <button class="button--danger" type="submit">Anuluj zlecenie</button>
+              </div>
+            </form>
+          {% else %}
+            <p class="empty">Anulowanie online jest dostępne tylko dla nowych zleceń. W celu anulowania skontaktuj się telefonicznie z serwisem.</p>
+          {% endif %}
         </section>
       </aside>
     </div>
