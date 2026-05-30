@@ -377,7 +377,7 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Karta obsługi zlecenia serwisowego")
         self.assertContains(response, "Obsługa zlecenia")
         self.assertContains(response, "Zakres usługi i wycena")
-        self.assertContains(response, "Snapshot usługi")
+        self.assertContains(response, "Zakres usługi zapisany przy utworzeniu zlecenia.")
         self.assertContains(response, "Urządzenie")
         self.assertContains(response, "Laptop / Lenovo ThinkPad T14")
         self.assertContains(response, "Nie uruchamia się po aktualizacji.")
