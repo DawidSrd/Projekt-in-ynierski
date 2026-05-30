@@ -295,7 +295,6 @@ class TechnicianViewsTests(TestCase):
                 "customer_name": "Adam Serwisowy",
                 "customer_email": "adam@example.com",
                 "customer_phone": "501222333",
-                "customer_consent": "on",
                 "device_type": ServiceOrder.DeviceType.DESKTOP,
                 "device_brand": "Dell",
                 "device_model": "OptiPlex",
@@ -726,7 +725,7 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(track_response, "Uszkodzony dysk SSD.")
         self.assertContains(track_response, "Wymieniono dysk i zainstalowano system.")
         self.assertContains(track_response, "350,00 zł")
-        self.assertContains(track_response, "Oczekuje na decyzję klienta")
+        self.assertContains(track_response, "Oczekuje na decyzję")
         self.assertContains(track_response, "Akceptuję naprawę")
         self.assertContains(track_response, "Aktualizacja diagnozy i rozliczenia")
 

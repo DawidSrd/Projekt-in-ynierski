@@ -7,18 +7,35 @@
     <div class="home-hero__copy">
       <span class="home-eyebrow">Serwis komputerowy</span>
       <h1>Naprawa i obsługa sprzętu komputerowego</h1>
-      <p>Wybierz usługę, opisz problem i śledź status zlecenia online bez zakładania konta.</p>
+      <p>Zgłoś problem z komputerem lub laptopem, wybierz usługę i śledź status naprawy online.</p>
       <div class="button-row">
-        <a class="button" href="/services/">Zgłoś naprawę</a>
+        <a class="button button--secondary" href="/services/">Zgłoś naprawę</a>
         <a class="button button--ghost" href="/track/">Śledź zlecenie</a>
       </div>
+      <div class="hero-trust" aria-label="Najważniejsze zalety obsługi">
+        <span>Status online</span>
+        <span>Bez zakładania konta</span>
+        <span>Historia zmian</span>
+        <span>Wycena przed naprawą</span>
+      </div>
     </div>
+    <aside class="home-hero__card" aria-label="Informacje o obsłudze">
+      <span class="home-hero__card-label">Obsługa serwisowa</span>
+      <h2>Szybka diagnostyka i wycena</h2>
+      <div class="home-hero__mini-process">
+        <span>Wstępna diagnoza problemu</span>
+        <span>Wycena przed rozpoczęciem prac</span>
+        <span>Status zlecenia online</span>
+        <span>Historia zmian zlecenia</span>
+      </div>
+    </aside>
   </section>
 
   <section class="home-section" aria-label="Usługi serwisu">
     <div class="section-title section-title--row">
       <div>
-        <h2>Usługi serwisu</h2>
+        <h2>Najczęstsze usługi</h2>
+        <p>Krótki wybór usług najczęściej zgłaszanych w serwisie. Pełna oferta jest dostępna w katalogu.</p>
       </div>
       <a class="button button--ghost" href="/services/">Zobacz wszystkie usługi</a>
     </div>
@@ -27,13 +44,22 @@
       <div class="home-service-grid">
         {% for service in services %}
           <a class="home-service" href="/services/{{ service.id }}/">
-            <span class="home-service__name">{{ service.name }}</span>
+            <span class="home-service__top">
+              <span class="home-service__icon" aria-hidden="true">{% cycle "Diagnoza" "Laptop" "System" "Dysk" %}</span>
+              <span class="home-service__name">{{ service.name }}</span>
+            </span>
             {% if service.description %}
               <span class="home-service__description">{{ service.description }}</span>
             {% else %}
               <span class="home-service__description">Opis usługi zostanie uzupełniony.</span>
             {% endif %}
-            <span class="pill">{{ service.base_price_min }} - {{ service.base_price_max }} zł</span>
+            <span class="home-service__footer">
+              <span class="home-service__price">
+                <span>Cena</span>
+                <strong>{{ service.base_price_min }} - {{ service.base_price_max }} zł</strong>
+              </span>
+              <span class="home-service__action">Wybierz usługę</span>
+            </span>
           </a>
         {% endfor %}
       </div>
@@ -45,32 +71,160 @@
     {% endif %}
   </section>
 
+  <section class="home-section" aria-label="Najczęstsze problemy">
+    <div class="section-title">
+      <h2>Najczęstsze problemy</h2>
+      <p>Jeśli nie wiesz, którą usługę wybrać, zacznij od objawu, który najlepiej opisuje sytuację.</p>
+    </div>
+
+    <div class="problem-grid">
+      <article>
+        <h3>Komputer działa wolno</h3>
+        <p>Możliwa optymalizacja, sprawdzenie dysku lub rozbudowa sprzętu.</p>
+      </article>
+      <article>
+        <h3>Laptop się przegrzewa</h3>
+        <p>Warto sprawdzić układ chłodzenia i temperatury.</p>
+      </article>
+      <article>
+        <h3>System się nie uruchamia</h3>
+        <p>Może być potrzebna naprawa systemu albo diagnostyka dysku.</p>
+      </article>
+      <article>
+        <h3>Podejrzenie wirusa</h3>
+        <p>Serwis sprawdzi system i usunie wykryte zagrożenia.</p>
+      </article>
+      <article>
+        <h3>Problem z dyskiem</h3>
+        <p>Warto sprawdzić stan nośnika i możliwość przeniesienia danych.</p>
+      </article>
+      <article>
+        <h3>Brak miejsca lub zawieszanie systemu</h3>
+        <p>Pomóc może porządkowanie danych, wymiana dysku albo naprawa systemu.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="catalog-help home-help" aria-label="Pomoc w wyborze usługi">
+    <div>
+      <span class="service-label">Pomoc w wyborze</span>
+      <h2>Nie wiesz, którą usługę wybrać?</h2>
+      <p>Jeżeli nie masz pewności, która usługa pasuje do problemu, wybierz indywidualną diagnozę i opisz objawy. Serwis określi dalszy zakres prac po sprawdzeniu sprzętu.</p>
+    </div>
+    <a class="button button--secondary" href="/services/">Przejdź do katalogu</a>
+  </section>
+
   <section class="home-section" aria-label="Przebieg obsługi zlecenia">
     <div class="section-title">
       <h2>Jak przebiega naprawa</h2>
-      <p>Zgłoś problem online, telefonicznie lub bezpośrednio w punkcie serwisowym, a następnie śledź postęp obsługi.</p>
+      <p>Od zgłoszenia do odbioru sprzętu w czterech prostych etapach.</p>
     </div>
 
-    <div class="process-grid">
+    <div class="process-grid process-grid--timeline">
       <article class="process-step">
-        <span>1</span>
+        <span class="process-step__number">1</span>
         <h3>Zgłoś problem</h3>
-        <p>Wybierz usługę online, umów termin telefonicznie lub odwiedź punkt serwisowy.</p>
+        <p>Online, telefonicznie lub w punkcie serwisowym.</p>
       </article>
       <article class="process-step">
-        <span>2</span>
+        <span class="process-step__number">2</span>
         <h3>Otrzymaj numer zlecenia</h3>
-        <p>Po przyjęciu zgłoszenia otrzymasz numer potrzebny do sprawdzania statusu.</p>
+        <p>Numer pozwala później sprawdzić status naprawy.</p>
       </article>
       <article class="process-step">
-        <span>3</span>
+        <span class="process-step__number">3</span>
         <h3>Śledź postęp naprawy</h3>
-        <p>Sprawdzaj aktualny etap obsługi oraz informacje przekazane przez serwis.</p>
+        <p>Widzisz aktualny etap i najważniejsze informacje.</p>
       </article>
       <article class="process-step">
-        <span>4</span>
+        <span class="process-step__number">4</span>
         <h3>Odbierz sprzęt</h3>
-        <p>Po zakończeniu naprawy możesz odebrać urządzenie w punkcie serwisowym.</p>
+        <p>Po zakończeniu prac odbierasz urządzenie w serwisie.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-section" aria-label="Dlaczego warto">
+    <div class="section-title">
+      <h2>Dlaczego warto?</h2>
+    </div>
+
+    <div class="trust-grid">
+      <article class="trust-point">
+        <h3>Status online</h3>
+        <p>Sprawdzisz aktualny etap obsługi bez zakładania konta.</p>
+      </article>
+      <article class="trust-point">
+        <h3>Historia zmian</h3>
+        <p>Zobaczysz najważniejsze zmiany statusu i komentarze publiczne serwisu.</p>
+      </article>
+      <article class="trust-point">
+        <h3>Wycena przed naprawą</h3>
+        <p>Poznasz orientacyjny koszt przed rozpoczęciem prac.</p>
+      </article>
+      <article class="trust-point">
+        <h3>Bez zakładania konta</h3>
+        <p>Do sprawdzenia zlecenia wystarczy numer zlecenia oraz e-mail albo telefon.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-section home-faq" aria-label="Najczęstsze pytania">
+    <div class="section-title">
+      <h2>FAQ</h2>
+      <p>Krótkie odpowiedzi na pytania, które najczęściej pojawiają się przed zgłoszeniem naprawy.</p>
+    </div>
+
+    <div class="faq-grid">
+      <article>
+        <h3>Czy muszę zakładać konto?</h3>
+        <p>Nie. Status zlecenia sprawdzisz za pomocą numeru zlecenia oraz e-maila albo telefonu podanego przy zgłoszeniu.</p>
+      </article>
+      <article>
+        <h3>Co zrobić, jeśli nie wiem, którą usługę wybrać?</h3>
+        <p>Wybierz indywidualną diagnozę i opisz objawy. Serwis określi dalszy zakres prac po sprawdzeniu sprzętu.</p>
+      </article>
+      <article>
+        <h3>Czy podana cena jest ostateczna?</h3>
+        <p>Nie zawsze. Ceny są orientacyjne, a ostateczna wycena zależy od diagnozy i zakresu prac.</p>
+      </article>
+      <article>
+        <h3>Jak sprawdzić status naprawy?</h3>
+        <p>Wejdź w zakładkę Śledź zlecenie i podaj numer zlecenia oraz e-mail albo telefon.</p>
+      </article>
+      <article>
+        <h3>Czy widzę komentarze serwisu?</h3>
+        <p>Tak, widoczne są komentarze oznaczone jako publiczne oraz najważniejsze zmiany statusu.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-section home-contact-section" aria-label="Kontakt z serwisem">
+    <div class="section-title">
+      <h2>Kontakt i godziny pracy</h2>
+      <p>Przyjęcie sprzętu jest możliwe po zgłoszeniu online, telefonicznym umówieniu terminu albo podczas wizyty w punkcie.</p>
+    </div>
+    <div class="contact-grid">
+      <article class="panel info-card">
+        <div class="panel__body">
+          <span class="metric__label">Kontakt</span>
+          <h3>Serwis komputerowy</h3>
+          <p>Telefon: 500 100 200<br>E-mail: kontakt@serwis.local<br>Lokalizacja: Warszawa</p>
+        </div>
+      </article>
+      <article class="panel info-card">
+        <div class="panel__body">
+          <span class="metric__label">Godziny pracy</span>
+          <dl class="hours-list">
+            <div><dt>Poniedziałek</dt><dd>9:00-17:00</dd></div>
+            <div><dt>Wtorek</dt><dd>9:00-17:00</dd></div>
+            <div><dt>Środa</dt><dd>9:00-17:00</dd></div>
+            <div><dt>Czwartek</dt><dd>9:00-17:00</dd></div>
+            <div><dt>Piątek</dt><dd>9:00-16:00</dd></div>
+            <div><dt>Sobota</dt><dd>10:00-14:00</dd></div>
+            <div><dt>Niedziela</dt><dd>nieczynne</dd></div>
+          </dl>
+        </div>
       </article>
     </div>
   </section>

@@ -28,20 +28,33 @@ class HomePageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Naprawa i obsługa sprzętu komputerowego")
-        self.assertContains(response, "Usługi serwisu")
+        self.assertContains(response, "Diagnostyka, czyszczenie")
+        self.assertContains(response, "Status online")
+        self.assertContains(response, "Bez zakładania konta")
+        self.assertContains(response, "Historia zmian")
+        self.assertContains(response, "Najczęstsze usługi")
+        self.assertContains(response, "Najczęstsze problemy")
+        self.assertContains(response, "Nie wiesz, którą usługę wybrać?")
         self.assertContains(response, "Jak przebiega naprawa")
         self.assertContains(response, "Zgłoś problem")
         self.assertContains(response, "Odbierz sprzęt")
+        self.assertContains(response, "Dlaczego warto?")
+        self.assertContains(response, "Wycena przed naprawą")
+        self.assertContains(response, "FAQ")
         self.assertContains(response, "Śledź zlecenie")
         self.assertContains(response, "Zgłoś naprawę")
         self.assertContains(response, "O nas")
+        self.assertContains(response, "500 100 200")
         self.assertContains(response, 'href="/about/"')
         self.assertContains(response, 'href="/services/"')
         self.assertContains(response, 'href="/track/"')
         self.assertContains(response, 'href="/staff/login/"')
-        self.assertNotContains(response, ">Usługi<")
+        self.assertContains(response, ">Usługi<")
+        self.assertContains(response, "System obsługi zleceń serwisowych")
+        self.assertContains(response, "2026")
         self.assertNotContains(response, "Utworzenie zlecenia")
-        self.assertNotContains(response, "Śledzenie statusu")
+        self.assertNotContains(response, "Aktualne zgłoszenie")
+        self.assertNotContains(response, "Diagnostyka laptopa")
         self.assertNotContains(response, "Panel technika")
         self.assertNotContains(response, "Admin")
         self.assertNotContains(response, 'href="/tech/dashboard/"')
@@ -68,7 +81,52 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Diagnostyka sprzętu")
         self.assertContains(response, "Sprawdzenie stanu komputera.")
         self.assertContains(response, "80,00 - 120,00 zł")
+        self.assertContains(response, "Wybierz usługę")
         self.assertNotContains(response, "Usługa ukryta")
+
+    def test_service_catalog_groups_services_and_uses_human_time_labels(self):
+        Service.objects.create(
+            name="Diagnostyka komputera lub laptopa",
+            description="Gdy nie wiadomo, co powoduje problem.",
+            base_price_min=80,
+            base_price_max=160,
+            is_active=True,
+        )
+        Service.objects.create(
+            name="Instalacja systemu Windows",
+            description="Instalacja systemu, sterowników i podstawowa konfiguracja.",
+            base_price_min=140,
+            base_price_max=260,
+            is_active=True,
+        )
+        Service.objects.create(
+            name="Inne / indywidualna diagnoza",
+            description="Dla problemów, które nie pasują do standardowych usług.",
+            base_price_min=0,
+            base_price_max=0,
+            pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+            is_active=True,
+        )
+
+        response = self.client.get(reverse("service_catalog"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Diagnostyka i naprawa")
+        self.assertContains(response, "System i oprogramowanie")
+        self.assertContains(response, "Ceny i terminy są orientacyjne")
+        self.assertContains(response, "Orientacyjnie: 1 dzień roboczy")
+        self.assertNotContains(response, "90 min")
+        self.assertContains(response, "Nie wiesz, którą usługę wybrać?")
+        self.assertContains(response, "Wybierz indywidualną diagnozę")
+
+    def test_track_page_explains_guest_access_result(self):
+        response = self.client.get(reverse("track_order"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Numer zlecenia znajdziesz w potwierdzeniu zgłoszenia")
+        self.assertContains(response, "Co zobaczysz po sprawdzeniu?")
+        self.assertContains(response, "aktualny status zlecenia")
+        self.assertContains(response, "komentarze publiczne od serwisu")
 
     def test_staff_user_sees_technician_navigation_only(self):
         User.objects.create_user(
@@ -149,8 +207,9 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Jak skorzystać z usługi")
         self.assertContains(response, "Godziny otwarcia")
         self.assertContains(response, "Adres serwisu")
-        self.assertContains(response, "Zajmujemy się diagnostyką i naprawą")
-        self.assertContains(response, "ul. Serwisowa 12")
+        self.assertContains(response, "Zajmujemy się diagnozą i naprawą")
+        self.assertContains(response, "Status zlecenia online")
+        self.assertContains(response, "500 100 200")
 
     def test_admin_index_uses_custom_dashboard(self):
         User.objects.create_superuser(

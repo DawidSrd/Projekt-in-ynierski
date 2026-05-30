@@ -10,7 +10,25 @@
     </div>
   </div>
 
-  <section class="panel">
+  <section class="track-intro" aria-label="Instrukcja śledzenia zlecenia">
+    <div class="notice-box">
+      <strong>Jak sprawdzić zlecenie?</strong>
+      <p>Numer zlecenia znajdziesz w potwierdzeniu zgłoszenia. Do weryfikacji podaj e-mail albo telefon użyty przy zgłoszeniu.</p>
+    </div>
+    <aside class="panel track-intro__details">
+      <div class="panel__body">
+        <h2>Co zobaczysz po sprawdzeniu?</h2>
+        <ul class="clean-check-list">
+          <li>aktualny status zlecenia</li>
+          <li>planowany termin zakończenia, jeżeli został ustawiony</li>
+          <li>komentarze publiczne od serwisu</li>
+          <li>historię najważniejszych zmian</li>
+        </ul>
+      </div>
+    </aside>
+  </section>
+
+  <section class="panel track-form-panel">
     <div class="panel__body">
       <form method="post">
         {% csrf_token %}
@@ -155,7 +173,7 @@
                   {% if result.customer_accepted_repair %}
                     <span class="metric__value metric__value--text">Zaakceptowana przez klienta</span>
                   {% else %}
-                    <span class="metric__value metric__value--text">Oczekuje na decyzję klienta</span>
+                    <span class="metric__value metric__value--text">Oczekuje na decyzję</span>
                   {% endif %}
                 </div>
               </div>

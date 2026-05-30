@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Serwis komputerowy{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'orders/app.css' %}?v=4" />
+  <link rel="stylesheet" href="{% static 'orders/styles.css' %}?v=9" />
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <header class="app-header">
@@ -41,11 +41,25 @@
 
   <footer class="app-footer">
     <div class="app-shell app-footer__inner">
-      <span>Serwis komputerowy</span>
+      <div class="app-footer__brand">
+        <strong>Serwis komputerowy</strong>
+        <span>System obsługi zleceń serwisowych z panelem klienta i pracownika.</span>
+        <span>2026</span>
+      </div>
       {% if request.user.is_staff %}
         <span>Zalogowano: {{ request.user.username }}</span>
       {% else %}
-        <a href="/staff/login/">Panel pracownika</a>
+        <nav class="app-footer__links" aria-label="Linki w stopce">
+          <a href="/services/">Usługi</a>
+          <a href="/track/">Śledź zlecenie</a>
+          <a href="/about/">O nas</a>
+          <a href="/staff/login/">Panel pracownika</a>
+        </nav>
+        <div class="app-footer__contact">
+          <span>Telefon: 500 100 200</span>
+          <span>E-mail: kontakt@serwis.local</span>
+          <span>Pon.-czw. 9:00-17:00, pt. 9:00-16:00, sob. 10:00-14:00</span>
+        </div>
       {% endif %}
     </div>
   </footer>
