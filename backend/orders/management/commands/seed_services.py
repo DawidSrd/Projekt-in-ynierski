@@ -29,19 +29,35 @@ def multi_group(name, options, sort=2):
     }
 
 
+def rename_legacy_service(old_name, new_name):
+    old_services = Service.objects.filter(name=old_name)
+    if not old_services.exists():
+        return
+
+    if Service.objects.filter(name=new_name).exists():
+        old_services.update(is_active=False)
+        return
+
+    old_services.update(name=new_name)
+
+
 class Command(BaseCommand):
     help = "Tworzy lub aktualizuje przykładowe usługi widoczne w katalogu klienta."
 
     def handle(self, *args, **options):
         rename_existing_services = {
-            "Czyszczenie i konserwacja układu chłodzenia": "Diagnostyka komputera lub laptopa",
-            "Instalacja lub reinstalacja systemu operacyjnego": "Czyszczenie i konserwacja laptopa/PC",
-            "Usuwanie wirusów i optymalizacja systemu": "Instalacja systemu Windows",
-            "Wymiana klawiatury lub baterii w laptopie": "Naprawa systemu i usuwanie wirusów",
-            "Odzyskiwanie danych z dysku": "Klonowanie dysku i przeniesienie danych",
+            "Diagnostyka komputera": "Diagnostyka komputera lub laptopa",
+            "Czyszczenie laptopa": "Czyszczenie i konserwacja laptopa/PC",
+            "Czyszczenie i konserwacja układu chłodzenia": "Czyszczenie i konserwacja laptopa/PC",
+            "Instalacja systemu operacyjnego": "Instalacja systemu Windows",
+            "Instalacja lub reinstalacja systemu operacyjnego": "Instalacja systemu Windows",
+            "Usuwanie wirusów i optymalizacja systemu": "Naprawa systemu i usuwanie wirusów",
+            "Wymiana dysku na SSD": "Wymiana dysku HDD/SSD",
+            "Wymiana klawiatury lub baterii w laptopie": "Wymiana klawiatury lub baterii",
+            "Odzyskiwanie danych z dysku": "Odzyskiwanie danych",
         }
         for old_name, new_name in rename_existing_services.items():
-            Service.objects.filter(name=old_name).update(name=new_name)
+            rename_legacy_service(old_name, new_name)
 
         services = [
             {
@@ -289,13 +305,7 @@ class Command(BaseCommand):
         ]
 
         desired_names = {service_data["name"] for service_data in services}
-        legacy_names = {
-            "Czyszczenie laptopa",
-            "Diagnostyka komputera",
-            "Instalacja systemu operacyjnego",
-            "Wymiana dysku na SSD",
-            *rename_existing_services.keys(),
-        }
+        legacy_names = set(rename_existing_services.keys())
 
         for service_data in services:
             service, _created = Service.objects.update_or_create(

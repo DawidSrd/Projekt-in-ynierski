@@ -23,10 +23,10 @@
       <span class="metric__label">Nowe</span>
       <span class="metric__value">{{ dashboard_counts.new }}</span>
     </a>
-    <a class="metric metric--link" href="/tech/dashboard/?scope={{ scope }}&status=IN_PROGRESS">
-      <span class="metric__label">W toku</span>
+    <div class="metric">
+      <span class="metric__label">W obsłudze</span>
       <span class="metric__value">{{ dashboard_counts.in_progress }}</span>
-    </a>
+    </div>
     <a class="metric metric--link" href="/tech/dashboard/?scope={{ scope }}&status=READY">
       <span class="metric__label">Gotowe</span>
       <span class="metric__value">{{ dashboard_counts.ready }}</span>
