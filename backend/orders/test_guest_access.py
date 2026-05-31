@@ -1,14 +1,8 @@
-from unittest.mock import patch
-
 from django.contrib.auth.models import User
-from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.contrib import admin
-from django.test import TestCase, override_settings
-from django.test.client import RequestFactory
+from django.test import TestCase
 from django.urls import reverse
 
-from .admin import ServiceOrderAdmin
 from .choices import ServiceOrderStatus
 from .models import (
     AuditLog,
@@ -30,10 +24,6 @@ class GuestAccessCancellationTests(TestCase):
             customer_phone="123456789",
         )
 
-    @override_settings(
-        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-        SITE_URL="https://serwis.test",
-    )
     def test_customer_can_cancel_new_order(self):
         response = self.client.post(
             reverse("track_order"),
@@ -58,30 +48,6 @@ class GuestAccessCancellationTests(TestCase):
         )
         self.assertContains(response, "Zlecenie zostało anulowane.")
         self.assertContains(response, "Zlecenie anulowane")
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn(
-            f"https://serwis.test/track/?order_number={self.order.order_number}",
-            mail.outbox[0].body,
-        )
-
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-    def test_customer_cancel_is_saved_when_email_fails(self):
-        with patch("orders.emails.send_mail", side_effect=RuntimeError("SMTP down")):
-            response = self.client.post(
-                reverse("track_order"),
-                {
-                    "action": "cancel_order",
-                    "order_number": self.order.order_number,
-                    "email": self.order.customer_email,
-                },
-            )
-
-        self.assertEqual(response.status_code, 200)
-        self.order.refresh_from_db()
-        self.assertEqual(self.order.status, ServiceOrderStatus.CANCELED)
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertContains(response, "Zlecenie zostało anulowane.")
-        self.assertContains(response, "Nie udało się wysłać wiadomości e-mail do klienta.")
 
     def test_customer_cannot_cancel_order_after_service_started(self):
         self.order.status = ServiceOrderStatus.IN_PROGRESS

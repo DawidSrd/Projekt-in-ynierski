@@ -1,6 +1,7 @@
 {% extends "orders/base.html" %}
 
 {% block title %}Szczegóły zlecenia | Serwis komputerowy{% endblock %}
+{% block body_class %}tech-detail-page{% endblock %}
 
 {% block content %}
   <div class="page-heading">
@@ -21,7 +22,7 @@
   {% endif %}
 
   <div class="detail-layout section">
-    <div class="stack">
+    <div class="stack tech-main-stack">
       {% include "orders/partials/tech_order_status_form.html" %}
       {% include "orders/partials/tech_order_diagnosis_form.html" %}
       {% include "orders/partials/tech_order_service_snapshot.html" %}
@@ -31,6 +32,4 @@
 
     {% include "orders/partials/tech_order_sidebar.html" %}
   </div>
-
-  {% include "orders/partials/tech_order_mail_script.html" %}
 {% endblock %}

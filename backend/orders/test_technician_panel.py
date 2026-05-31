@@ -2,13 +2,10 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.contrib import admin
 from django.test import TestCase
-from django.test.client import RequestFactory
 from django.urls import reverse
 from django.utils import timezone
 
-from .admin import ServiceOrderAdmin
 from .choices import ServiceOrderStatus
 from .models import (
     AuditLog,

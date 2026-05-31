@@ -1,14 +1,10 @@
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.contrib import admin
-from django.test import TestCase, override_settings
-from django.test.client import RequestFactory
+from django.test import TestCase
 from django.urls import reverse
 
-from .admin import ServiceOrderAdmin
 from .choices import ServiceOrderStatus
 from .models import (
     AuditLog,
@@ -101,10 +97,6 @@ class ServiceConfiguratorTests(TestCase):
         self.assertContains(response, "Wybierz opcję w grupie")
         self.assertContains(response, "Pasta termiczna")
 
-    @override_settings(
-        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-        SITE_URL="https://serwis.test",
-    )
     def test_required_option_group_accepts_selected_option(self):
         service = Service.objects.create(
             name="Czyszczenie laptopa",
@@ -144,10 +136,6 @@ class ServiceConfiguratorTests(TestCase):
         item = ServiceOrderItem.objects.get()
         self.assertEqual(item.calculated_price_min, 130)
         self.assertEqual(item.calculated_price_max, 200)
-        order = ServiceOrder.objects.get()
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("Potwierdzenie przyjęcia zlecenia", mail.outbox[0].subject)
-        self.assertIn(f"https://serwis.test/track/?order_number={order.order_number}", mail.outbox[0].body)
 
     def test_create_order_rolls_back_when_snapshot_option_save_fails(self):
         service = Service.objects.create(
@@ -193,38 +181,6 @@ class ServiceConfiguratorTests(TestCase):
         self.assertEqual(ServiceOrderItem.objects.count(), 0)
         self.assertEqual(ServiceOrderItemOption.objects.count(), 0)
         self.assertEqual(AuditLog.objects.count(), 0)
-
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-    def test_create_order_is_saved_when_confirmation_email_fails(self):
-        service = Service.objects.create(
-            name="Czyszczenie laptopa",
-            base_price_min=100,
-            base_price_max=150,
-        )
-
-        with patch("orders.emails.send_mail", side_effect=RuntimeError("SMTP down")):
-            response = self.client.post(
-                reverse("service_configurator", args=[service.id]),
-                {
-                    "customer_name": "Jan Kowalski",
-                    "customer_email": "jan@example.com",
-                    "customer_phone": "123456789",
-                    "customer_consent": "on",
-                    "device_type": ServiceOrder.DeviceType.LAPTOP,
-                    "device_brand": "Lenovo",
-                    "device_model": "ThinkPad T14",
-                    "device_issue_description": "Laptop nie uruchamia się po aktualizacji.",
-                    "action": "create_order",
-                },
-                follow=True,
-            )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(ServiceOrder.objects.count(), 1)
-        self.assertEqual(ServiceOrderItem.objects.count(), 1)
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertContains(response, "Zlecenie zostało zapisane")
-        self.assertContains(response, "nie udało się wysłać wiadomości e-mail")
 
     def test_price_calculation_shows_configured_duration(self):
         service = Service.objects.create(

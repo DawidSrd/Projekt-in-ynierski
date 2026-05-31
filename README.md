@@ -6,9 +6,8 @@ Projekt inżynierski: system do obsługi zleceń serwisowych z panelem klienta, 
 - Katalog usług z konfiguracją, wyceną i szacowanym czasem realizacji
 - Zlecenia serwisowe, statusy i historia zmian
 - Panel technika z przypisywaniem zleceń, diagnozą, komentarzami i załącznikami
-- Panel administratora do zarządzania ofertą i danymi systemu
+- Panel administratora do zarządzania kontami pracowników oraz ofertą usług
 - Śledzenie zlecenia bez zakładania konta klienta
-- Powiadomienia e-mail
 
 ## Uruchamianie projektu
 
@@ -74,38 +73,6 @@ POSTGRES_PORT=5433
 ```
 
 Jeśli zmienna `POSTGRES_DB` nie jest ustawiona, projekt awaryjnie uruchomi się na lokalnej bazie SQLite. Ten tryb jest traktowany tylko jako techniczna alternatywa, a nie główny sposób pracy nad projektem.
-
-## Adres aplikacji
-
-Zmienna `SITE_URL` określa adres używany w linkach wysyłanych do klienta, na przykład w wiadomości
-z potwierdzeniem zgłoszenia i przy zmianie statusu.
-
-```env
-SITE_URL=http://127.0.0.1:8000
-```
-
-Przy lokalnej pracy może zostać adres `127.0.0.1`. Po wdrożeniu na domenę należy ustawić tutaj właściwy
-adres aplikacji.
-
-## Konfiguracja wysyłki e-mail
-
-Domyślnie projekt korzysta z konsolowego backendu poczty. Oznacza to, że wiadomości są pokazywane
-w terminalu podczas pracy lokalnej, ale nie są wysyłane do klienta.
-
-Aby włączyć prawdziwą wysyłkę, uzupełnij w pliku `.env` dane serwera SMTP:
-
-```env
-EMAIL_HOST=smtp.twojadomena.pl
-EMAIL_PORT=587
-EMAIL_USE_TLS=true
-EMAIL_USE_SSL=false
-EMAIL_HOST_USER=adres_nadawcy@example.com
-EMAIL_HOST_PASSWORD=haslo_lub_haslo_aplikacji
-DEFAULT_FROM_EMAIL=adres_nadawcy@example.com
-```
-
-Prawdziwego hasła do poczty nie dodawaj do repozytorium. Plik `.env` zostaje tylko lokalnie na komputerze,
-a do gita trafia wyłącznie przykładowy plik `.env.example`.
 
 ## Dane przykładowe
 

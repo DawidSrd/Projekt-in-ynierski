@@ -1,11 +1,12 @@
-from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
+from decimal import Decimal
+
+from django.contrib.auth.models import Group, User
 from django.contrib import admin
 from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
 
-from .admin import ServiceOrderAdmin
+from .admin import StaffAccountAdmin, ServiceAdmin
 from .choices import ServiceOrderStatus
 from .models import (
     AuditLog,
@@ -211,7 +212,7 @@ class HomePageTests(TestCase):
         self.assertNotContains(response, "Historia obsługi")
         self.assertNotContains(response, "Wycena przed rozpoczęciem prac")
 
-    def test_admin_index_uses_custom_dashboard(self):
+    def test_admin_index_focuses_on_system_administration(self):
         User.objects.create_superuser(
             username="admin",
             password="testpass123",
@@ -235,17 +236,308 @@ class HomePageTests(TestCase):
         response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Panel administratora")
-        self.assertContains(response, "Administracja serwisem")
+        self.assertContains(response, "Administracja systemem")
+        self.assertContains(response, "Konta pracowników")
+        self.assertContains(response, "Dodaj konto")
+        self.assertContains(response, "Usługi i cennik")
         self.assertContains(response, "Panel technika")
         self.assertContains(response, 'href="/tech/dashboard/"')
-        self.assertContains(response, "Aktywne")
-        self.assertContains(response, "Nieprzypisane")
-        self.assertContains(response, "Czeka na klienta")
-        self.assertContains(response, "Ostatnie zlecenia")
-        self.assertContains(response, "Jan Kowalski")
-        self.assertContains(response, "Pokaż wszystkie dane systemu")
-        self.assertContains(response, "Ostatnie działania")
+        self.assertNotContains(response, "Pokaż stronę")
+        self.assertNotContains(response, "View site")
+        self.assertNotContains(response, '<a href="/admin/auth/user/">Konta</a>')
+        self.assertNotContains(response, '<a href="/admin/orders/service/">Usługi i cennik</a>')
+        self.assertNotContains(response, '<a class="service-admin-action" href="/tech/dashboard/">')
+        self.assertContains(response, "Usługi i cennik")
+        self.assertContains(response, "Usługi")
+        self.assertNotContains(response, "Lista do edycji")
+        self.assertNotContains(response, "Pytania w formularzu")
+        self.assertNotContains(response, "Odpowiedzi do wyboru")
+        self.assertNotContains(response, "Opcje usług")
+        self.assertNotContains(response, 'href="/admin/orders/serviceoptiongroup/"')
+        self.assertNotContains(response, 'href="/admin/orders/serviceoption/"')
+        self.assertNotContains(response, "Zaawansowane dane systemu")
+        self.assertNotContains(response, "Zlecenia i usługi")
+        self.assertNotContains(response, "Konfigurator usług")
+        self.assertNotContains(response, "Grupy opcji usług")
+        self.assertNotContains(response, "Zlecenia serwisowe")
+        self.assertNotContains(response, "Komentarze do zleceń")
+        self.assertNotContains(response, "Załączniki do zleceń")
+        self.assertNotContains(response, "Pozycje zleceń")
+        self.assertNotContains(response, "Wybrane opcje zleceń")
+        self.assertNotContains(response, "Historia zmian")
+        self.assertNotContains(response, "Zakres odpowiedzialności administratora")
+        self.assertNotContains(response, "Ostatnie działania")
+        self.assertNotContains(response, "Ostatnie zlecenia")
+        self.assertNotContains(response, "Jan Kowalski")
+        self.assertNotContains(response, "Czeka na klienta")
+        self.assertNotContains(response, "Ten panel służy")
+        self.assertNotContains(response, "Orders")
+        self.assertNotContains(response, "Services")
+        self.assertFalse(admin.site.is_registered(ServiceOrder))
+        self.assertFalse(admin.site.is_registered(ServiceOrderComment))
+        self.assertFalse(admin.site.is_registered(ServiceOrderAttachment))
+        self.assertFalse(admin.site.is_registered(ServiceOrderItem))
+        self.assertFalse(admin.site.is_registered(ServiceOrderItemOption))
+        self.assertFalse(admin.site.is_registered(AuditLog))
+        self.assertFalse(admin.site.is_registered(ServiceOptionGroup))
+        self.assertFalse(admin.site.is_registered(ServiceOption))
+        self.assertFalse(admin.site.is_registered(Group))
+
+    def test_admin_lists_do_not_show_filter_sidebar(self):
+        User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        self.client.login(username="admin", password="testpass123")
+
+        urls = [
+            reverse("admin:auth_user_changelist"),
+            reverse("admin:orders_service_changelist"),
+        ]
+
+        for url in urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(response, 'id="changelist-filter"')
+            self.assertNotContains(response, "Filtruj")
+
+    def test_user_admin_is_simple_for_employee_accounts(self):
+        admin_user = User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        technician = User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            email="technik@example.com",
+            is_staff=True,
+        )
+        self.client.login(username="admin", password="testpass123")
+
+        user_admin = admin.site._registry[User]
+        self.assertIsInstance(user_admin, StaffAccountAdmin)
+        self.assertEqual(user_admin.list_filter, ())
+        self.assertEqual(user_admin.filter_horizontal, ())
+        self.assertEqual(user_admin.search_fields, ())
+        self.assertIsNone(user_admin.actions)
+        self.assertNotIn("email", user_admin.list_display)
+        self.assertNotIn("is_active", user_admin.list_display)
+        self.assertNotIn("is_staff", user_admin.list_display)
+        self.assertIn("delete_account_link", user_admin.list_display)
+        self.assertNotIn("email", user_admin.fieldsets[1][1]["fields"])
+        self.assertNotIn("email", user_admin.add_fieldsets[0][1]["fields"])
+        self.assertNotIn("password", user_admin.fieldsets[0][1]["fields"])
+        self.assertIn("password_reset_link", user_admin.fieldsets[0][1]["fields"])
+        self.assertNotIn("is_active", user_admin.fieldsets[2][1]["fields"])
+        self.assertNotIn("is_staff", user_admin.fieldsets[2][1]["fields"])
+
+        response = self.client.get(reverse("admin:auth_user_change", args=[technician.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edycja konta pracownika")
+        self.assertContains(response, "Dane pracownika")
+        self.assertContains(response, "Dostęp do systemu")
+        self.assertContains(response, "Uprawnienia administratora")
+        self.assertContains(response, "Ustaw nowe hasło")
+        self.assertContains(response, reverse("admin:auth_user_password_change", args=[technician.id]))
+        self.assertNotContains(response, "Konto aktywne")
+        self.assertNotContains(response, "Dostęp do panelu pracownika")
+        self.assertNotContains(response, 'class="deletelink"')
+        self.assertNotContains(response, "Grupy")
+        self.assertNotContains(response, "Uprawnienia użytkownika")
+        self.assertNotContains(response, "Status superużytkownika")
+        self.assertNotContains(response, "Pozwala zarządzać")
+        self.assertNotContains(response, "Hasło nie jest widoczne po zapisie")
+        self.assertNotContains(response, "Zacznij pisać")
+        self.assertNotContains(response, "odfiltrować")
+        self.assertNotContains(response, "Adres e-mail")
+        self.assertNotContains(response, 'name="email"')
+        self.assertNotContains(response, "Zmień użytkownik")
+        self.assertNotContains(response, "pbkdf2_sha256")
+        self.assertNotContains(response, "algorytm")
+        self.assertNotContains(response, "iteracje")
+        self.assertNotContains(response, "sól")
+        self.assertNotContains(response, "hash")
+        self.assertNotContains(response, "Historia")
+        self.assertNotContains(response, "History")
+
+        password_response = self.client.get(reverse("admin:auth_user_password_change", args=[technician.id]))
+        self.assertEqual(password_response.status_code, 200)
+        self.assertNotContains(password_response, "Twoje hasło nie może")
+        self.assertNotContains(password_response, "Podpowiedzi")
+        self.assertNotContains(password_response, "podobne do twoich innych danych")
+
+        changelist_response = self.client.get(reverse("admin:auth_user_changelist"))
+        self.assertContains(changelist_response, "Konta pracowników")
+        self.assertContains(changelist_response, "Dodaj użytkownika")
+        self.assertContains(changelist_response, "Usuń")
+        self.assertContains(changelist_response, reverse("admin:auth_user_delete", args=[technician.id]))
+        self.assertNotContains(changelist_response, reverse("admin:auth_user_delete", args=[admin_user.id]))
+        self.assertNotContains(changelist_response, "<label>Akcja:")
+        self.assertNotContains(changelist_response, 'name="action"')
+        self.assertNotContains(changelist_response, "Konto aktywne")
+        self.assertNotContains(changelist_response, ">Dodaj użytkownik</a>")
+        self.assertNotContains(changelist_response, "Wybierz użytkownik do zmiany")
+
+        add_response = self.client.post(
+            reverse("admin:auth_user_add"),
+            {
+                "username": "nowy_admin",
+                "first_name": "Nowy",
+                "last_name": "Administrator",
+                "password1": "testpass123",
+                "password2": "testpass123",
+                "is_superuser": "on",
+                "_save": "Zapisz",
+            },
+        )
+
+        self.assertEqual(add_response.status_code, 302)
+        new_admin = User.objects.get(username="nowy_admin")
+        self.assertTrue(new_admin.is_staff)
+        self.assertTrue(new_admin.is_active)
+        self.assertTrue(new_admin.is_superuser)
+        self.assertEqual(new_admin.email, "")
+
+        self_delete_response = self.client.get(reverse("admin:auth_user_delete", args=[admin_user.id]))
+        self.assertEqual(self_delete_response.status_code, 403)
+
+    def test_service_admin_keeps_offer_editing_simple(self):
+        admin_user = User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        request = RequestFactory().get("/admin/")
+        request.user = admin_user
+
+        service_admin = ServiceAdmin(Service, admin.site)
+        service_form = service_admin.get_form(request)
+        self.assertEqual(len(service_admin.inlines), 1)
+        self.assertEqual(service_admin.inlines[0].model, ServiceOptionGroup)
+        self.assertEqual(service_admin.inlines[0].fields, ("name", "price_delta_min", "price_delta_max"))
+        self.assertFalse(service_admin.inlines[0].can_delete)
+        self.assertEqual(service_admin.list_filter, ())
+        self.assertEqual(service_admin.search_fields, ())
+        self.assertNotIn("sort_order", service_form.base_fields)
+        self.assertNotIn("pricing_mode", service_form.base_fields)
+        self.assertIn("manual_pricing", service_form.base_fields)
+        self.assertEqual(service_form.base_fields["name"].label, "Nazwa usługi")
+        self.assertEqual(service_form.base_fields["description"].label, "Opis")
+        self.assertEqual(service_form.base_fields["manual_pricing"].label, "Cena do ustalenia po diagnozie")
+        self.assertEqual(service_admin.readonly_fields, ())
+        self.assertNotIn(
+            ("Metadane", {"fields": ("created_at", "updated_at")}),
+            service_admin.fieldsets,
+        )
+
+        service = Service.objects.create(
+            name="Diagnostyka",
+            base_price_min=80,
+            base_price_max=160,
+        )
+        self.client.login(username="admin", password="testpass123")
+        changelist_response = self.client.get(reverse("admin:orders_service_changelist"))
+        self.assertContains(changelist_response, "Dodaj usługę")
+        self.assertContains(changelist_response, "Usuń zaznaczone")
+        self.assertNotContains(changelist_response, "Dodaj usługa")
+        self.assertNotContains(changelist_response, "<label>Akcja:")
+
+        change_response = self.client.get(reverse("admin:orders_service_change", args=[service.id]))
+        self.assertEqual(change_response.status_code, 200)
+        self.assertContains(change_response, "Opcje usługi")
+        self.assertContains(change_response, "Dopłata od")
+        self.assertContains(change_response, "Dopłata do")
+        self.assertContains(change_response, "Przy stałej cenie wpisz tę samą kwotę w obu polach.")
+        self.assertNotContains(change_response, "Zaznacz, jeżeli koszt usługi")
+        self.assertNotContains(change_response, 'name="option_groups-0-is_active"')
+        self.assertNotContains(change_response, 'name="option_groups-0-DELETE"')
+        self.assertNotContains(change_response, 'class="deletelink"')
+        self.assertNotContains(change_response, "Standard | 0,00 | 0,00")
+        self.assertNotContains(change_response, "Każda linia: nazwa opcji | dopłata od | dopłata do")
+        self.assertNotContains(change_response, "Historia")
+        self.assertNotContains(change_response, "History")
+
+    def test_service_admin_manual_pricing_checkbox_sets_pricing_mode(self):
+        admin_user = User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        request = RequestFactory().post("/admin/")
+        request.user = admin_user
+        service_admin = ServiceAdmin(Service, admin.site)
+        form_class = service_admin.get_form(request)
+
+        form = form_class(
+            data={
+                "name": "Indywidualna diagnoza",
+                "description": "Opis problemu ustalany po przyjęciu sprzętu.",
+                "is_active": "on",
+                "manual_pricing": "on",
+                "base_price_min": "0",
+                "base_price_max": "0",
+                "base_duration_minutes": "60",
+            }
+        )
+
+        self.assertTrue(form.is_valid())
+        service = form.save(commit=False)
+        self.assertEqual(service.pricing_mode, Service.PricingMode.MANUAL_AFTER_DIAGNOSIS)
+
+    def test_service_option_prices_are_saved_from_service_admin(self):
+        admin_user = User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        request = RequestFactory().post("/admin/")
+        request.user = admin_user
+        service = Service.objects.create(
+            name="Diagnostyka",
+            base_price_min=80,
+            base_price_max=160,
+        )
+        ServiceOptionGroup.objects.create(
+            service=service,
+            name="Zakres",
+            sort_order=10,
+        )
+
+        service_admin = ServiceAdmin(Service, admin.site)
+        inline = service_admin.inlines[0](Service, admin.site)
+        formset_class = inline.get_formset(request, service)
+        prefix = formset_class.get_default_prefix()
+        formset = formset_class(
+            data={
+                f"{prefix}-TOTAL_FORMS": "1",
+                f"{prefix}-INITIAL_FORMS": "0",
+                f"{prefix}-MIN_NUM_FORMS": "0",
+                f"{prefix}-MAX_NUM_FORMS": "1000",
+                f"{prefix}-0-name": "Tryb pilny",
+                f"{prefix}-0-price_delta_min": "50",
+                f"{prefix}-0-price_delta_max": "100",
+            },
+            instance=service,
+            prefix=prefix,
+        )
+
+        self.assertTrue(formset.is_valid(), formset.errors)
+        formset.save()
+
+        new_group = ServiceOptionGroup.objects.get(service=service, name="Tryb pilny")
+        self.assertEqual(new_group.sort_order, 20)
+        self.assertEqual(new_group.selection_type, ServiceOptionGroup.SelectionType.MULTI)
+        self.assertFalse(new_group.is_required)
+        self.assertTrue(new_group.is_active)
+        self.assertEqual(
+            list(new_group.options.values_list("name", "price_delta_min", "price_delta_max", "sort_order", "is_active")),
+            [
+                ("Tryb pilny", Decimal("50.00"), Decimal("100.00"), 10, True),
+            ],
+        )
 
     def test_staff_login_page_is_available(self):
         response = self.client.get(reverse("staff_login"))
@@ -319,81 +611,3 @@ class HomePageTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/admin/login/", response["Location"])
-
-    def test_admin_status_change_logs_audit_entry_without_email_option(self):
-        admin_user = User.objects.create_superuser(
-            username="admin",
-            password="testpass123",
-            email="admin@example.com",
-        )
-        order = ServiceOrder.objects.create(
-            customer_name="Jan Kowalski",
-            customer_email="jan@example.com",
-            customer_phone="123456789",
-        )
-        model_admin = ServiceOrderAdmin(ServiceOrder, admin.site)
-        request = RequestFactory().post("/admin/")
-        request.user = admin_user
-        form_class = model_admin.get_form(request, order)
-        self.assertNotIn("notify_customer", form_class.base_fields)
-
-        form = form_class(
-            data={
-                "status": ServiceOrderStatus.RECEIVED,
-                "customer_name": order.customer_name,
-                "customer_email": order.customer_email,
-                "customer_phone": order.customer_phone,
-                "device_type": "",
-                "device_brand": "",
-                "device_model": "",
-                "device_issue_description": "",
-                "diagnosis": "",
-                "repair_notes": "",
-                "final_price": "",
-                "customer_accepted_repair": "",
-                "assigned_technician": "",
-                "estimated_completion_at_0": "",
-                "estimated_completion_at_1": "",
-            },
-            instance=order,
-        )
-        self.assertTrue(form.is_valid())
-        model_admin.save_model(request, form.instance, form, True)
-        self.assertTrue(
-            AuditLog.objects.filter(
-                order=order,
-                action=AuditLog.Action.STATUS_CHANGED,
-                old_value=ServiceOrderStatus.NEW,
-                new_value=ServiceOrderStatus.RECEIVED,
-                performed_by=admin_user,
-            ).exists()
-        )
-
-    def test_admin_order_page_uses_secure_attachment_link(self):
-        User.objects.create_superuser(
-            username="admin",
-            password="testpass123",
-            email="admin@example.com",
-        )
-        order = ServiceOrder.objects.create(
-            customer_name="Jan Kowalski",
-            customer_email="jan@example.com",
-            customer_phone="123456789",
-        )
-        attachment = ServiceOrderAttachment.objects.create(
-            order=order,
-            visibility=ServiceOrderAttachment.Visibility.PUBLIC,
-            file=SimpleUploadedFile(
-                "diagnoza.pdf",
-                b"test-pdf-content",
-                content_type="application/pdf",
-            ),
-            original_name="diagnoza.pdf",
-        )
-        self.client.login(username="admin", password="testpass123")
-
-        response = self.client.get(reverse("admin:orders_serviceorder_change", args=[order.id]))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, reverse("attachment_download", args=[attachment.id]))
-        self.assertNotContains(response, attachment.file.url)

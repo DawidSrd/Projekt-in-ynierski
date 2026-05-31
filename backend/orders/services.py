@@ -17,12 +17,6 @@ from .audit import (
     log_technician_assigned,
 )
 from .choices import ServiceOrderStatus, can_change_order_status
-from .emails import (
-    build_order_cancellation_email,
-    build_order_confirmation_email,
-    build_status_change_email,
-    send_customer_email,
-)
 from .models import (
     Service,
     ServiceOption,
@@ -168,7 +162,7 @@ def create_configured_order(service, selected_options, total_min, total_max, dat
                 *device_errors,
                 *([attachment_error] if attachment_error else []),
             ]
-        ), None
+        )
 
     with transaction.atomic():
         order = ServiceOrder.objects.create(
@@ -212,9 +206,7 @@ def create_configured_order(service, selected_options, total_min, total_max, dat
                 price_delta_max_snapshot=option.price_delta_max,
             )
 
-    subject, message = build_order_confirmation_email(order)
-    email_sent = send_customer_email(subject, message, order.customer_email)
-    return order, None, "sent" if email_sent else "failed"
+    return order, None
 
 
 def create_staff_order(data, user):
@@ -222,18 +214,17 @@ def create_staff_order(data, user):
     customer_name = (data.get("customer_name") or "").strip()
     customer_email = (data.get("customer_email") or "").strip().lower()
     customer_phone = (data.get("customer_phone") or "").strip()
-    customer_consent = data.get("customer_consent") == "on"
     device_type = (data.get("device_type") or "").strip()
     device_brand = (data.get("device_brand") or "").strip()
     device_model = (data.get("device_model") or "").strip()
     device_issue_description = (data.get("device_issue_description") or "").strip()
-    notify_customer = data.get("notify_customer") == "on"
-
+    # Przyjęcie sprzętu w punkcie wymaga danych kontaktowych do obsługi zlecenia,
+    # dlatego nie zbieramy tu dodatkowej zgody na kontakt.
     customer_errors = get_customer_order_errors(
         customer_name,
         customer_email,
         customer_phone,
-        customer_consent,
+        True,
     )
     device_errors = get_device_order_errors(
         device_type,
@@ -251,7 +242,7 @@ def create_staff_order(data, user):
         service_errors.append("Wybierz usługę z katalogu.")
 
     if customer_errors or device_errors or service_errors:
-        return None, " ".join([*service_errors, *customer_errors, *device_errors]), None
+        return None, " ".join([*service_errors, *customer_errors, *device_errors])
 
     calculated_min = service.base_price_min
     calculated_max = service.base_price_max
@@ -285,12 +276,7 @@ def create_staff_order(data, user):
             calculated_price_max=calculated_max,
         )
 
-    if notify_customer:
-        subject, message = build_order_confirmation_email(order)
-        email_sent = send_customer_email(subject, message, order.customer_email)
-        return order, None, "sent" if email_sent else "failed"
-
-    return order, None, "skipped"
+    return order, None
 
 
 def cancel_customer_order(order):
@@ -305,16 +291,7 @@ def cancel_customer_order(order):
     order.save()
     log_order_canceled(order, old_status)
 
-    subject, message = build_order_cancellation_email(order)
-    email_sent = send_customer_email(subject, message, order.customer_email)
-
-    if email_sent:
-        return "Zlecenie zostało anulowane.", None
-
-    return (
-        "Zlecenie zostało anulowane. Nie udało się wysłać wiadomości e-mail do klienta.",
-        None,
-    )
+    return "Zlecenie zostało anulowane.", None
 
 
 def accept_customer_repair(order):
@@ -356,10 +333,9 @@ def claim_order_for_technician(order, user):
     return None, "Zlecenie jest już przypisane do innego technika."
 
 
-def update_order_status(order, user, new_status, estimate_raw, notify_customer):
+def update_order_status(order, user, new_status, estimate_raw):
     old_status = order.status
     old_estimate = order.estimated_completion_at
-    email_sent = None
 
     if new_status not in dict(ServiceOrderStatus.choices):
         return None, "Wybrano nieprawidłowy status."
@@ -384,21 +360,8 @@ def update_order_status(order, user, new_status, estimate_raw, notify_customer):
     if old_status != order.status:
         log_status_changed(order, old_status, user)
 
-        if notify_customer:
-            subject, message = build_status_change_email(order)
-            email_sent = send_customer_email(subject, message, order.customer_email)
-
     if old_estimate != order.estimated_completion_at:
         log_estimate_set(order, old_estimate, user)
-
-    if notify_customer and old_status != order.status and email_sent:
-        return "Zlecenie zostało zaktualizowane, a klient otrzymał wiadomość e-mail.", None
-
-    if notify_customer and old_status != order.status and email_sent is False:
-        return (
-            "Zlecenie zostało zaktualizowane. Nie udało się wysłać wiadomości e-mail do klienta.",
-            None,
-        )
 
     return "Zlecenie zostało zaktualizowane.", None
 

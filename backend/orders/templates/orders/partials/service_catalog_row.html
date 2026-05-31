@@ -1,0 +1,45 @@
+<article class="catalog-service-row">
+  <div class="catalog-service-row__main">
+    <span class="service-label">
+      {% if "Diagnostyka" in s.name %}Diagnoza
+      {% elif "system" in s.name or "Windows" in s.name or "wirus" in s.name %}System
+      {% elif "Wymiana dysku" in s.name %}Dysk
+      {% elif "danych" in s.name or "Klonowanie" in s.name or "Odzyskiwanie" in s.name %}Dane
+      {% elif "laptop" in s.name or "matrycy" in s.name or "klawiatury" in s.name or "baterii" in s.name %}Laptop
+      {% else %}Inne{% endif %}
+    </span>
+    <h3>{{ s.name }}</h3>
+    {% if s.description %}
+      <p>{{ s.description }}</p>
+    {% endif %}
+  </div>
+
+  <div class="catalog-service-row__meta">
+    <div>
+      <span>Cena</span>
+      {% if s.requires_manual_pricing %}
+        <strong>Po diagnozie</strong>
+      {% else %}
+        <strong>{{ s.base_price_min }} - {{ s.base_price_max }} zł</strong>
+      {% endif %}
+    </div>
+    <div>
+      <span>Czas</span>
+      <strong>
+        {% if "Diagnostyka" in s.name %}Orientacyjnie: 1 dzień roboczy
+        {% elif "Czyszczenie" in s.name %}Orientacyjnie: 1-2 dni robocze
+        {% elif "Windows" in s.name or "Instalacja" in s.name %}Orientacyjnie: 1 dzień roboczy
+        {% elif "wirus" in s.name or "systemu" in s.name %}Orientacyjnie: 1-2 dni robocze
+        {% elif "Wymiana dysku" in s.name %}Orientacyjnie: 1 dzień roboczy
+        {% elif "RAM" in s.name %}Orientacyjnie: 1 dzień roboczy, jeśli część jest dostępna
+        {% elif "Klonowanie" in s.name %}Orientacyjnie: 1-2 dni robocze
+        {% elif "Odzyskiwanie" in s.name %}Orientacyjnie: 2-5 dni roboczych
+        {% elif "matrycy" in s.name %}Orientacyjnie: 1-3 dni robocze, zależnie od części
+        {% elif "klawiatury" in s.name or "baterii" in s.name %}Orientacyjnie: 1-3 dni robocze, zależnie od części
+        {% else %}Czas ustalany po diagnozie{% endif %}
+      </strong>
+    </div>
+  </div>
+
+  <a class="catalog-service-row__action" href="/services/{{ s.id }}/">Wybierz usługę</a>
+</article>

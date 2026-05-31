@@ -21,14 +21,8 @@
             <p>Do sprawdzenia statusu potrzebujesz numeru zlecenia oraz e-maila albo telefonu podanego w formularzu.</p>
           </div>
           <div>
-            <span class="metric__label">Potwierdzenie</span>
-            {% if email_status == "failed" %}
-              <p>Zlecenie zostało zapisane, ale nie udało się wysłać wiadomości e-mail. Numer zlecenia jest wystarczający do śledzenia statusu.</p>
-            {% elif email_status == "sent" %}
-              <p>Na podany adres e-mail została wysłana wiadomość z podstawowymi informacjami o zgłoszeniu.</p>
-            {% else %}
-              <p>Numer zlecenia jest wystarczający do śledzenia statusu zgłoszenia.</p>
-            {% endif %}
+            <span class="metric__label">Co dalej?</span>
+            <p>Numer zlecenia jest wystarczający do śledzenia statusu zgłoszenia online.</p>
           </div>
         </div>
 

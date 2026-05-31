@@ -209,7 +209,7 @@ textarea {
 }
 
 .service-admin-dashboard-page #content {
-  max-width: 1180px;
+  max-width: 860px;
 }
 
 .service-admin-dashboard {
@@ -218,186 +218,80 @@ textarea {
 }
 
 .service-admin-panel {
-  padding: 24px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 10px 24px rgba(27, 36, 48, 0.07);
-}
-
-.service-admin-eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 700;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .service-admin-panel h1 {
-  margin: 0 0 10px;
-  font-size: 28px;
-}
-
-.service-admin-panel p {
-  max-width: 620px;
   margin: 0;
-  color: var(--body-quiet-color);
+  font-size: 28px;
 }
 
 .service-admin-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
   margin-top: 22px;
-}
-
-.service-admin-stats {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.service-admin-stat {
-  min-height: 94px;
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 8px 20px rgba(27, 36, 48, 0.05);
-}
-
-.service-admin-stat span {
-  display: block;
-  color: var(--body-quiet-color);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.service-admin-stat strong {
-  display: block;
-  margin-top: 8px;
-  color: #1b2430;
-  font-size: 28px;
-}
-
-.service-admin-stat--danger {
-  border-color: #f0b8b2;
-  background: #fff7f6;
-}
-
-.service-admin-stat--danger strong {
-  color: #b42318;
+  border-top: 1px solid var(--border-color);
 }
 
 .service-admin-action {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 112px;
-  padding: 18px 20px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: #fafbfc;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
   color: var(--body-fg);
   text-decoration: none;
 }
 
+.service-admin-action::after {
+  color: var(--accent);
+  content: "Przejdź";
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .service-admin-action:hover {
-  border-color: var(--primary);
-  background: var(--selected-bg);
+  background: transparent;
   color: var(--body-fg);
 }
 
-.service-admin-action--primary {
-  border-color: #f1c36d;
-  background: #fff7ed;
+.service-admin-action:hover span {
+  color: var(--link-hover-color);
 }
 
 .service-admin-action span {
   color: #1b2430;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
 }
 
-.service-admin-action small {
-  margin-top: 6px;
-  color: var(--body-quiet-color);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.service-admin-section-heading {
+.service-delete-action {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  justify-content: flex-start;
+  padding: 12px 0;
 }
 
-.service-admin-section-heading h2 {
-  margin: 0;
-  color: #1b2430;
-  font-size: 20px;
+.service-delete-action .button {
+  border-color: #c03221;
+  background: #c03221;
+  color: #ffffff;
 }
 
-.service-admin-section-heading a {
+.service-delete-action .button:hover {
+  border-color: #9c2619;
+  background: #9c2619;
+}
+
+.service-inline-delete {
+  color: #b42318;
   font-weight: 700;
 }
 
-.service-admin-table-wrap {
-  overflow-x: auto;
-}
-
-.service-admin-orders table {
-  width: 100%;
-}
-
-.service-admin-orders th,
-.service-admin-orders td {
-  padding: 12px;
-}
-
-.service-admin-details {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 8px 20px rgba(31, 42, 39, 0.05);
-}
-
-.service-admin-details summary {
-  padding: 15px 18px;
-  color: #1e2f2a;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.service-admin-details[open] summary {
-  border-bottom: 1px solid var(--hairline-color);
-}
-
-.service-admin-app-list {
-  padding: 16px;
-}
-
-.service-admin-app-list .module {
-  box-shadow: none;
-}
-
-.service-admin-recent .module {
-  border-top: 4px solid var(--accent);
-}
-
-.service-admin-empty {
-  padding: 18px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: #ffffff;
-}
-
-@media (max-width: 1100px) {
-  .service-admin-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.service-inline-delete:hover {
+  color: #861b12;
 }
 
 @media (max-width: 767px) {
@@ -419,13 +313,5 @@ textarea {
 
   #content {
     padding: 18px;
-  }
-
-  .service-admin-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .service-admin-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

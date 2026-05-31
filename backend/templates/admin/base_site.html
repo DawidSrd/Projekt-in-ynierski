@@ -1,11 +1,11 @@
 {% extends "admin/base.html" %}
-{% load static %}
+{% load i18n static %}
 
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Serwis komputerowy{% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'orders/admin.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'orders/admin.css' %}?v=9">
 {% endblock %}
 
 {% block branding %}
@@ -20,8 +20,16 @@
 {% block nav-global %}
 <nav class="service-admin-shortcuts" aria-label="Skróty administracyjne">
   <a href="/tech/dashboard/">Panel technika</a>
-  <a href="{% url 'admin:orders_service_changelist' %}">Usługi</a>
-  <a href="{% url 'admin:orders_serviceorder_changelist' %}">Zlecenia</a>
-  <a href="{% url 'admin:orders_auditlog_changelist' %}">Audit log</a>
 </nav>
+{% endblock %}
+
+{% block userlinks %}
+  {% if user.has_usable_password %}
+    <a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a> /
+  {% endif %}
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+    {% csrf_token %}
+    <button type="submit">{% translate 'Log out' %}</button>
+  </form>
+  {% include "admin/color_theme_toggle.html" %}
 {% endblock %}

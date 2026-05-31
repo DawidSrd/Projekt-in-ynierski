@@ -39,6 +39,10 @@ class Service(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = "usługa"
+        verbose_name_plural = "Usługi"
+
     def __str__(self) -> str:
         return self.name
 
@@ -76,6 +80,10 @@ class ServiceOptionGroup(models.Model):
 
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        verbose_name = "opcja usługi"
+        verbose_name_plural = "Opcje usług"
+
     def __str__(self) -> str:
         return f"{self.service.name} / {self.name}"
 
@@ -101,6 +109,10 @@ class ServiceOption(models.Model):
 
     sort_order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "wariant opcji"
+        verbose_name_plural = "Warianty opcji"
 
     def __str__(self) -> str:
         return f"{self.group.name} / {self.name}"
@@ -181,6 +193,10 @@ class ServiceOrder(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = "zlecenie serwisowe"
+        verbose_name_plural = "Zlecenia serwisowe"
+
     def can_cancel(self) -> bool:
         """
         Reguła biznesowa: anulowanie dozwolone tylko w statusie NEW.
@@ -247,6 +263,10 @@ class ServiceOrderComment(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = "komentarz do zlecenia"
+        verbose_name_plural = "Komentarze do zleceń"
+
     def __str__(self) -> str:
         return f"Comment({self.visibility}) for {self.order.order_number}"
     
@@ -277,6 +297,10 @@ class ServiceOrderAttachment(models.Model):
         related_name="service_order_attachments",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "załącznik do zlecenia"
+        verbose_name_plural = "Załączniki do zleceń"
 
     def __str__(self) -> str:
         return f"Attachment({self.visibility}) for {self.order.order_number}"
@@ -316,6 +340,10 @@ class ServiceOrderItem(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = "pozycja zlecenia"
+        verbose_name_plural = "Pozycje zleceń"
+
     def __str__(self) -> str:
         return f"Item for {self.order.order_number} / {self.service_name_snapshot}"
 
@@ -344,6 +372,10 @@ class ServiceOrderItemOption(models.Model):
 
     price_delta_min_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
     price_delta_max_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        verbose_name = "wybrana opcja zlecenia"
+        verbose_name_plural = "Wybrane opcje zleceń"
 
     def __str__(self) -> str:
         return f"{self.option_name_snapshot}"
@@ -407,6 +439,10 @@ class AuditLog(models.Model):
     )
 
     performed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "wpis historii zmian"
+        verbose_name_plural = "Historia zmian"
 
     def __str__(self) -> str:
         return f"{self.entity_type}#{self.entity_id} {self.action}"

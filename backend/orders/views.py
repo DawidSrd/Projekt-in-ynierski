@@ -274,7 +274,7 @@ def service_configurator(request, service_id: int):
         action = request.POST.get("action")
 
         if action == "create_order":
-            order, error, email_status = create_configured_order(
+            order, error = create_configured_order(
                 service,
                 selection["selected_options"],
                 selection["total_min"],
@@ -287,10 +287,6 @@ def service_configurator(request, service_id: int):
             if error:
                 result["error"] = error
             else:
-                request.session[f"order_created_email_status_{order.order_number}"] = (
-                    email_status
-                )
-
                 return redirect("order_created", order_number=order.order_number)
 
     return render(
@@ -314,14 +310,12 @@ def order_created(request, order_number: str):
     if staff_redirect:
         return staff_redirect
 
-    email_status = request.session.pop(f"order_created_email_status_{order_number}", "unknown")
     return render(
         request,
         "orders/order_created.html",
         {
             "order_number": order_number,
             "track_url": f"/track/?order_number={order_number}",
-            "email_status": email_status,
         },
     )
 
@@ -471,25 +465,21 @@ def tech_order_create(request):
     """
     services = Service.objects.filter(is_active=True).order_by("id")
     error = None
-    email_status = None
     form_defaults = get_customer_defaults(request.POST if request.method == "POST" else None)
     selected_service_id = (request.POST.get("service_id") or "") if request.method == "POST" else ""
-    notify_customer = request.method != "POST" or request.POST.get("notify_customer") == "on"
 
     if request.method == "POST":
-        order, error, email_status = create_staff_order(request.POST, request.user)
+        order, error = create_staff_order(request.POST, request.user)
         if order and not error:
-            return redirect(f"/tech/orders/{order.order_number}/?created=1&email_status={email_status}")
+            return redirect(f"/tech/orders/{order.order_number}/?created=1")
 
     return render(
         request,
         "orders/tech_order_create.html",
         {
             "device_type_choices": ServiceOrder.DeviceType.choices,
-            "email_status": email_status,
             "error": error,
             "form_defaults": form_defaults,
-            "notify_customer": notify_customer,
             "selected_service_id": selected_service_id,
             "services": services,
         },
@@ -506,13 +496,7 @@ def tech_order_detail(request, order_number: str):
     error = None
 
     if request.GET.get("created") == "1":
-        email_status = request.GET.get("email_status")
-        if email_status == "sent":
-            message = "Zlecenie zostało utworzone i wysłano potwierdzenie e-mail do klienta."
-        elif email_status == "failed":
-            message = "Zlecenie zostało utworzone, ale nie udało się wysłać potwierdzenia e-mail."
-        else:
-            message = "Zlecenie zostało utworzone."
+        message = "Zlecenie zostało utworzone."
 
     if request.method == "POST":
         action = request.POST.get("action") or "update_order"
@@ -523,13 +507,11 @@ def tech_order_detail(request, order_number: str):
         elif action == "update_order":
             new_status = request.POST.get("status")
             estimate_raw = (request.POST.get("estimated_completion_at") or "").strip()
-            notify_customer = request.POST.get("notify_customer") == "on"
             message, error = update_order_status(
                 order,
                 request.user,
                 new_status,
                 estimate_raw,
-                notify_customer,
             )
 
         elif action == "add_comment":
