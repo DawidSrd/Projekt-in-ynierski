@@ -29,9 +29,10 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Utwórz zgłoszenie przed wizytą")
         self.assertContains(response, "Przyjęcie sprzętu")
         self.assertContains(response, "na miejscu przy odbiorze")
-        self.assertContains(response, "Najczęstsze usługi")
-        self.assertContains(response, "Najczęstsze problemy")
-        self.assertContains(response, "Nie pasuje żadna konkretna usługa?")
+        self.assertContains(response, "Czym się zajmujemy")
+        self.assertContains(response, "Nie widzisz swojego problemu na liście?")
+        self.assertContains(response, "Przejdź do katalogu")
+        self.assertContains(response, "Telefon: 500 100 200")
         self.assertContains(response, "Jak wygląda obsługa")
         self.assertContains(response, "Zgłaszasz problem")
         self.assertContains(response, "Odbierasz sprzęt")
@@ -58,7 +59,7 @@ class HomePageTests(TestCase):
         self.assertNotContains(response, 'href="/tech/dashboard/"')
         self.assertNotContains(response, 'href="/admin/"')
 
-    def test_home_page_shows_active_services_preview(self):
+    def test_home_page_uses_general_service_scope_instead_of_service_preview(self):
         Service.objects.create(
             name="Diagnostyka sprzętu",
             description="Sprawdzenie stanu komputera.",
@@ -76,10 +77,14 @@ class HomePageTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Diagnostyka sprzętu")
-        self.assertContains(response, "Sprawdzenie stanu komputera.")
-        self.assertContains(response, "80,00 - 120,00 zł")
-        self.assertContains(response, "Wybierz usługę")
+        self.assertContains(response, "diagnostyka laptopów i komputerów")
+        self.assertContains(response, "indywidualna diagnoza problemów")
+        self.assertContains(response, 'href="/services/"')
+        self.assertNotContains(response, 'href="tel:500100200"')
+        self.assertNotContains(response, "Diagnostyka sprzętu")
+        self.assertNotContains(response, "Sprawdzenie stanu komputera.")
+        self.assertNotContains(response, "80,00 - 120,00 zł")
+        self.assertNotContains(response, "Wybierz usługę")
         self.assertNotContains(response, "Usługa ukryta")
 
     def test_service_catalog_groups_services_and_uses_human_time_labels(self):
@@ -202,13 +207,16 @@ class HomePageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "O nas")
         self.assertContains(response, "Czym się zajmujemy")
-        self.assertContains(response, "Zakres prac")
+        self.assertContains(response, "Zakres obsługi")
         self.assertContains(response, "Jak skorzystać z usługi")
         self.assertContains(response, "Godziny otwarcia")
         self.assertContains(response, "Kontakt")
         self.assertContains(response, "Zajmujemy się diagnozą i naprawą")
         self.assertContains(response, "sprawdzić aktualny status naprawy")
+        self.assertContains(response, "Nie musisz zakładać konta")
+        self.assertContains(response, "indywidualna diagnoza problemów")
         self.assertContains(response, "500 100 200")
+        self.assertNotContains(response, "klient nie musi")
         self.assertNotContains(response, "Historia obsługi")
         self.assertNotContains(response, "Wycena przed rozpoczęciem prac")
 

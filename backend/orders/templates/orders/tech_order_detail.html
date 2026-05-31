@@ -9,7 +9,13 @@
       <h1>Zlecenie {{ order.order_number }}</h1>
       <p>Karta obsługi zlecenia serwisowego.</p>
     </div>
-    <a class="button button--ghost" href="/tech/dashboard/">Wróć do panelu technika</a>
+    <div class="page-heading__actions">
+      <a class="button button--ghost" href="/tech/dashboard/">Wróć do panelu technika</a>
+      <form method="post" action="{% url 'tech_order_delete' order.order_number %}" onsubmit="return confirm('Czy na pewno chcesz usunąć to zgłoszenie? Tej operacji nie można cofnąć.');">
+        {% csrf_token %}
+        <button class="button--danger" type="submit">Usuń zgłoszenie</button>
+      </form>
+    </div>
   </div>
 
   {% include "orders/partials/tech_order_summary.html" %}

@@ -25,87 +25,32 @@
     </aside>
   </section>
 
-  <section class="home-section" aria-label="Usługi serwisu">
-    <div class="section-title section-title--row">
-      <div>
-        <h2>Najczęstsze usługi</h2>
-        <p>Krótki wybór usług najczęściej zgłaszanych w serwisie. Pełna oferta jest dostępna w katalogu.</p>
+  <section class="home-section service-scope" aria-label="Zakres obsługi serwisu">
+    <div class="service-scope__intro">
+      <h2>Czym się zajmujemy</h2>
+      <p>Zajmujemy się diagnozą i naprawą laptopów oraz komputerów stacjonarnych. Pomagamy przy problemach ze sprzętem, systemem Windows, wolnym działaniem komputera, przegrzewaniem, wymianą dysku, rozbudową pamięci RAM i odzyskiwaniem danych.</p>
+    </div>
+
+    <div class="service-scope__content">
+      <ul class="scope-list">
+        <li>diagnostyka laptopów i komputerów;</li>
+        <li>czyszczenie i konserwacja układu chłodzenia;</li>
+        <li>instalacja oraz naprawa systemu Windows;</li>
+        <li>wymiana dysku i rozbudowa pamięci RAM;</li>
+        <li>przenoszenie i odzyskiwanie danych;</li>
+        <li>wybrane naprawy laptopów, np. wymiana matrycy, klawiatury lub baterii;</li>
+        <li>indywidualna diagnoza problemów, które nie pasują do standardowych usług.</li>
+      </ul>
+
+      <div class="scope-note">
+        <h3>Nie widzisz swojego problemu na liście?</h3>
+        <p>Jeśli problem nie znajduje się na liście, możesz wybrać indywidualną diagnozę w katalogu usług albo skontaktować się z serwisem telefonicznie.</p>
+        <div class="scope-note__actions">
+          <a class="button button--secondary" href="/services/">Przejdź do katalogu</a>
+          <span class="scope-phone">Telefon: 500 100 200</span>
+        </div>
       </div>
-      <a class="button button--ghost" href="/services/">Zobacz wszystkie usługi</a>
     </div>
-
-    {% if services %}
-      <div class="home-service-grid">
-        {% for service in services %}
-          <a class="home-service" href="/services/{{ service.id }}/">
-            <span class="home-service__top">
-              <span class="home-service__icon" aria-hidden="true">{% cycle "Diagnoza" "Laptop" "System" "Dysk" %}</span>
-              <span class="home-service__name">{{ service.name }}</span>
-            </span>
-            {% if service.description %}
-              <span class="home-service__description">{{ service.description }}</span>
-            {% else %}
-              <span class="home-service__description">Opis usługi zostanie uzupełniony.</span>
-            {% endif %}
-            <span class="home-service__footer">
-              <span class="home-service__price">
-                <span>Cena</span>
-                <strong>{{ service.base_price_min }} - {{ service.base_price_max }} zł</strong>
-              </span>
-              <span class="home-service__action">Wybierz usługę</span>
-            </span>
-          </a>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="empty-state">
-        <strong>Oferta zostanie uzupełniona</strong>
-        <p>Usługi pojawią się tutaj po dodaniu ich w panelu administratora.</p>
-      </div>
-    {% endif %}
-  </section>
-
-  <section class="home-section" aria-label="Najczęstsze problemy">
-    <div class="section-title">
-      <h2>Najczęstsze problemy</h2>
-      <p>Jeśli nie wiesz, którą usługę wybrać, zacznij od objawu, który najlepiej opisuje sytuację.</p>
-    </div>
-
-    <div class="problem-grid">
-      <article>
-        <h3>Komputer działa wolno</h3>
-        <p>Sprawdzamy dysk, uruchamiane programy i ogólne obciążenie systemu.</p>
-      </article>
-      <article>
-        <h3>Laptop się przegrzewa</h3>
-        <p>Najczęściej zaczynamy od czyszczenia chłodzenia i kontroli temperatur.</p>
-      </article>
-      <article>
-        <h3>System się nie uruchamia</h3>
-        <p>Weryfikujemy system, nośnik danych i ostatnie zmiany w konfiguracji.</p>
-      </article>
-      <article>
-        <h3>Podejrzenie wirusa</h3>
-        <p>Sprawdzamy podejrzane programy, autostart i podstawowe ustawienia systemu.</p>
-      </article>
-      <article>
-        <h3>Problem z dyskiem</h3>
-        <p>Oceniamy stan nośnika i możliwość przeniesienia danych na nowy dysk.</p>
-      </article>
-      <article>
-        <h3>Brak miejsca lub zawieszanie systemu</h3>
-        <p>Dobieramy rozwiązanie po sprawdzeniu dysku, pamięci i stanu systemu.</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="catalog-help home-help" aria-label="Pomoc w wyborze usługi">
-    <div>
-      <span class="service-label">Pomoc w wyborze</span>
-      <h2>Nie pasuje żadna konkretna usługa?</h2>
-      <p>Wybierz indywidualną diagnozę i opisz objawy własnymi słowami. Po sprawdzeniu sprzętu ustalimy, co faktycznie trzeba zrobić.</p>
-    </div>
-    <a class="button button--secondary" href="/services/">Przejdź do katalogu</a>
   </section>
 
   <section class="home-section" aria-label="Przebieg obsługi zlecenia">
@@ -175,7 +120,7 @@
         <address class="service-address">
           Warszawa<br>
           Telefon: 500 100 200<br>
-          E-mail: kontakt@serwis.local
+          E-mail: kontakt@serwis.com
         </address>
       </div>
       <div class="home-contact-hours">

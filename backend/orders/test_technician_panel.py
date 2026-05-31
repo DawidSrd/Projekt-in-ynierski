@@ -86,6 +86,35 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Przekroczone terminy")
         self.assertNotContains(response, "Estymacja")
 
+    def test_tech_dashboard_shows_canceled_orders_after_status_filter(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+        canceled_order = ServiceOrder.objects.create(
+            customer_name="Anulowany Klient",
+            customer_email="anulowany@example.com",
+            customer_phone="111222333",
+            status=ServiceOrderStatus.CANCELED,
+        )
+
+        response = self.client.get(
+            reverse("tech_dashboard"),
+            {"scope": "all", "status": ServiceOrderStatus.CANCELED},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["selected_status"], ServiceOrderStatus.CANCELED)
+        self.assertIn(
+            ServiceOrderStatus.CANCELED,
+            [code for code, _label in response.context["status_choices"]],
+        )
+        self.assertIn(canceled_order, response.context["dashboard_orders"])
+        self.assertContains(response, "Anulowany Klient")
+        self.assertContains(response, "Anulowane")
+
     def test_tech_dashboard_can_filter_by_search_and_device_type(self):
         User.objects.create_user(
             username="technik",
@@ -378,6 +407,34 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(response, "Czyszczenie laptopa")
         self.assertContains(response, "Pasta premium")
         self.assertContains(response, "150,00 - 230,00 zł")
+
+    def test_staff_can_delete_order_from_detail_page(self):
+        User.objects.create_user(
+            username="technik",
+            password="testpass123",
+            is_staff=True,
+        )
+        self.client.login(username="technik", password="testpass123")
+
+        detail_response = self.client.get(
+            reverse("tech_order_detail", args=[self.order.order_number])
+        )
+
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, "Usuń zgłoszenie")
+        self.assertContains(
+            detail_response,
+            reverse("tech_order_delete", args=[self.order.order_number]),
+        )
+        self.assertContains(detail_response, "Czy na pewno chcesz usunąć to zgłoszenie?")
+
+        delete_response = self.client.post(
+            reverse("tech_order_delete", args=[self.order.order_number])
+        )
+
+        self.assertEqual(delete_response.status_code, 302)
+        self.assertEqual(delete_response["Location"], reverse("tech_dashboard"))
+        self.assertFalse(ServiceOrder.objects.filter(pk=self.order.pk).exists())
 
     def test_tech_order_detail_hides_price_for_manual_pricing_snapshot(self):
         technician = User.objects.create_user(

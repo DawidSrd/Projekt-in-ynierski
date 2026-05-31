@@ -49,12 +49,7 @@ def home(request):
     if staff_redirect:
         return staff_redirect
 
-    services = Service.objects.filter(
-        is_active=True,
-        pricing_mode=Service.PricingMode.CONFIGURABLE,
-    ).order_by("id")[:4]
-
-    return render(request, "orders/home.html", {"services": services})
+    return render(request, "orders/home.html")
 
 
 def about(request):
@@ -591,3 +586,14 @@ def tech_order_detail(request, order_number: str):
             "error": error,
         },
     )
+
+
+@staff_member_required(login_url="staff_login")
+def tech_order_delete(request, order_number: str):
+    order = get_object_or_404(ServiceOrder, order_number=order_number)
+
+    if request.method != "POST":
+        return redirect("tech_order_detail", order_number=order.order_number)
+
+    order.delete()
+    return redirect("tech_dashboard")
