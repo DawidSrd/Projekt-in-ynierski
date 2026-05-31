@@ -61,7 +61,7 @@ Taki podział oddziela modele danych, widoki, logikę biznesową, walidację i w
 Najprostszy sposób uruchomienia projektu:
 
 ```powershell
-uruchom_projekt.bat
+uruchom_system.bat
 ```
 
 Po uruchomieniu aplikacja będzie dostępna pod adresem:
