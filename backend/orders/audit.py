@@ -1,6 +1,7 @@
 from .models import AuditLog
 
 
+# Widoki i serwisy zapisują historię przez te funkcje, żeby format zdarzeń był spójny.
 def format_service_result(order):
     return (
         f"diagnosis={order.diagnosis}; repair_notes={order.repair_notes}; "

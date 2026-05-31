@@ -1,18 +1,15 @@
-from django.db import models
-from .choices import ServiceOrderStatus
 import secrets
 import string
+
+from django.db import models
 from django.utils import timezone
 
-
+from .choices import ServiceOrderStatus
 
 
 class Service(models.Model):
     """
-    Usługa widoczna w katalogu dla klienta, np. "Czyszczenie laptopa".
-
-    Trzymamy widełki cenowe (min/max), bo wymaganie mówi o cenie "od-do"
-    lub bazowej + dodatkach (wtedy min=max).
+    Cennik trzyma widełki, bo ostateczny koszt zależy od konfiguracji albo diagnozy.
     """
 
     class PricingMode(models.TextChoices):
@@ -53,11 +50,7 @@ class Service(models.Model):
 
 class ServiceOptionGroup(models.Model):
     """
-    Grupa opcji dla danej usługi, np. "Pasta termiczna", "Tryb realizacji".
-
-    selection_type:
-    - SINGLE: klient wybiera jedną opcję z grupy
-    - MULTI: klient może zaznaczyć wiele opcji
+    Grupa opcji mówi formularzowi, czy z danego zestawu można wybrać jedną czy kilka pozycji.
     """
     class SelectionType(models.TextChoices):
         SINGLE = "SINGLE", "Jednokrotny wybór"
@@ -90,10 +83,7 @@ class ServiceOptionGroup(models.Model):
 
 class ServiceOption(models.Model):
     """
-    Konkretna opcja w grupie, np. "Pasta standard", "Pasta premium".
-
-    price_delta_min/max: o ile zmienia się cena (widełki) po wybraniu opcji.
-    duration_delta_minutes: o ile zmienia się czas realizacji.
+    Opcja przechowuje dopłatę do usługi, którą konfigurator dolicza do wyceny.
     """
     group = models.ForeignKey(
         ServiceOptionGroup,
@@ -120,25 +110,19 @@ class ServiceOption(models.Model):
 
 def generate_order_number(prefix: str = "SRV", length: int = 8) -> str:
     """
-    Generuje publiczny numer zlecenia w formacie: SRV-XXXXXXXX.
-    Używa bezpiecznego generatora losowego (secrets).
+    Publiczny numer nie używa ID z bazy, więc klient nie widzi wewnętrznej numeracji rekordów.
     """
-    alphabet = string.ascii_uppercase + string.digits  # A-Z + 0-9
+    alphabet = string.ascii_uppercase + string.digits
     random_part = "".join(secrets.choice(alphabet) for _ in range(length))
     return f"{prefix}-{random_part}"
 
 
 class ServiceOrder(models.Model):
-    """
-    Encja zlecenia serwisowego (Service Ticket).
-    Przechowuje dane identyfikacyjne klienta oraz aktualny status workflow.
-    """
-
     class DeviceType(models.TextChoices):
         LAPTOP = "LAPTOP", "Laptop"
         DESKTOP = "DESKTOP", "Komputer stacjonarny"
 
-    # Identyfikator biznesowy (publiczny) - używany w guest access / komunikacji z klientem
+    # Ten numer jest pokazywany klientowi i służy do śledzenia zlecenia bez konta.
     order_number = models.CharField(
         max_length=20,
         unique=True,
@@ -147,7 +131,7 @@ class ServiceOrder(models.Model):
         editable=False,
     )
 
-    # Dane kontaktowe klienta (do powiadomień + weryfikacji w guest access)
+    # Dane kontaktowe są drugim elementem weryfikacji przy śledzeniu zlecenia.
     customer_name = models.CharField(max_length=200)
     customer_email = models.EmailField()
     customer_phone = models.CharField(max_length=30)
@@ -174,7 +158,6 @@ class ServiceOrder(models.Model):
         related_name="assigned_service_orders",
     )
 
-    # Aktualny status workflow zlecenia
     status = models.CharField(
         max_length=20,
         choices=ServiceOrderStatus.choices,
@@ -182,14 +165,13 @@ class ServiceOrder(models.Model):
         db_index=True,
     )
 
-    # Planowany termin realizacji ustawiany ręcznie przez technika (opcjonalny)
+    # Technik ustawia termin ręcznie, bo realny czas zależy od diagnozy i części.
     estimated_completion_at = models.DateTimeField(
         "Planowany termin realizacji",
         null=True,
         blank=True,
     )
 
-    # Metadane audytowe
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -199,7 +181,7 @@ class ServiceOrder(models.Model):
 
     def can_cancel(self) -> bool:
         """
-        Reguła biznesowa: anulowanie dozwolone tylko w statusie NEW.
+        Anulowanie online jest możliwe tylko zanim serwis przyjmie sprzęt.
         """
         return self.status == ServiceOrderStatus.NEW
 
@@ -213,8 +195,7 @@ class ServiceOrder(models.Model):
 
     def is_overdue(self) -> bool:
         """
-        Zwraca True, jeśli zlecenie ma ustawiony planowany termin i termin już minął,
-        a zlecenie nie jest zakończone lub anulowane.
+        Przekroczony termin dotyczy tylko zleceń, które nadal wymagają pracy serwisu.
         """
         if not self.estimated_completion_at:
             return False
@@ -228,11 +209,9 @@ class ServiceOrder(models.Model):
         return f"ServiceOrder {self.order_number}"
 
 
-
 class ServiceOrderComment(models.Model):
     """
-    Komentarz do zlecenia.
-    visibility rozdziela komentarze wewnętrzne (dla serwisu) i publiczne (dla klienta).
+    Widoczność komentarza decyduje, czy trafi on do panelu klienta, czy zostanie notatką serwisu.
     """
 
     class Visibility(models.TextChoices):
@@ -269,9 +248,13 @@ class ServiceOrderComment(models.Model):
 
     def __str__(self) -> str:
         return f"Comment({self.visibility}) for {self.order.order_number}"
-    
+
 
 class ServiceOrderAttachment(models.Model):
+    """
+    Widoczność załącznika chroni pliki robocze serwisu przed pokazaniem ich klientowi.
+    """
+
     class Visibility(models.TextChoices):
         INTERNAL = "INTERNAL", "Wewnętrzny"
         PUBLIC = "PUBLIC", "Publiczny"
@@ -308,8 +291,7 @@ class ServiceOrderAttachment(models.Model):
 
 class ServiceOrderItem(models.Model):
     """
-    Pozycja zlecenia - snapshot usługi i wyceny w momencie złożenia zamówienia.
-    Dzięki temu zmiana cennika w przyszłości nie zmienia historycznego zlecenia.
+    Snapshot usługi chroni historię zlecenia przed późniejszą zmianą cennika.
     """
     order = models.ForeignKey(
         ServiceOrder,
@@ -317,7 +299,6 @@ class ServiceOrderItem(models.Model):
         related_name="items",
     )
 
-    # Referencja do usługi + snapshot nazwy (na wypadek zmiany nazwy w CMS)
     service = models.ForeignKey(
         Service,
         on_delete=models.PROTECT,
@@ -325,7 +306,6 @@ class ServiceOrderItem(models.Model):
     )
     service_name_snapshot = models.CharField(max_length=200)
 
-    # Snapshot ceny bazowej usługi
     pricing_mode_snapshot = models.CharField(
         max_length=30,
         choices=Service.PricingMode.choices,
@@ -334,7 +314,6 @@ class ServiceOrderItem(models.Model):
     base_price_min_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
     base_price_max_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
 
-    # Cena policzona po konfiguracji (wynikowa) - widełki
     calculated_price_min = models.DecimalField(max_digits=10, decimal_places=2)
     calculated_price_max = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -354,8 +333,7 @@ class ServiceOrderItem(models.Model):
 
 class ServiceOrderItemOption(models.Model):
     """
-    Snapshot wybranej opcji w pozycji zlecenia.
-    Trzymamy też snapshot nazwy i wpływu na cenę.
+    Wybrane opcje też są zapisywane jako snapshot, żeby zachować pierwotną wycenę.
     """
     order_item = models.ForeignKey(
         ServiceOrderItem,
@@ -380,11 +358,10 @@ class ServiceOrderItemOption(models.Model):
     def __str__(self) -> str:
         return f"{self.option_name_snapshot}"
 
-   
+
 class AuditLog(models.Model):
     """
-    Dziennik zdarzeń systemowych (audit trail).
-    Rejestruje zmianę stanu obiektów domenowych, np. zleceń.
+    Historia zmian przechowuje zdarzenia potrzebne do rozliczalności obsługi zlecenia.
     """
 
     class EntityType(models.TextChoices):
@@ -402,8 +379,7 @@ class AuditLog(models.Model):
         TECHNICIAN_ASSIGNED = "TECHNICIAN_ASSIGNED", "Przypisanie technika"
         ATTACHMENT_ADDED = "ATTACHMENT_ADDED", "Dodanie załącznika"
 
-
-    # Powiązanie wpisu audytowego z konkretnym zleceniem (do widoku inline)
+    # Bezpośrednie powiązanie ułatwia pokazanie historii konkretnego zlecenia.
     order = models.ForeignKey(
         "orders.ServiceOrder",
         on_delete=models.CASCADE,

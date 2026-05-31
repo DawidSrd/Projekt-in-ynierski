@@ -164,6 +164,7 @@ def create_configured_order(service, selected_options, total_min, total_max, dat
             ]
         )
 
+    # Zlecenie i snapshot wyceny zapisują się razem, żeby nie zostało niepełne zgłoszenie.
     with transaction.atomic():
         order = ServiceOrder.objects.create(
             customer_name=customer_name,
@@ -250,6 +251,7 @@ def create_staff_order(data, user):
         calculated_min = 0
         calculated_max = 0
 
+    # Przyjęcie w punkcie od razu przypisuje zlecenie do pracownika i oznacza je jako przyjęte.
     with transaction.atomic():
         order = ServiceOrder.objects.create(
             customer_name=customer_name,
@@ -417,6 +419,7 @@ def update_order_diagnosis(order, user, diagnosis, repair_notes, final_price_raw
         if final_price < 0:
             return None, "Koszt końcowy nie może być ujemny."
 
+    # Porównanie stanu przed i po zmianie chroni historię przed pustymi wpisami.
     old_value = format_service_result(order)
     order.diagnosis = diagnosis
     order.repair_notes = repair_notes

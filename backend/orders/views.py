@@ -2,12 +2,12 @@ from django.http import FileResponse, Http404
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import (
+    AuditLog,
     Service,
     ServiceOrder,
     ServiceOrderAttachment,
     ServiceOrderComment,
 )
-from .models import AuditLog
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
@@ -32,7 +32,6 @@ from .services import (
     update_order_status,
 )
 from .validators import normalize_phone_number
-
 
 
 STATUS_LABELS = dict(ServiceOrderStatus.choices)
@@ -116,6 +115,7 @@ def get_verified_order(order_number: str, email: str, phone: str):
     if not order:
         return None
 
+    # Sam numer zlecenia nie wystarcza, bo mógłby zostać odgadnięty lub przekazany dalej.
     email_ok = email and (order.customer_email.lower() == email)
     phone_ok = phone and (
         normalize_phone_number(order.customer_phone) == normalize_phone_number(phone)
@@ -159,10 +159,7 @@ def attachment_download(request, attachment_id: int):
 
 def track_order(request):
     """
-    Guest access: śledzenie zlecenia bez logowania.
-
-    GET  -> pokazuje formularz
-    POST -> weryfikuje dane i pokazuje wynik
+    Śledzenie bez logowania działa dopiero po weryfikacji numeru oraz kontaktu.
     """
     staff_redirect = redirect_staff_from_client_area(request)
     if staff_redirect:
@@ -181,7 +178,7 @@ def track_order(request):
         email = (request.POST.get("email") or "").strip().lower()
         phone = (request.POST.get("phone") or "").strip()
 
-        # Minimalne wymaganie: numer zlecenia + (email albo phone)
+        # Formularz wymaga drugiego identyfikatora, żeby nie pokazywać cudzych zleceń.
         if not order_number or (not email and not phone):
             context["error"] = "Podaj numer zlecenia oraz e-mail lub numer telefonu."
             return render(request, "orders/track_order.html", context)
@@ -210,10 +207,6 @@ def track_order(request):
 
 
 def service_catalog(request):
-    """
-    Katalog usług dla klienta (read-only).
-    Pokazuje tylko aktywne usługi.
-    """
     staff_redirect = redirect_staff_from_client_area(request)
     if staff_redirect:
         return staff_redirect
@@ -242,9 +235,7 @@ def service_catalog(request):
 
 def service_configurator(request, service_id: int):
     """
-    Konfigurator usługi dla klienta:
-    - pokazuje grupy opcji i dostępne opcje
-    - po POST liczy widełki ceny (min/max)
+    Konfigurator liczy wycenę z aktywnych opcji, ale nie zapisuje zlecenia przed wysłaniem formularza.
     """
     staff_redirect = redirect_staff_from_client_area(request)
     if staff_redirect:
@@ -298,9 +289,6 @@ def service_configurator(request, service_id: int):
 
 
 def order_created(request, order_number: str):
-    """
-    Strona potwierdzenia utworzenia zlecenia (GET).
-    """
     staff_redirect = redirect_staff_from_client_area(request)
     if staff_redirect:
         return staff_redirect
@@ -314,10 +302,11 @@ def order_created(request, order_number: str):
         },
     )
 
+
 @staff_member_required(login_url="staff_login")
 def tech_dashboard(request):
     """
-    Dashboard technika: podział zleceń na Nowe / W toku / przekroczone terminy.
+    Domyślnie pokazuje bieżącą pracę, a zakończone i anulowane zlecenia zostają w filtrach.
     """
     selected_status = request.GET.get("status") or ""
     if selected_status not in dict(ServiceOrderStatus.choices):
@@ -455,9 +444,6 @@ def tech_dashboard(request):
 
 @staff_member_required(login_url="staff_login")
 def tech_order_create(request):
-    """
-    Tworzenie zlecenia przez pracownika podczas przyjęcia sprzętu w serwisie.
-    """
     services = Service.objects.filter(is_active=True).order_by("id")
     error = None
     form_defaults = get_customer_defaults(request.POST if request.method == "POST" else None)
@@ -483,9 +469,6 @@ def tech_order_create(request):
 
 @staff_member_required(login_url="staff_login")
 def tech_order_detail(request, order_number: str):
-    """
-    Widok szczegółów zlecenia dla technika.
-    """
     order = get_object_or_404(ServiceOrder, order_number=order_number)
     message = None
     error = None
@@ -592,6 +575,7 @@ def tech_order_detail(request, order_number: str):
 def tech_order_delete(request, order_number: str):
     order = get_object_or_404(ServiceOrder, order_number=order_number)
 
+    # Usuwanie wymaga POST, żeby samo wejście w adres nie skasowało zlecenia.
     if request.method != "POST":
         return redirect("tech_order_detail", order_number=order.order_number)
 

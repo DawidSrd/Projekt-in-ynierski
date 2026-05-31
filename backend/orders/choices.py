@@ -10,6 +10,7 @@ class ServiceOrderStatus(models.TextChoices):
     CANCELED = "CANCELED", "Anulowane"
 
 
+# Mapa przejść pilnuje, żeby obsługa zlecenia nie pomijała etapów pracy serwisu.
 SERVICE_ORDER_STATUS_TRANSITIONS = {
     ServiceOrderStatus.NEW: (
         ServiceOrderStatus.RECEIVED,
