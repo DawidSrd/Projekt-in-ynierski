@@ -14,6 +14,19 @@
   <p class="catalog-note"><strong>Ceny i terminy są orientacyjne.</strong> Ostateczna wycena oraz termin zależą od diagnozy sprzętu, dostępności części i zakresu prac.</p>
 
   {% if services %}
+    <section class="catalog-help" aria-label="Pomoc w wyborze usługi">
+      <div>
+        <span class="service-label">Inne</span>
+        <h2>Nie pasuje żadna konkretna usługa?</h2>
+        <p>Wybierz indywidualną diagnozę i opisz objawy własnymi słowami. Po sprawdzeniu sprzętu ustalimy dalszy zakres prac.</p>
+      </div>
+      {% for s in services %}
+        {% if s.name == "Inne / indywidualna diagnoza" %}
+          <a class="button button--secondary" href="/services/{{ s.id }}/">Wybierz indywidualną diagnozę</a>
+        {% endif %}
+      {% endfor %}
+    </section>
+
     <section class="catalog-category">
       <div class="catalog-category__intro">
         <h2>Diagnostyka i naprawa</h2>
@@ -68,19 +81,6 @@
           {% endif %}
         {% endfor %}
       </div>
-    </section>
-
-    <section class="catalog-help" aria-label="Pomoc w wyborze usługi">
-      <div>
-        <span class="service-label">Inne</span>
-        <h2>Nie pasuje żadna konkretna usługa?</h2>
-        <p>Wybierz indywidualną diagnozę i opisz objawy własnymi słowami. Po sprawdzeniu sprzętu ustalimy dalszy zakres prac.</p>
-      </div>
-      {% for s in services %}
-        {% if s.name == "Inne / indywidualna diagnoza" %}
-          <a class="button button--secondary" href="/services/{{ s.id }}/">Wybierz indywidualną diagnozę</a>
-        {% endif %}
-      {% endfor %}
     </section>
   {% else %}
     <div class="panel">
