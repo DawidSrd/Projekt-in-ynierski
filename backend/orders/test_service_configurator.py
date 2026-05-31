@@ -1,11 +1,9 @@
 from unittest.mock import patch
 
-from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from .choices import ServiceOrderStatus
 from .models import (
     AuditLog,
     Service,
@@ -13,7 +11,6 @@ from .models import (
     ServiceOptionGroup,
     ServiceOrder,
     ServiceOrderAttachment,
-    ServiceOrderComment,
     ServiceOrderItem,
     ServiceOrderItemOption,
 )
