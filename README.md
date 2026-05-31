@@ -40,6 +40,22 @@ Projekt nie korzysta z Bootstrapa.
 - historia zmian zlecenia,
 - panel administratora do zarządzania kontami i usługami.
 
+## Struktura projektu
+
+Najważniejszy kod aplikacji znajduje się w katalogu `backend/orders`.
+
+- `models.py` opisuje dane zapisywane w bazie, między innymi usługi, zlecenia, komentarze, załączniki i historię zmian.
+- `views.py` obsługuje widoki klienta, panel technika, logowanie pracownika i pobieranie załączników.
+- `services.py` zawiera logikę biznesową, na przykład tworzenie zlecenia, zapis snapshotu wyceny, zmianę statusu i obsługę komentarzy.
+- `audit.py` odpowiada za zapisywanie historii zdarzeń przy zleceniu.
+- `customer_tracking.py` przygotowuje dane widoczne dla klienta po sprawdzeniu zlecenia.
+- `validators.py` sprawdza poprawność danych klienta, urządzenia i załączników.
+- `admin.py` upraszcza panel administratora do zarządzania kontami pracowników oraz katalogiem usług.
+- `templates/orders` zawiera szablony HTML, a `static/orders/styles.css` wspólne style aplikacji.
+- `management/commands/seed_services.py` tworzy przykładowy katalog usług do pierwszego uruchomienia.
+
+Taki podział oddziela modele danych, widoki, logikę biznesową, walidację i warstwę prezentacji.
+
 ## Uruchomienie na Windows
 
 Najprostszy sposób uruchomienia projektu:

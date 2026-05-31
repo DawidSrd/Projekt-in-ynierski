@@ -344,13 +344,6 @@ a:hover {
   border-bottom: 1px solid var(--line);
 }
 
-.section-title--row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-
 .process-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -488,26 +481,6 @@ a:hover {
   color: var(--primary-dark);
   font-size: 18px;
   line-height: 1.25;
-}
-
-.notice-box {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 24px;
-  padding: 16px 18px;
-  border: 1px solid #fed7aa;
-  border-radius: 8px;
-  background: #fff7ed;
-  color: #7c2d12;
-}
-
-.notice-box strong {
-  color: #7c2d12;
-}
-
-.notice-box p {
-  margin: 0;
-  color: #9a3412;
 }
 
 .catalog-category {
@@ -658,13 +631,6 @@ a:hover {
   color: var(--muted);
 }
 
-.contact-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
-  gap: 18px;
-  align-items: start;
-}
-
 .home-contact-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
@@ -726,17 +692,6 @@ a:hover {
 .track-form-grid__action button {
   width: 100%;
   white-space: nowrap;
-}
-
-.clean-steps {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding-left: 20px;
-}
-
-.clean-steps li {
-  color: var(--muted);
 }
 
 .about-page {
@@ -1318,10 +1273,6 @@ fieldset {
   gap: 14px;
 }
 
-.result-grid--compact {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
 .metric {
   display: block;
   padding: 16px;
@@ -1354,11 +1305,6 @@ fieldset {
   margin-top: 4px;
   font-size: 20px;
   font-weight: 700;
-}
-
-.metric__value--text {
-  font-size: 16px;
-  font-weight: 400;
 }
 
 .clean-list {
@@ -1837,7 +1783,6 @@ fieldset {
   .trust-grid,
   .service-scope__content,
   .home-contact-layout,
-  .contact-grid,
   .track-start,
   .track-form-grid,
   .about-page,
@@ -1845,7 +1790,6 @@ fieldset {
   .catalog-category,
   .catalog-service-row,
   .confirmation-info,
-  .info-grid,
   .tracking-summary__details,
   .tracking-layout {
     grid-template-columns: 1fr;
@@ -1858,7 +1802,6 @@ fieldset {
   .process-grid,
   .trust-grid,
   .home-contact-layout,
-  .contact-grid,
   .track-start,
   .track-form-grid,
   .about-page,
@@ -1955,7 +1898,6 @@ fieldset {
   .trust-grid,
   .service-scope__content,
   .home-contact-layout,
-  .contact-grid,
   .track-start,
   .track-form-grid,
   .tracking-summary__details,
@@ -2017,7 +1959,6 @@ fieldset {
     gap: 2px;
   }
 
-  .section-title--row,
   .catalog-help,
   .home-contact {
     align-items: flex-start;
