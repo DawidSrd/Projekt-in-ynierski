@@ -69,7 +69,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Docker ustawia zmienne PostgreSQL, a fallback SQLite zostaje tylko do lokalnych uruchomień pomocniczych.
+# PostgreSQL jest używany w Dockerze, SQLite zostaje jako lokalny fallback.
 if os.getenv("POSTGRES_DB"):
     DATABASES = {
         "default": {

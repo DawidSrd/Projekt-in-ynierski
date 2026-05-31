@@ -115,7 +115,7 @@ def get_verified_order(order_number: str, email: str, phone: str):
     if not order:
         return None
 
-    # Sam numer zlecenia nie wystarcza, bo mógłby zostać odgadnięty lub przekazany dalej.
+    # Sam numer zlecenia nie wystarcza do wglądu w dane klienta.
     email_ok = email and (order.customer_email.lower() == email)
     phone_ok = phone and (
         normalize_phone_number(order.customer_phone) == normalize_phone_number(phone)
@@ -178,7 +178,6 @@ def track_order(request):
         email = (request.POST.get("email") or "").strip().lower()
         phone = (request.POST.get("phone") or "").strip()
 
-        # Formularz wymaga drugiego identyfikatora, żeby nie pokazywać cudzych zleceń.
         if not order_number or (not email and not phone):
             context["error"] = "Podaj numer zlecenia oraz e-mail lub numer telefonu."
             return render(request, "orders/track_order.html", context)

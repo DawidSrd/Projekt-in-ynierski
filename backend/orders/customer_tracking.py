@@ -8,7 +8,7 @@ from .models import (
 
 STATUS_LABELS = dict(ServiceOrderStatus.choices)
 
-# Klient widzi tylko zdarzenia zrozumiałe z zewnątrz, bez wewnętrznej pracy serwisu.
+# Klient widzi tylko zdarzenia przydatne w śledzeniu, bez wewnętrznej pracy serwisu.
 CUSTOMER_TIMELINE_ACTIONS = [
     AuditLog.Action.ORDER_CREATED,
     AuditLog.Action.STATUS_CHANGED,
@@ -20,9 +20,6 @@ CUSTOMER_TIMELINE_ACTIONS = [
 
 
 def build_customer_audit_timeline(order):
-    """
-    Buduje publiczną historię zlecenia widoczną po poprawnej weryfikacji.
-    """
     audit_entries = AuditLog.objects.filter(
         order=order,
         action__in=CUSTOMER_TIMELINE_ACTIONS,
@@ -63,9 +60,7 @@ def build_customer_audit_timeline(order):
 
 
 def build_customer_tracking_result(order, email, phone):
-    """
-    Publiczny widok filtruje dane, żeby nie pokazać klientowi notatek wewnętrznych.
-    """
+    # Do odpowiedzi trafiają tylko komentarze i załączniki oznaczone jako publiczne.
     public_comments = ServiceOrderComment.objects.filter(
         order=order,
         visibility=ServiceOrderComment.Visibility.PUBLIC,

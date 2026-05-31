@@ -8,10 +8,6 @@ from .choices import ServiceOrderStatus
 
 
 class Service(models.Model):
-    """
-    Cennik trzyma widełki, bo ostateczny koszt zależy od konfiguracji albo diagnozy.
-    """
-
     class PricingMode(models.TextChoices):
         CONFIGURABLE = "CONFIGURABLE", "Wycena z konfiguratora"
         MANUAL_AFTER_DIAGNOSIS = "MANUAL_AFTER_DIAGNOSIS", "Wycena po diagnozie"
@@ -19,6 +15,7 @@ class Service(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
 
+    # Widełki są potrzebne, bo koszt zależy od konfiguracji albo diagnozy.
     pricing_mode = models.CharField(
         max_length=30,
         choices=PricingMode.choices,
@@ -49,9 +46,6 @@ class Service(models.Model):
 
 
 class ServiceOptionGroup(models.Model):
-    """
-    Grupa opcji mówi formularzowi, czy z danego zestawu można wybrać jedną czy kilka pozycji.
-    """
     class SelectionType(models.TextChoices):
         SINGLE = "SINGLE", "Jednokrotny wybór"
         MULTI = "MULTI", "Wielokrotny wybór"
@@ -63,6 +57,7 @@ class ServiceOptionGroup(models.Model):
     )
     name = models.CharField(max_length=200)
 
+    # Typ wyboru mówi formularzowi, czy z tej sekcji można wybrać jedną czy kilka opcji.
     selection_type = models.CharField(
         max_length=10,
         choices=SelectionType.choices,
@@ -82,9 +77,6 @@ class ServiceOptionGroup(models.Model):
 
 
 class ServiceOption(models.Model):
-    """
-    Opcja przechowuje dopłatę do usługi, którą konfigurator dolicza do wyceny.
-    """
     group = models.ForeignKey(
         ServiceOptionGroup,
         on_delete=models.CASCADE,
@@ -92,6 +84,7 @@ class ServiceOption(models.Model):
     )
     name = models.CharField(max_length=200)
 
+    # Konfigurator dolicza te kwoty do ceny bazowej usługi.
     price_delta_min = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     price_delta_max = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
@@ -109,9 +102,7 @@ class ServiceOption(models.Model):
 
 
 def generate_order_number(prefix: str = "SRV", length: int = 8) -> str:
-    """
-    Publiczny numer nie używa ID z bazy, więc klient nie widzi wewnętrznej numeracji rekordów.
-    """
+    # Publiczny numer nie ujawnia wewnętrznego ID z bazy.
     alphabet = string.ascii_uppercase + string.digits
     random_part = "".join(secrets.choice(alphabet) for _ in range(length))
     return f"{prefix}-{random_part}"
@@ -122,7 +113,7 @@ class ServiceOrder(models.Model):
         LAPTOP = "LAPTOP", "Laptop"
         DESKTOP = "DESKTOP", "Komputer stacjonarny"
 
-    # Ten numer jest pokazywany klientowi i służy do śledzenia zlecenia bez konta.
+    # Numer zlecenia służy klientowi do śledzenia sprawy bez konta.
     order_number = models.CharField(
         max_length=20,
         unique=True,
@@ -131,7 +122,7 @@ class ServiceOrder(models.Model):
         editable=False,
     )
 
-    # Dane kontaktowe są drugim elementem weryfikacji przy śledzeniu zlecenia.
+    # E-mail albo telefon są drugim elementem weryfikacji przy śledzeniu zlecenia.
     customer_name = models.CharField(max_length=200)
     customer_email = models.EmailField()
     customer_phone = models.CharField(max_length=30)
@@ -165,7 +156,7 @@ class ServiceOrder(models.Model):
         db_index=True,
     )
 
-    # Technik ustawia termin ręcznie, bo realny czas zależy od diagnozy i części.
+    # Termin wpisuje technik, bo zależy od diagnozy i dostępności części.
     estimated_completion_at = models.DateTimeField(
         "Planowany termin realizacji",
         null=True,
@@ -180,9 +171,7 @@ class ServiceOrder(models.Model):
         verbose_name_plural = "Zlecenia serwisowe"
 
     def can_cancel(self) -> bool:
-        """
-        Anulowanie online jest możliwe tylko zanim serwis przyjmie sprzęt.
-        """
+        # Po przyjęciu sprzętu anulowanie online jest blokowane.
         return self.status == ServiceOrderStatus.NEW
 
     def can_accept_repair(self) -> bool:
@@ -194,12 +183,10 @@ class ServiceOrder(models.Model):
         )
 
     def is_overdue(self) -> bool:
-        """
-        Przekroczony termin dotyczy tylko zleceń, które nadal wymagają pracy serwisu.
-        """
         if not self.estimated_completion_at:
             return False
 
+        # Zakończone i anulowane sprawy nie trafiają do przekroczonych terminów.
         if self.status in [ServiceOrderStatus.COMPLETED, ServiceOrderStatus.CANCELED]:
             return False
 
@@ -210,10 +197,6 @@ class ServiceOrder(models.Model):
 
 
 class ServiceOrderComment(models.Model):
-    """
-    Widoczność komentarza decyduje, czy trafi on do panelu klienta, czy zostanie notatką serwisu.
-    """
-
     class Visibility(models.TextChoices):
         INTERNAL = "INTERNAL", "Wewnętrzny"
         PUBLIC = "PUBLIC", "Publiczny"
@@ -231,6 +214,7 @@ class ServiceOrderComment(models.Model):
         related_name="service_order_comments",
     )
 
+    # Tylko komentarze publiczne są widoczne w śledzeniu zlecenia.
     visibility = models.CharField(
         max_length=20,
         choices=Visibility.choices,
@@ -251,10 +235,6 @@ class ServiceOrderComment(models.Model):
 
 
 class ServiceOrderAttachment(models.Model):
-    """
-    Widoczność załącznika chroni pliki robocze serwisu przed pokazaniem ich klientowi.
-    """
-
     class Visibility(models.TextChoices):
         INTERNAL = "INTERNAL", "Wewnętrzny"
         PUBLIC = "PUBLIC", "Publiczny"
@@ -264,6 +244,7 @@ class ServiceOrderAttachment(models.Model):
         on_delete=models.CASCADE,
         related_name="attachments",
     )
+    # Załączniki wewnętrzne zostają tylko w panelu pracownika.
     visibility = models.CharField(
         max_length=20,
         choices=Visibility.choices,
@@ -290,15 +271,13 @@ class ServiceOrderAttachment(models.Model):
 
 
 class ServiceOrderItem(models.Model):
-    """
-    Snapshot usługi chroni historię zlecenia przed późniejszą zmianą cennika.
-    """
     order = models.ForeignKey(
         ServiceOrder,
         on_delete=models.CASCADE,
         related_name="items",
     )
 
+    # Snapshot chroni historyczną wycenę przed późniejszą zmianą usługi.
     service = models.ForeignKey(
         Service,
         on_delete=models.PROTECT,
@@ -332,15 +311,13 @@ class ServiceOrderItem(models.Model):
 
 
 class ServiceOrderItemOption(models.Model):
-    """
-    Wybrane opcje też są zapisywane jako snapshot, żeby zachować pierwotną wycenę.
-    """
     order_item = models.ForeignKey(
         ServiceOrderItem,
         on_delete=models.CASCADE,
         related_name="selected_options",
     )
 
+    # Snapshot opcji zachowuje dopłaty wybrane przy składaniu zlecenia.
     option = models.ForeignKey(
         ServiceOption,
         on_delete=models.PROTECT,
@@ -359,11 +336,8 @@ class ServiceOrderItemOption(models.Model):
         return f"{self.option_name_snapshot}"
 
 
+# Historia zmian zapisuje zdarzenia potrzebne do rozliczalności obsługi.
 class AuditLog(models.Model):
-    """
-    Historia zmian przechowuje zdarzenia potrzebne do rozliczalności obsługi zlecenia.
-    """
-
     class EntityType(models.TextChoices):
         SERVICE_ORDER = "SERVICE_ORDER", "Zlecenie serwisowe"
         SERVICE_ORDER_COMMENT = "SERVICE_ORDER_COMMENT", "Komentarz do zlecenia"
@@ -379,7 +353,7 @@ class AuditLog(models.Model):
         TECHNICIAN_ASSIGNED = "TECHNICIAN_ASSIGNED", "Przypisanie technika"
         ATTACHMENT_ADDED = "ATTACHMENT_ADDED", "Dodanie załącznika"
 
-    # Bezpośrednie powiązanie ułatwia pokazanie historii konkretnego zlecenia.
+    # Dzięki temu można szybko pobrać historię konkretnego zlecenia.
     order = models.ForeignKey(
         "orders.ServiceOrder",
         on_delete=models.CASCADE,

@@ -164,7 +164,7 @@ def create_configured_order(service, selected_options, total_min, total_max, dat
             ]
         )
 
-    # Zlecenie i snapshot wyceny zapisują się razem, żeby nie zostało niepełne zgłoszenie.
+    # Transakcja chroni przed zleceniem bez zapisanej pozycji wyceny.
     with transaction.atomic():
         order = ServiceOrder.objects.create(
             customer_name=customer_name,
