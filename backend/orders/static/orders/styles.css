@@ -483,36 +483,6 @@ a:hover {
   line-height: 1.25;
 }
 
-.catalog-category {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.28fr) minmax(0, 1fr);
-  gap: 34px;
-  padding: 34px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.catalog-category:first-of-type {
-  padding-top: 10px;
-}
-
-.catalog-category__intro {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-}
-
-.catalog-category__intro h2 {
-  margin: 0;
-  color: #223044;
-  font-size: 24px;
-  line-height: 1.2;
-}
-
-.catalog-category__intro p {
-  margin: 0;
-  color: var(--muted);
-}
-
 .catalog-note {
   max-width: 920px;
   margin: 0 0 18px;
@@ -523,20 +493,6 @@ a:hover {
 
 .catalog-note strong {
   color: #223044;
-}
-
-.service-label {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 28px;
-  align-items: center;
-  padding: 4px 9px;
-  border: 1px solid #fed7aa;
-  border-radius: 8px;
-  background: #fff7ed;
-  color: #9a3412;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .catalog-list {
@@ -1787,7 +1743,6 @@ fieldset {
   .track-form-grid,
   .about-page,
   .about-contact,
-  .catalog-category,
   .catalog-service-row,
   .confirmation-info,
   .tracking-summary__details,
@@ -1805,8 +1760,7 @@ fieldset {
   .track-start,
   .track-form-grid,
   .about-page,
-  .about-contact,
-  .catalog-category {
+  .about-contact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1905,7 +1859,6 @@ fieldset {
   .tracking-definition-list div,
   .about-page,
   .about-contact,
-  .catalog-category,
   .catalog-service-row {
     grid-template-columns: 1fr;
   }

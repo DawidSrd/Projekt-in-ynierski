@@ -1,5 +1,5 @@
 from django.http import FileResponse, Http404
-from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import (
     AuditLog,
@@ -210,25 +210,23 @@ def service_catalog(request):
     if staff_redirect:
         return staff_redirect
 
+    active_services = Service.objects.filter(is_active=True).order_by("id")
+    manual_service = active_services.filter(
+        pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS
+    ).first()
     services = (
-        Service.objects.filter(is_active=True)
-        .annotate(
-            catalog_order=Case(
-                When(
-                    pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
-                    then=Value(0),
-                ),
-                default=Value(1),
-                output_field=IntegerField(),
-            )
-        )
-        .order_by("catalog_order", "id")
+        active_services.exclude(pk=manual_service.pk)
+        if manual_service
+        else active_services
     )
 
     return render(
         request,
         "orders/service_catalog.html",
-        {"services": services},
+        {
+            "manual_service": manual_service,
+            "services": services,
+        },
     )
 
 

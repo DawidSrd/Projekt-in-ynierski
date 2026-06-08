@@ -87,7 +87,7 @@ class HomePageTests(TestCase):
         self.assertNotContains(response, "Wybierz usługę")
         self.assertNotContains(response, "Usługa ukryta")
 
-    def test_service_catalog_groups_services_and_uses_human_time_labels(self):
+    def test_service_catalog_shows_active_services_and_uses_human_time_labels(self):
         Service.objects.create(
             name="Diagnostyka komputera lub laptopa",
             description="Gdy nie wiadomo, co powoduje problem.",
@@ -110,12 +110,21 @@ class HomePageTests(TestCase):
             pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
             is_active=True,
         )
+        Service.objects.create(
+            name="Testowa usługa administratora",
+            description="Usługa dodana bez zmiany kodu.",
+            base_price_min=50,
+            base_price_max=100,
+            is_active=True,
+        )
 
         response = self.client.get(reverse("service_catalog"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Diagnostyka i naprawa")
-        self.assertContains(response, "System i oprogramowanie")
+        self.assertContains(response, "Diagnostyka komputera lub laptopa")
+        self.assertContains(response, "Instalacja systemu Windows")
+        self.assertContains(response, "Testowa usługa administratora")
+        self.assertContains(response, "Usługa dodana bez zmiany kodu.")
         self.assertContains(response, "Ceny i terminy są orientacyjne")
         self.assertContains(response, "Orientacyjnie: 1 dzień roboczy")
         self.assertNotContains(response, "90 min")

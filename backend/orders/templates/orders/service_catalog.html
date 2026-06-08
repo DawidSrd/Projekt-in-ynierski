@@ -13,75 +13,24 @@
 
   <p class="catalog-note"><strong>Ceny i terminy są orientacyjne.</strong> Ostateczna wycena oraz termin zależą od diagnozy sprzętu, dostępności części i zakresu prac.</p>
 
-  {% if services %}
+  {% if services or manual_service %}
+    {% if manual_service %}
     <section class="catalog-help" aria-label="Pomoc w wyborze usługi">
       <div>
-        <span class="service-label">Inne</span>
         <h2>Nie pasuje żadna konkretna usługa?</h2>
         <p>Wybierz indywidualną diagnozę i opisz objawy własnymi słowami. Po sprawdzeniu sprzętu ustalimy dalszy zakres prac.</p>
       </div>
-      {% for s in services %}
-        {% if s.name == "Inne / indywidualna diagnoza" %}
-          <a class="button button--secondary" href="/services/{{ s.id }}/">Wybierz indywidualną diagnozę</a>
-        {% endif %}
-      {% endfor %}
+      <a class="button button--secondary" href="/services/{{ manual_service.id }}/">Wybierz indywidualną diagnozę</a>
     </section>
+    {% endif %}
 
-    <section class="catalog-category">
-      <div class="catalog-category__intro">
-        <h2>Diagnostyka i naprawa</h2>
-        <p>Dobry wybór, gdy nie wiadomo jeszcze, co dokładnie powoduje problem.</p>
-      </div>
+    {% if services %}
       <div class="catalog-list">
         {% for s in services %}
-          {% if s.name == "Diagnostyka komputera lub laptopa" or s.name == "Diagnostyka komputera" %}
-            {% include "orders/partials/service_catalog_row.html" %}
-          {% endif %}
+          {% include "orders/partials/service_catalog_row.html" %}
         {% endfor %}
       </div>
-    </section>
-
-    <section class="catalog-category">
-      <div class="catalog-category__intro">
-        <h2>System i oprogramowanie</h2>
-        <p>Usługi dla problemów z Windowsem, wolnym działaniem komputera i podejrzeniem infekcji.</p>
-      </div>
-      <div class="catalog-list">
-        {% for s in services %}
-          {% if s.name == "Instalacja systemu Windows" or s.name == "Instalacja lub reinstalacja systemu operacyjnego" or s.name == "Naprawa systemu i usuwanie wirusów" or s.name == "Usuwanie wirusów i optymalizacja systemu" %}
-            {% include "orders/partials/service_catalog_row.html" %}
-          {% endif %}
-        {% endfor %}
-      </div>
-    </section>
-
-    <section class="catalog-category">
-      <div class="catalog-category__intro">
-        <h2>Modernizacja i dane</h2>
-        <p>Wymiana dysku, rozbudowa pamięci i przenoszenie lub odzyskiwanie danych.</p>
-      </div>
-      <div class="catalog-list">
-        {% for s in services %}
-          {% if s.name == "Wymiana dysku HDD/SSD" or s.name == "Rozbudowa pamięci RAM" or s.name == "Klonowanie dysku i przeniesienie danych" or s.name == "Odzyskiwanie danych" or s.name == "Odzyskiwanie danych z dysku" %}
-            {% include "orders/partials/service_catalog_row.html" %}
-          {% endif %}
-        {% endfor %}
-      </div>
-    </section>
-
-    <section class="catalog-category">
-      <div class="catalog-category__intro">
-        <h2>Naprawy laptopów</h2>
-        <p>Najczęstsze prace serwisowe przy laptopach i komputerach używanych na co dzień.</p>
-      </div>
-      <div class="catalog-list">
-        {% for s in services %}
-          {% if s.name == "Czyszczenie i konserwacja laptopa/PC" or s.name == "Czyszczenie i konserwacja układu chłodzenia" or s.name == "Wymiana matrycy w laptopie" or s.name == "Wymiana klawiatury lub baterii" or s.name == "Wymiana klawiatury lub baterii w laptopie" %}
-            {% include "orders/partials/service_catalog_row.html" %}
-          {% endif %}
-        {% endfor %}
-      </div>
-    </section>
+    {% endif %}
   {% else %}
     <div class="panel">
       <div class="panel__body">

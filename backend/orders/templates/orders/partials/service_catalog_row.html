@@ -1,13 +1,5 @@
 <article class="catalog-service-row">
   <div class="catalog-service-row__main">
-    <span class="service-label">
-      {% if "Diagnostyka" in s.name %}Diagnoza
-      {% elif "system" in s.name or "Windows" in s.name or "wirus" in s.name %}System
-      {% elif "Wymiana dysku" in s.name %}Dysk
-      {% elif "danych" in s.name or "Klonowanie" in s.name or "Odzyskiwanie" in s.name %}Dane
-      {% elif "laptop" in s.name or "matrycy" in s.name or "klawiatury" in s.name or "baterii" in s.name %}Laptop
-      {% else %}Inne{% endif %}
-    </span>
     <h3>{{ s.name }}</h3>
     {% if s.description %}
       <p>{{ s.description }}</p>
