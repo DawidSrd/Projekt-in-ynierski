@@ -209,7 +209,7 @@ class ServiceConfiguratorTests(TestCase):
         self.assertContains(response, "Szacowany czas usługi")
         self.assertContains(response, "120 min")
 
-    def test_manual_pricing_service_does_not_show_zero_price_as_offer(self):
+    def test_manual_pricing_service_shows_diagnosis_message_without_price_button(self):
         service = Service.objects.create(
             name="Nietypowa sprawa",
             pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
@@ -217,29 +217,16 @@ class ServiceConfiguratorTests(TestCase):
             base_price_max=0,
             base_duration_minutes=0,
         )
-        group = ServiceOptionGroup.objects.create(
-            service=service,
-            name="Rodzaj problemu",
-            selection_type=ServiceOptionGroup.SelectionType.SINGLE,
-        )
-        option = ServiceOption.objects.create(
-            group=group,
-            name="Nie wiem - prosze o diagnoze",
-        )
 
-        response = self.client.post(
-            reverse("service_configurator", args=[service.id]),
-            {
-                f"group_{group.id}": str(option.id),
-                "action": "price_only",
-            },
-        )
+        response = self.client.get(reverse("service_configurator", args=[service.id]))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Wycena po diagnozie")
         self.assertContains(response, "Cena i czas realizacji")
         self.assertNotContains(response, "Cena po konfiguracji")
         self.assertNotContains(response, "0,00 - 0,00")
+        self.assertNotContains(response, "Policz cenę")
+        self.assertNotContains(response, "Wycena pojawi się po przeliczeniu konfiguracji")
 
     def test_manual_pricing_mode_is_saved_in_order_snapshot(self):
         service = Service.objects.create(

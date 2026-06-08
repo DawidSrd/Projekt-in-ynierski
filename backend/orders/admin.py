@@ -30,6 +30,8 @@ ADMIN_FIELD_LABELS = {
     "base_price_min": "Cena od",
     "base_price_max": "Cena do",
     "base_duration_minutes": "Czas bazowy (minuty)",
+    "catalog_position": "Pozycja w katalogu",
+    "is_featured": "Wyróżnij nad katalogiem",
     "service": "Usługa",
     "group": "Sekcja opcji",
     "price_delta_min": "Dopłata od",
@@ -183,15 +185,39 @@ class ServiceAdminForm(forms.ModelForm):
             "name",
             "description",
             "is_active",
+            "is_featured",
             "manual_pricing",
             "base_price_min",
             "base_price_max",
             "base_duration_minutes",
+            "catalog_position",
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["manual_pricing"].initial = self.instance.requires_manual_pricing
+
+    def clean(self):
+        cleaned_data = super().clean()
+        price_min = cleaned_data.get("base_price_min")
+        price_max = cleaned_data.get("base_price_max")
+        if price_min is not None and price_min < 0:
+            self.add_error("base_price_min", "Cena nie może być ujemna.")
+        if price_max is not None and price_max < 0:
+            self.add_error("base_price_max", "Cena nie może być ujemna.")
+        if price_min is not None and price_max is not None and price_max < price_min:
+            self.add_error("base_price_max", "Cena do nie może być niższa niż cena od.")
+        if cleaned_data.get("is_featured") and cleaned_data.get("is_active"):
+            other_featured_services = Service.objects.filter(
+                is_featured=True,
+                is_active=True,
+            ).exclude(pk=self.instance.pk)
+            if other_featured_services.exists():
+                self.add_error(
+                    "is_featured",
+                    "Tylko jedna aktywna usługa może być pokazana jako indywidualna diagnoza.",
+                )
+        return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -229,7 +255,17 @@ class ServiceOptionGroupInlineForm(forms.ModelForm):
         if "name" in self.fields:
             self.fields["name"].label = "Nazwa opcji"
 
-        primary_option = self.get_primary_option()
+        options = list(self.instance.options.order_by("sort_order", "id")) if self.instance.pk else []
+        self.syncs_simple_option = not self.instance.pk or (
+            len(options) <= 1
+            and self.instance.selection_type == ServiceOptionGroup.SelectionType.MULTI
+            and not self.instance.is_required
+            and (not options or options[0].name == self.instance.name)
+        )
+        if not self.syncs_simple_option:
+            self.fields["price_delta_min"].widget = forms.HiddenInput()
+            self.fields["price_delta_max"].widget = forms.HiddenInput()
+        primary_option = options[0] if options else None
         if primary_option and not self.is_bound:
             self.initial["price_delta_min"] = primary_option.price_delta_min
             self.initial["price_delta_max"] = primary_option.price_delta_max
@@ -248,12 +284,10 @@ class ServiceOptionGroupInlineForm(forms.ModelForm):
             self.add_error("price_delta_max", "Dopłata do nie może być niższa niż dopłata od.")
         return cleaned_data
 
-    def get_primary_option(self):
-        if not self.instance.pk:
-            return None
-        return self.instance.options.order_by("sort_order", "id").first()
-
     def save_option(self, group):
+        if not self.syncs_simple_option:
+            return
+
         options = list(group.options.order_by("sort_order", "id"))
         option = options[0] if options else ServiceOption(group=group, sort_order=10)
         option.name = group.name
@@ -262,10 +296,6 @@ class ServiceOptionGroupInlineForm(forms.ModelForm):
         option.duration_delta_minutes = 0
         option.is_active = group.is_active
         option.save()
-
-        for extra_option in options[1:]:
-            extra_option.is_active = False
-            extra_option.save(update_fields=["is_active"])
 
 
 class ServiceOptionGroupInlineFormSet(BaseInlineFormSet):
@@ -286,9 +316,6 @@ class ServiceOptionGroupInlineFormSet(BaseInlineFormSet):
 
     def save_existing(self, form, instance, commit=True):
         obj = form.save(commit=False)
-        obj.selection_type = ServiceOptionGroup.SelectionType.MULTI
-        obj.is_required = False
-        obj.is_active = True
         if commit:
             obj.save()
             form.save_m2m()
@@ -321,15 +348,29 @@ class ServiceAdmin(PolishAdminLabelsMixin, admin.ModelAdmin):
     change_list_template = "admin/orders/service/change_list.html"
     list_display = (
         "name",
+        "catalog_position",
         "price_range_display",
         "duration_display",
         "is_active",
     )
+    list_editable = ("catalog_position",)
+    ordering = ("catalog_position", "id")
     list_filter = ()
     search_fields = ()
     inlines = [ServiceOptionGroupInline]
     fieldsets = (
-        ("Podstawowe informacje", {"fields": ("name", "description", "is_active")}),
+        (
+            "Podstawowe informacje",
+            {
+                "fields": (
+                    "name",
+                    "description",
+                    "catalog_position",
+                    "is_active",
+                    "is_featured",
+                )
+            },
+        ),
         (
             "Cena i czas",
             {"fields": ("manual_pricing", "base_price_min", "base_price_max", "base_duration_minutes")},

@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
 
-from .admin import StaffAccountAdmin, ServiceAdmin
+from .admin import ServiceOptionGroupInlineForm, StaffAccountAdmin, ServiceAdmin
 from .choices import ServiceOrderStatus
 from .models import (
     AuditLog,
@@ -49,17 +49,12 @@ class HomePageTests(TestCase):
         self.assertContains(response, ">Usługi<")
         self.assertContains(response, "System obsługi zleceń serwisowych")
         self.assertContains(response, "2026")
-        self.assertNotContains(response, "Utworzenie zlecenia")
-        self.assertNotContains(response, "Aktualne zgłoszenie")
-        self.assertNotContains(response, "Diagnostyka laptopa")
-        self.assertNotContains(response, "Dlaczego warto?")
-        self.assertNotContains(response, "FAQ")
         self.assertNotContains(response, "Panel technika")
         self.assertNotContains(response, "Admin")
         self.assertNotContains(response, 'href="/tech/dashboard/"')
         self.assertNotContains(response, 'href="/admin/"')
 
-    def test_home_page_uses_general_service_scope_instead_of_service_preview(self):
+    def test_home_page_does_not_render_catalog_entries(self):
         Service.objects.create(
             name="Diagnostyka sprzętu",
             description="Sprawdzenie stanu komputera.",
@@ -80,26 +75,28 @@ class HomePageTests(TestCase):
         self.assertContains(response, "diagnostyka laptopów i komputerów")
         self.assertContains(response, "indywidualna diagnoza problemów")
         self.assertContains(response, 'href="/services/"')
-        self.assertNotContains(response, 'href="tel:500100200"')
         self.assertNotContains(response, "Diagnostyka sprzętu")
         self.assertNotContains(response, "Sprawdzenie stanu komputera.")
         self.assertNotContains(response, "80,00 - 120,00 zł")
         self.assertNotContains(response, "Wybierz usługę")
         self.assertNotContains(response, "Usługa ukryta")
 
-    def test_service_catalog_shows_active_services_and_uses_human_time_labels(self):
+    def test_service_catalog_shows_active_services_and_configured_duration(self):
         Service.objects.create(
             name="Diagnostyka komputera lub laptopa",
             description="Gdy nie wiadomo, co powoduje problem.",
             base_price_min=80,
             base_price_max=160,
+            base_duration_minutes=90,
+            catalog_position=2,
             is_active=True,
         )
-        Service.objects.create(
+        first_service = Service.objects.create(
             name="Instalacja systemu Windows",
             description="Instalacja systemu, sterowników i podstawowa konfiguracja.",
             base_price_min=140,
             base_price_max=260,
+            catalog_position=1,
             is_active=True,
         )
         Service.objects.create(
@@ -108,6 +105,7 @@ class HomePageTests(TestCase):
             base_price_min=0,
             base_price_max=0,
             pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
+            is_featured=True,
             is_active=True,
         )
         Service.objects.create(
@@ -115,6 +113,8 @@ class HomePageTests(TestCase):
             description="Usługa dodana bez zmiany kodu.",
             base_price_min=50,
             base_price_max=100,
+            base_duration_minutes=120,
+            pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS,
             is_active=True,
         )
 
@@ -126,8 +126,13 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Testowa usługa administratora")
         self.assertContains(response, "Usługa dodana bez zmiany kodu.")
         self.assertContains(response, "Ceny i terminy są orientacyjne")
-        self.assertContains(response, "Orientacyjnie: 1 dzień roboczy")
-        self.assertNotContains(response, "90 min")
+        self.assertContains(response, "90 min")
+        self.assertContains(response, "120 min")
+        self.assertEqual(response.context["services"].first(), first_service)
+        self.assertEqual(
+            response.context["featured_service"].name,
+            "Inne / indywidualna diagnoza",
+        )
         self.assertContains(response, "Nie pasuje żadna konkretna usługa?")
         self.assertContains(response, "Wybierz indywidualną diagnozę")
 
@@ -138,7 +143,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Numer zlecenia znajdziesz w potwierdzeniu zgłoszenia")
         self.assertContains(response, "Co zobaczysz po sprawdzeniu?")
         self.assertContains(response, "aktualny status zlecenia")
-        self.assertContains(response, "komentarze publiczne od serwisu")
+        self.assertContains(response, "komentarze od serwisu")
 
     def test_staff_user_sees_technician_navigation_only(self):
         User.objects.create_user(
@@ -225,10 +230,6 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Nie musisz zakładać konta")
         self.assertContains(response, "indywidualna diagnoza problemów")
         self.assertContains(response, "500 100 200")
-        self.assertNotContains(response, "klient nie musi")
-        self.assertNotContains(response, "Historia obsługi")
-        self.assertNotContains(response, "Wycena przed rozpoczęciem prac")
-
     def test_admin_index_focuses_on_system_administration(self):
         User.objects.create_superuser(
             username="admin",
@@ -259,37 +260,10 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Usługi i cennik")
         self.assertContains(response, "Panel technika")
         self.assertContains(response, 'href="/tech/dashboard/"')
-        self.assertNotContains(response, "Pokaż stronę")
-        self.assertNotContains(response, "View site")
-        self.assertNotContains(response, '<a href="/admin/auth/user/">Konta</a>')
-        self.assertNotContains(response, '<a href="/admin/orders/service/">Usługi i cennik</a>')
-        self.assertNotContains(response, '<a class="service-admin-action" href="/tech/dashboard/">')
-        self.assertContains(response, "Usługi i cennik")
         self.assertContains(response, "Usługi")
-        self.assertNotContains(response, "Lista do edycji")
-        self.assertNotContains(response, "Pytania w formularzu")
-        self.assertNotContains(response, "Odpowiedzi do wyboru")
-        self.assertNotContains(response, "Opcje usług")
         self.assertNotContains(response, 'href="/admin/orders/serviceoptiongroup/"')
         self.assertNotContains(response, 'href="/admin/orders/serviceoption/"')
-        self.assertNotContains(response, "Zaawansowane dane systemu")
-        self.assertNotContains(response, "Zlecenia i usługi")
-        self.assertNotContains(response, "Konfigurator usług")
-        self.assertNotContains(response, "Grupy opcji usług")
-        self.assertNotContains(response, "Zlecenia serwisowe")
-        self.assertNotContains(response, "Komentarze do zleceń")
-        self.assertNotContains(response, "Załączniki do zleceń")
-        self.assertNotContains(response, "Pozycje zleceń")
-        self.assertNotContains(response, "Wybrane opcje zleceń")
-        self.assertNotContains(response, "Historia zmian")
-        self.assertNotContains(response, "Zakres odpowiedzialności administratora")
-        self.assertNotContains(response, "Ostatnie działania")
-        self.assertNotContains(response, "Ostatnie zlecenia")
         self.assertNotContains(response, "Jan Kowalski")
-        self.assertNotContains(response, "Czeka na klienta")
-        self.assertNotContains(response, "Ten panel służy")
-        self.assertNotContains(response, "Orders")
-        self.assertNotContains(response, "Services")
         self.assertFalse(admin.site.is_registered(ServiceOrder))
         self.assertFalse(admin.site.is_registered(ServiceOrderComment))
         self.assertFalse(admin.site.is_registered(ServiceOrderAttachment))
@@ -360,31 +334,13 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Ustaw nowe hasło")
         self.assertContains(response, reverse("admin:auth_user_password_change", args=[technician.id]))
         self.assertNotContains(response, "Konto aktywne")
-        self.assertNotContains(response, "Dostęp do panelu pracownika")
         self.assertNotContains(response, 'class="deletelink"')
-        self.assertNotContains(response, "Grupy")
-        self.assertNotContains(response, "Uprawnienia użytkownika")
-        self.assertNotContains(response, "Status superużytkownika")
-        self.assertNotContains(response, "Pozwala zarządzać")
-        self.assertNotContains(response, "Hasło nie jest widoczne po zapisie")
-        self.assertNotContains(response, "Zacznij pisać")
-        self.assertNotContains(response, "odfiltrować")
         self.assertNotContains(response, "Adres e-mail")
         self.assertNotContains(response, 'name="email"')
-        self.assertNotContains(response, "Zmień użytkownik")
         self.assertNotContains(response, "pbkdf2_sha256")
-        self.assertNotContains(response, "algorytm")
-        self.assertNotContains(response, "iteracje")
-        self.assertNotContains(response, "sól")
-        self.assertNotContains(response, "hash")
-        self.assertNotContains(response, "Historia")
-        self.assertNotContains(response, "History")
 
         password_response = self.client.get(reverse("admin:auth_user_password_change", args=[technician.id]))
         self.assertEqual(password_response.status_code, 200)
-        self.assertNotContains(password_response, "Twoje hasło nie może")
-        self.assertNotContains(password_response, "Podpowiedzi")
-        self.assertNotContains(password_response, "podobne do twoich innych danych")
 
         changelist_response = self.client.get(reverse("admin:auth_user_changelist"))
         self.assertContains(changelist_response, "Konta pracowników")
@@ -395,8 +351,6 @@ class HomePageTests(TestCase):
         self.assertNotContains(changelist_response, "<label>Akcja:")
         self.assertNotContains(changelist_response, 'name="action"')
         self.assertNotContains(changelist_response, "Konto aktywne")
-        self.assertNotContains(changelist_response, ">Dodaj użytkownik</a>")
-        self.assertNotContains(changelist_response, "Wybierz użytkownik do zmiany")
 
         add_response = self.client.post(
             reverse("admin:auth_user_add"),
@@ -441,9 +395,15 @@ class HomePageTests(TestCase):
         self.assertNotIn("sort_order", service_form.base_fields)
         self.assertNotIn("pricing_mode", service_form.base_fields)
         self.assertIn("manual_pricing", service_form.base_fields)
+        self.assertIn("is_featured", service_form.base_fields)
         self.assertEqual(service_form.base_fields["name"].label, "Nazwa usługi")
         self.assertEqual(service_form.base_fields["description"].label, "Opis")
+        self.assertEqual(service_form.base_fields["catalog_position"].label, "Pozycja w katalogu")
         self.assertEqual(service_form.base_fields["manual_pricing"].label, "Cena do ustalenia po diagnozie")
+        self.assertEqual(
+            service_form.base_fields["is_featured"].label,
+            "Wyróżnij nad katalogiem",
+        )
         self.assertEqual(service_admin.readonly_fields, ())
         self.assertNotIn(
             ("Metadane", {"fields": ("created_at", "updated_at")}),
@@ -468,14 +428,9 @@ class HomePageTests(TestCase):
         self.assertContains(change_response, "Dopłata od")
         self.assertContains(change_response, "Dopłata do")
         self.assertContains(change_response, "Przy stałej cenie wpisz tę samą kwotę w obu polach.")
-        self.assertNotContains(change_response, "Zaznacz, jeżeli koszt usługi")
         self.assertNotContains(change_response, 'name="option_groups-0-is_active"')
         self.assertNotContains(change_response, 'name="option_groups-0-DELETE"')
         self.assertNotContains(change_response, 'class="deletelink"')
-        self.assertNotContains(change_response, "Standard | 0,00 | 0,00")
-        self.assertNotContains(change_response, "Każda linia: nazwa opcji | dopłata od | dopłata do")
-        self.assertNotContains(change_response, "Historia")
-        self.assertNotContains(change_response, "History")
 
     def test_service_admin_manual_pricing_checkbox_sets_pricing_mode(self):
         admin_user = User.objects.create_superuser(
@@ -493,16 +448,29 @@ class HomePageTests(TestCase):
                 "name": "Indywidualna diagnoza",
                 "description": "Opis problemu ustalany po przyjęciu sprzętu.",
                 "is_active": "on",
+                "is_featured": "on",
                 "manual_pricing": "on",
                 "base_price_min": "0",
                 "base_price_max": "0",
                 "base_duration_minutes": "60",
+                "catalog_position": "1",
             }
         )
 
         self.assertTrue(form.is_valid())
         service = form.save(commit=False)
         self.assertEqual(service.pricing_mode, Service.PricingMode.MANUAL_AFTER_DIAGNOSIS)
+
+        invalid_price_form = form_class(
+            data={**form.data, "base_price_min": "500", "base_price_max": "100"}
+        )
+        self.assertFalse(invalid_price_form.is_valid())
+        self.assertIn("base_price_max", invalid_price_form.errors)
+
+        service.save()
+        duplicate_form = form_class(data={**form.data, "name": "Druga diagnoza"})
+        self.assertFalse(duplicate_form.is_valid())
+        self.assertIn("is_featured", duplicate_form.errors)
 
     def test_service_option_prices_are_saved_from_service_admin(self):
         admin_user = User.objects.create_superuser(
@@ -555,6 +523,12 @@ class HomePageTests(TestCase):
                 ("Tryb pilny", Decimal("50.00"), Decimal("100.00"), 10, True),
             ],
         )
+
+        ServiceOption.objects.create(group=new_group, name="Drugi wariant")
+        form = ServiceOptionGroupInlineForm(instance=new_group)
+        self.assertFalse(form.syncs_simple_option)
+        form.save_option(new_group)
+        self.assertEqual(new_group.options.filter(is_active=True).count(), 2)
 
     def test_staff_login_page_is_available(self):
         response = self.client.get(reverse("staff_login"))

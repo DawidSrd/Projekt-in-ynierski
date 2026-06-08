@@ -18,17 +18,21 @@ SERVICE_ORDER_STATUS_TRANSITIONS = {
     ),
     ServiceOrderStatus.RECEIVED: (
         ServiceOrderStatus.IN_PROGRESS,
+        ServiceOrderStatus.CANCELED,
     ),
     ServiceOrderStatus.IN_PROGRESS: (
         ServiceOrderStatus.WAITING_FOR_PARTS,
         ServiceOrderStatus.READY,
+        ServiceOrderStatus.CANCELED,
     ),
     ServiceOrderStatus.WAITING_FOR_PARTS: (
         ServiceOrderStatus.IN_PROGRESS,
         ServiceOrderStatus.READY,
+        ServiceOrderStatus.CANCELED,
     ),
     ServiceOrderStatus.READY: (
         ServiceOrderStatus.COMPLETED,
+        ServiceOrderStatus.CANCELED,
     ),
     ServiceOrderStatus.COMPLETED: (),
     ServiceOrderStatus.CANCELED: (),

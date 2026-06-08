@@ -27,8 +27,10 @@ class Service(models.Model):
     base_price_max = models.DecimalField(max_digits=10, decimal_places=2)
 
     base_duration_minutes = models.PositiveIntegerField(default=60)
+    catalog_position = models.PositiveIntegerField(default=999)
 
     is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

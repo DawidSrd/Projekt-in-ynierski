@@ -22,8 +22,8 @@
           </div>
         {% else %}
           <div class="meta-row">
-            <span class="pill">Cena bazowa: {{ service.base_price_min }} - {{ service.base_price_max }} zł</span>
-            <span class="pill">Czas bazowy: {{ service.base_duration_minutes }} min</span>
+            <span class="pill">Cena: {{ service.base_price_min }} - {{ service.base_price_max }} zł</span>
+            <span class="pill">Przewidywany czas: {{ service.base_duration_minutes }} min</span>
           </div>
         {% endif %}
 
@@ -127,7 +127,9 @@
           </section>
 
           <div class="button-row">
-            <button type="submit" name="action" value="price_only" formnovalidate>Policz cenę</button>
+            {% if not service.requires_manual_pricing %}
+              <button type="submit" name="action" value="price_only" formnovalidate>Policz cenę</button>
+            {% endif %}
             <button class="button--secondary" type="submit" name="action" value="create_order">Złóż zlecenie</button>
           </div>
         </form>
@@ -138,10 +140,10 @@
       <div class="panel__body">
         <h2>Wycena</h2>
 
-        {% if result %}
-          {% if service.requires_manual_pricing %}
-            <p class="empty">Cena i czas realizacji zostaną ustalone po zapoznaniu się z opisem problemu.</p>
-          {% elif result.has_price %}
+        {% if service.requires_manual_pricing %}
+          <p class="empty">Cena i czas realizacji zostaną ustalone po zapoznaniu się z opisem problemu.</p>
+        {% elif result %}
+          {% if result.has_price %}
             <div class="metric">
               <span class="metric__label">Cena po konfiguracji</span>
               <span class="metric__value">{{ result.total_min }} - {{ result.total_max }} zł</span>

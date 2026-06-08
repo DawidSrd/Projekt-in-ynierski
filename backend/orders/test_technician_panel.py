@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .choices import ServiceOrderStatus
+from .choices import ServiceOrderStatus, can_change_order_status
 from .models import (
     AuditLog,
     Service,
@@ -738,6 +738,18 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(acceptance_response, "Zgoda klienta została zarejestrowana.")
         self.assertContains(acceptance_response, "Zaakceptowana przez klienta")
 
+        response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {
+                "action": "update_diagnosis",
+                "diagnosis": "Zmieniona diagnoza.",
+                "final_price": "400.00",
+            },
+        )
+        self.order.refresh_from_db()
+        self.assertFalse(self.order.customer_accepted_repair)
+        self.assertContains(response, "Akceptacja klienta została wycofana.")
+
     def test_staff_cannot_save_negative_final_price(self):
         User.objects.create_user(
             username="technik",
@@ -788,6 +800,13 @@ class TechnicianViewsTests(TestCase):
             ).exists()
         )
         self.assertContains(response, "Taka zmiana statusu nie jest dozwolona")
+        for status in (
+            ServiceOrderStatus.RECEIVED,
+            ServiceOrderStatus.IN_PROGRESS,
+            ServiceOrderStatus.WAITING_FOR_PARTS,
+            ServiceOrderStatus.READY,
+        ):
+            self.assertTrue(can_change_order_status(status, ServiceOrderStatus.CANCELED))
 
     def test_staff_can_add_public_comment_visible_in_tracking(self):
         technician = User.objects.create_user(

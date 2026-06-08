@@ -13,14 +13,14 @@
 
   <p class="catalog-note"><strong>Ceny i terminy są orientacyjne.</strong> Ostateczna wycena oraz termin zależą od diagnozy sprzętu, dostępności części i zakresu prac.</p>
 
-  {% if services or manual_service %}
-    {% if manual_service %}
+  {% if services or featured_service %}
+    {% if featured_service %}
     <section class="catalog-help" aria-label="Pomoc w wyborze usługi">
       <div>
         <h2>Nie pasuje żadna konkretna usługa?</h2>
         <p>Wybierz indywidualną diagnozę i opisz objawy własnymi słowami. Po sprawdzeniu sprzętu ustalimy dalszy zakres prac.</p>
       </div>
-      <a class="button button--secondary" href="/services/{{ manual_service.id }}/">Wybierz indywidualną diagnozę</a>
+      <a class="button button--secondary" href="/services/{{ featured_service.id }}/">Wybierz indywidualną diagnozę</a>
     </section>
     {% endif %}
 

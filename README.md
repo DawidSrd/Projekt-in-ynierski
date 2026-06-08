@@ -110,7 +110,7 @@ Przykładowe usługi można dodać komendą:
 docker compose exec web python manage.py seed_services
 ```
 
-Komenda tworzy startowy katalog usług i opcje konfiguratora. Można uruchomić ją ponownie, bez dublowania tych samych danych.
+Komenda dodaje trzy przykładowe usługi do pustego katalogu. Ponowne uruchomienie nie dubluje danych ani nie nadpisuje zmian administratora.
 
 ## Baza danych
 

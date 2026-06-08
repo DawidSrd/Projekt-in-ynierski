@@ -210,13 +210,11 @@ def service_catalog(request):
     if staff_redirect:
         return staff_redirect
 
-    active_services = Service.objects.filter(is_active=True).order_by("id")
-    manual_service = active_services.filter(
-        pricing_mode=Service.PricingMode.MANUAL_AFTER_DIAGNOSIS
-    ).first()
+    active_services = Service.objects.filter(is_active=True).order_by("catalog_position", "id")
+    featured_service = active_services.filter(is_featured=True).first()
     services = (
-        active_services.exclude(pk=manual_service.pk)
-        if manual_service
+        active_services.exclude(pk=featured_service.pk)
+        if featured_service
         else active_services
     )
 
@@ -224,7 +222,7 @@ def service_catalog(request):
         request,
         "orders/service_catalog.html",
         {
-            "manual_service": manual_service,
+            "featured_service": featured_service,
             "services": services,
         },
     )
@@ -441,7 +439,7 @@ def tech_dashboard(request):
 
 @staff_member_required(login_url="staff_login")
 def tech_order_create(request):
-    services = Service.objects.filter(is_active=True).order_by("id")
+    services = Service.objects.filter(is_active=True).order_by("catalog_position", "id")
     error = None
     form_defaults = get_customer_defaults(request.POST if request.method == "POST" else None)
     selected_service_id = (request.POST.get("service_id") or "") if request.method == "POST" else ""

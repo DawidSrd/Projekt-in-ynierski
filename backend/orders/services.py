@@ -423,12 +423,20 @@ def update_order_diagnosis(order, user, diagnosis, repair_notes, final_price_raw
 
     # Porównanie stanu przed i po zmianie chroni historię przed pustymi wpisami.
     old_value = format_service_result(order)
+    acceptance_withdrawn = order.customer_accepted_repair and (
+        order.diagnosis != diagnosis or order.final_price != final_price
+    )
     order.diagnosis = diagnosis
     order.repair_notes = repair_notes
     order.final_price = final_price
+    if acceptance_withdrawn:
+        order.customer_accepted_repair = False
     order.save()
 
     if old_value != format_service_result(order):
         log_diagnosis_updated(order, old_value, user)
+
+    if acceptance_withdrawn:
+        return "Diagnoza i rozliczenie zostały zapisane. Akceptacja klienta została wycofana.", None
 
     return "Diagnoza i rozliczenie zostały zapisane.", None
