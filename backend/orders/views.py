@@ -518,6 +518,9 @@ def tech_order_detail(request, order_number: str):
                 final_price_raw,
             )
 
+        elif action == "register_repair_acceptance":
+            message, error = accept_customer_repair(order, request.user)
+
         else:
             error = "Nieznana akcja formularza."
 

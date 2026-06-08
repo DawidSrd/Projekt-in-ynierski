@@ -26,18 +26,28 @@
         </div>
       </div>
 
-      <div class="acceptance-summary">
-        <span class="metric__label">Akceptacja naprawy</span>
-        {% if order.customer_accepted_repair %}
-          <span class="status-badge">Zaakceptowana przez klienta</span>
-        {% else %}
-          <span class="status-badge">Oczekuje na decyzję klienta</span>
-        {% endif %}
-      </div>
-
       <div class="button-row">
         <button type="submit">Zapisz diagnozę</button>
       </div>
     </form>
+
+    <div class="acceptance-summary">
+      <span class="metric__label">Akceptacja naprawy</span>
+      {% if order.customer_accepted_repair %}
+        <span class="status-badge">Zaakceptowana przez klienta</span>
+      {% else %}
+        <span class="status-badge">Oczekuje na decyzję klienta</span>
+      {% endif %}
+    </div>
+
+    {% if order.can_accept_repair %}
+      <form method="post" onsubmit="return confirm('Czy klient zaakceptował przedstawiony zakres i koszt naprawy?');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="register_repair_acceptance" />
+        <div class="button-row">
+          <button class="button--secondary" type="submit">Zarejestruj zgodę klienta</button>
+        </div>
+      </form>
+    {% endif %}
   </div>
 </section>

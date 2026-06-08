@@ -719,6 +719,25 @@ class TechnicianViewsTests(TestCase):
         self.assertContains(track_response, "Akceptuję naprawę")
         self.assertContains(track_response, "Aktualizacja diagnozy i rozliczenia")
 
+        self.client.login(username="technik", password="testpass123")
+        acceptance_response = self.client.post(
+            reverse("tech_order_detail", args=[self.order.order_number]),
+            {"action": "register_repair_acceptance"},
+        )
+
+        self.assertEqual(acceptance_response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.customer_accepted_repair)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                order=self.order,
+                action=AuditLog.Action.REPAIR_ACCEPTED,
+                performed_by__username="technik",
+            ).exists()
+        )
+        self.assertContains(acceptance_response, "Zgoda klienta została zarejestrowana.")
+        self.assertContains(acceptance_response, "Zaakceptowana przez klienta")
+
     def test_staff_cannot_save_negative_final_price(self):
         User.objects.create_user(
             username="technik",

@@ -296,11 +296,13 @@ def cancel_customer_order(order):
     return "Zlecenie zostało anulowane.", None
 
 
-def accept_customer_repair(order):
+def accept_customer_repair(order, performed_by=None):
     if order.can_accept_repair():
         order.customer_accepted_repair = True
         order.save()
-        log_repair_accepted(order)
+        log_repair_accepted(order, performed_by)
+        if performed_by:
+            return "Zgoda klienta została zarejestrowana.", None
         return "Naprawa została zaakceptowana.", None
 
     if order.customer_accepted_repair:

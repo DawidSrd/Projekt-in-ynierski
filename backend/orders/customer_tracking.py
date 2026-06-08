@@ -54,7 +54,12 @@ def build_customer_audit_timeline(order):
         elif entry.action == AuditLog.Action.DIAGNOSIS_UPDATED:
             timeline.append((entry.performed_at, "Aktualizacja diagnozy i rozliczenia"))
         elif entry.action == AuditLog.Action.REPAIR_ACCEPTED:
-            timeline.append((entry.performed_at, "Klient zaakceptował naprawę"))
+            message = (
+                "Serwis zarejestrował akceptację klienta"
+                if entry.performed_by
+                else "Klient zaakceptował naprawę"
+            )
+            timeline.append((entry.performed_at, message))
 
     return timeline
 
